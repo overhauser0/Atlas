@@ -1,0 +1,51 @@
+# --- Gleis Project Gitignore ---
+
+# 1. Dependencies
+# コンテナ内でインストールされるので、リポジトリには不要です
+node_modules/
+.pnpm-store/
+
+# 2. Environment Variables (CRITICAL)
+# ⚠️ これらは絶対に公開してはいけません
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# 3. Next.js Build Output
+.next/
+out/
+build/
+
+# 4. Serwist / PWA
+# 自動生成されるサービスワーカー関連
+public/sw.js
+public/sw.js.map
+public/workbox-*.js
+tsconfig.tsbuildinfo
+
+# 5. Backend / Database
+# DBのログやローカルにマウントしたデータなど
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.db-data/
+postgres-data/
+
+# 6. IDE / OS Specific
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# 7. Docker
+# ローカルの開発用オーバーライド設定など
+docker-compose.override.yml
