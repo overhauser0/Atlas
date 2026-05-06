@@ -113,6 +113,32 @@ export const upsertNotionTaskCache = async (
 };
 
 /**
+ * ユーザー操作による部分更新 (Notionキャッシュ)
+ * upsertと違い、変更があったフィールドのみを更新する
+ */
+export const updateNotionTaskCache = async (
+  id: string,
+  updates: Partial<Task>,
+) => {
+  return await db
+    .updateTable("notion_tasks_cache")
+    .set({
+      title: updates.title,
+      status: updates.status,
+      priority: updates.priority,
+      area: updates.area,
+      type: updates.type,
+      topics: updates.topics,
+      flags: updates.flags,
+      due_date: updates.dueDate ? new Date(updates.dueDate) : undefined,
+      last_edited_time: new Date(), // 最終編集時刻のみ更新
+    })
+    .where("id", "=", id)
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/**
  * キャッシュされたタスク一覧を取得する
  */
 export const fetchCachedTasks = async () => {
@@ -129,30 +155,50 @@ export const getTasks = async (filters: {
   status?: string;
   excludeStatus?: string[];
 }) => {
-  let query = db.selectFrom("notion_tasks_cache").selectAll();
+  // 💡 共通のフィルタを適用するヘルパー
+  const applyCommonFilters = (qb: any) => {
+    let q = qb;
+    if (filters.area) q = q.where("area", "=", filters.area);
+    if (filters.type) q = q.where("type", "=", filters.type);
+    if (filters.status) q = q.where("status", "=", filters.status);
+    if (filters.excludeStatus && filters.excludeStatus.length > 0) {
+      q = q.where("status", "not in", filters.excludeStatus);
+    }
+    return q;
+  };
 
-  // area（Life,Work）で絞り込み
-  if (filters.area) {
-    query = query.where("area", "=", filters.area);
-  }
+  // 1. Notionキャッシュから取得
+  const notionTasks = await applyCommonFilters(
+    db.selectFrom("notion_tasks_cache").selectAll(),
+  )
+    .orderBy("last_edited_time", "desc")
+    .execute();
 
-  // type（Task, Education, Privateなど）で絞り込み
-  if (filters.type) {
-    query = query.where("type", "=", filters.type);
-  }
+  // 2. ローカルタスクから取得
+  const localTasks = await applyCommonFilters(
+    db.selectFrom("local_tasks").selectAll(),
+  )
+    .orderBy("created_at", "desc")
+    .execute();
 
-  // 特定のステータスで絞り込み
-  if (filters.status) {
-    query = query.where("status", "=", filters.status);
-  }
+  console.log("localTasks", localTasks);
 
-  // 完了・キャンセル済みなどを除外
-  if (filters.excludeStatus && filters.excludeStatus.length > 0) {
-    query = query.where("status", "not in", filters.excludeStatus);
-  }
+  // 3. 結合して source を付与
+  const combined = [
+    ...notionTasks.map((t) => ({ ...t, source: "NOTION" })),
+    ...localTasks.map((t) => ({ ...t, source: "LOCAL" })),
+  ];
 
-  // 常に最新の更新順で取得
-  return await query.orderBy("last_edited_time", "desc").execute();
+  // 4. 全体を日付順でソート（Notionは最終編集、Localは作成日時で代用）
+  return combined.sort((a, b) => {
+    const dateA = new Date(
+      (a as any).last_edited_time || (a as any).created_at,
+    ).getTime();
+    const dateB = new Date(
+      (b as any).last_edited_time || (b as any).created_at,
+    ).getTime();
+    return dateB - dateA;
+  });
 };
 
 /**
@@ -172,6 +218,21 @@ export const insertLocalTask = async (task: Task) => {
       flags: task.flags,
       due_date: task.dueDate ? new Date(task.dueDate) : null,
     })
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/**
+ * ローカルタスクを更新する
+ */
+export const updateLocalTask = async (
+  id: string,
+  updates: Partial<LocalTasksTable>,
+) => {
+  return await db
+    .updateTable("local_tasks")
+    .set(updates)
+    .where("id", "=", id)
     .returningAll()
     .executeTakeFirst();
 };

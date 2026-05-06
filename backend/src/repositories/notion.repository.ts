@@ -27,23 +27,26 @@ export const createPage = async (task: Task) => {
  * Notionの既存ページを更新する
  */
 export const updatePage = async (pageId: string, task: Partial<Task>) => {
-  const props: any = {};
-  if (task.title) props.Name = { title: [{ text: { content: task.title } }] };
-  if (task.status) props.State = { status: { name: task.status } };
-  if (task.area) props._Area = { select: { name: task.area } };
-  if (task.type) props._Type = { select: { name: task.type } };
+  const properties: any = {};
+  if (task.title)
+    properties.Name = { title: [{ text: { content: task.title } }] };
+  if (task.status) properties.State = { status: { name: task.status } };
+  if (task.area) properties._Area = { select: { name: task.area } };
+  if (task.type) properties._Type = { select: { name: task.type } };
   if (task.topics)
-    props._Topics = { multi_select: task.topics.map((t) => ({ name: t })) };
+    properties._Topics = {
+      multi_select: task.topics.map((t) => ({ name: t })),
+    };
   if (task.flags)
-    props._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
+    properties._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
   if (task.content)
-    props.Note = { rich_text: [{ text: { content: task.content } }] };
+    properties.Note = { rich_text: [{ text: { content: task.content } }] };
   if (task.dueDate !== undefined)
-    props.Date = { date: task.dueDate ? { start: task.dueDate } : null };
+    properties.Date = { date: task.dueDate ? { start: task.dueDate } : null };
 
   return await notion.pages.update({
     page_id: pageId,
-    properties: props,
+    properties,
   });
 };
 

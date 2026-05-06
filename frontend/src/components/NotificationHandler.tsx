@@ -29,11 +29,13 @@ export default function NotificationHandler() {
     }
   }, [addToast]);
 
+  /*
   useEffect(() => {
     // 30秒ごとに新着通知がないか確認（バックエンドの負荷を考慮）
     const timer = setInterval(fetchNotifications, 30000);
     return () => clearInterval(timer);
   }, [fetchNotifications]);
+  */
 
   return null;
 }

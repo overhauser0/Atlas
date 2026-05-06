@@ -29,6 +29,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     title: "",
     status: "INBOX",
     due_date: "",
+    source: "LOCAL",
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -44,12 +45,10 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       );
       const data = await res.json();
 
-      console.log("Fetched Data", data.tasks);
-
       if (data.success) {
         setTasks(
           data.tasks.filter((task: Task) => {
-            if (task.source === "local") return task.status != "Done";
+            if (task.source === "LOCAL") return task.status != "Done";
             return (
               task.area === "Work" &&
               task.type === "Task" &&
@@ -86,7 +85,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       ),
     );
     setDraggingTaskId(null);
-    await fetch(`/api/tasks/${task.id}`, {
+    await fetch(`/api/v1/tasks/${task.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...task, due_date: newDate, source: task.source }),
@@ -98,6 +97,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       title: task.title,
       status: task.status,
       due_date: task.due_date ? task.due_date.split("T")[0] : "",
+      source: task.source || "LOCAL",
     });
     setModalConfig({ isOpen: true, mode: "edit", task });
   };
@@ -110,41 +110,31 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       const isEdit = modalConfig.mode === "edit" && modalConfig.task;
       const payloadDate = editForm.due_date || null;
 
-      // 💡 エンドポイントとメソッドの決定
       let url = "";
       let method = "";
-      let payload = {};
 
+      const payload = {
+        title: editForm.title,
+        status: editForm.status,
+        dueDate: payloadDate, // サービス層で new Date() されるので文字列のままでOK
+        source: isEdit ? modalConfig.task.source : editForm.source,
+      };
+
+      console.log("source", isEdit, modalConfig.task.source, editForm.source);
       if (isEdit) {
-        // 【編集モード】既存のIDとソースを引き継ぐ
-        url = `/api/tasks/${modalConfig.task.id}`;
+        url = `/api/v1/tasks/${modalConfig.task.id}`;
         method = "PATCH";
-        payload = {
-          ...editForm,
-          due_date: payloadDate,
-          source: modalConfig.task.source, // 既存のソース（notion or local）を維持
-        };
       } else {
-        // 【新規作成モード】選択されたソースによって送信先を変える
+        // 新規作成時も、もし backend 側に unified な POST
+        // エンドポイントを作ればここもさらに共通化できます
         method = "POST";
-        if (editForm.source === "local") {
-          url = "/api/tasks/local";
-          payload = {
-            title: editForm.title,
-            status: editForm.status || "INBOX",
-            due_date: payloadDate,
-            source: editForm.source,
-          };
-        } else {
-          url = "/api/tasks/notion";
-          payload = {
-            title: editForm.title,
-            status: editForm.status || "INBOX",
-            due_date: payloadDate,
-            source: editForm.source,
-          };
-        }
+        url =
+          editForm.source === "local"
+            ? "/api/v1/tasks/local"
+            : "/api/v1/tasks/notion";
       }
+
+      console.log("fetch detail", url, method, payload);
 
       const response = await fetch(url, {
         method,
@@ -152,24 +142,16 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        const errorText = await response.text(); // サーバーからのエラーメッセージを取得
-        console.error(`Server responded with ${response.status}: ${errorText}`);
-        throw new Error(`Server Error: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Server Error: ${response.status}`);
 
       const result = await response.json();
 
-      console.log("result", result);
       if (result.success && result.task) {
-        // 💡 全部取り直すのではなく、該当するタスクだけをState内で差し替える
         setTasks((prev) => {
           const exists = prev.find((t) => t.id === result.task.id);
           if (exists) {
-            // 編集の場合：差し替え
             return prev.map((t) => (t.id === result.task.id ? result.task : t));
           } else {
-            // 新規作成の場合：追加
             return [...prev, result.task];
           }
         });
@@ -259,7 +241,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
                       onDragStart={() => setDraggingTaskId(task.id)}
                       className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group relative flex flex-col gap-3 ${draggingTaskId === task.id ? "opacity-30 scale-95" : "opacity-100"}`}
                     >
-                      {task.source === "notion" && (
+                      {task.source === "NOTION" && (
                         <a
                           href={`https://notion.so/${task.id.replace(/-/g, "")}`}
                           target="_blank"
@@ -339,7 +321,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
               {/* 💡 追加：ソース（保存先）の切り替えスイッチ */}
               {modalConfig.mode === "create" && (
                 <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
-                  {(["local", "notion"] as const).map((src) => (
+                  {(["LOCAL", "NOTION"] as const).map((src) => (
                     <button
                       key={src}
                       type="button"

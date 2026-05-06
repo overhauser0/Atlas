@@ -17,6 +17,7 @@ const api = new Hono();
 api.post("/push", pushController.receivePush);
 api.get("/tasks", taskController.getTasks);
 api.post("/tasks/sync", taskController.syncTasks);
+api.patch("/tasks/:id", taskController.updateTask);
 
 app.route("/api/v1", api);
 

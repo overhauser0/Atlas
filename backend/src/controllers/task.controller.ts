@@ -37,3 +37,20 @@ export const syncTasks = async (c: Context) => {
     );
   }
 };
+
+export const updateTask = async (c: Context) => {
+  const id = c.req.param("id");
+  const body = await c.req.json();
+
+  try {
+    const updatedTask = await taskService.updateTask(id, body);
+    // 成功時はラップして返す
+    return c.json({
+      success: true,
+      task: updatedTask,
+    });
+  } catch (error: any) {
+    console.error("Task Update Error:", error);
+    return c.json({ success: false, error: error.message }, 500);
+  }
+};

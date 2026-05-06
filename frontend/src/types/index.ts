@@ -3,7 +3,7 @@ export interface Task {
   title: string;
   status: string;
   due_date: string | null;
-  source: "notion" | "local";
+  source: "NOTION" | "LOCAL";
   area: string | null;
   type: string | null;
   topics: string[];
