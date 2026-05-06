@@ -123,6 +123,38 @@ export const fetchCachedTasks = async () => {
     .execute();
 };
 
+export const getTasks = async (filters: {
+  area?: string;
+  type?: string;
+  status?: string;
+  excludeStatus?: string[];
+}) => {
+  let query = db.selectFrom("notion_tasks_cache").selectAll();
+
+  // area（Life,Work）で絞り込み
+  if (filters.area) {
+    query = query.where("area", "=", filters.area);
+  }
+
+  // type（Task, Education, Privateなど）で絞り込み
+  if (filters.type) {
+    query = query.where("type", "=", filters.type);
+  }
+
+  // 特定のステータスで絞り込み
+  if (filters.status) {
+    query = query.where("status", "=", filters.status);
+  }
+
+  // 完了・キャンセル済みなどを除外
+  if (filters.excludeStatus && filters.excludeStatus.length > 0) {
+    query = query.where("status", "not in", filters.excludeStatus);
+  }
+
+  // 常に最新の更新順で取得
+  return await query.orderBy("last_edited_time", "desc").execute();
+};
+
 /**
  * ローカルタスクを保存する
  */

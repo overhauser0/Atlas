@@ -13,7 +13,15 @@ export const receivePush = async (c: Context) => {
   try {
     const data = await notificationService.handleExternalPush(result.data);
     return c.json({ status: "ACCEPTED", data }, 202);
-  } catch (error) {
-    return c.json({ status: "INTERNAL_SERVER_ERROR" }, 500);
+  } catch (error: any) {
+    // ★ エラーの正体をログに書き出す
+    console.error("❌ Push Controller Error:", error.message || error);
+    return c.json(
+      {
+        status: "INTERNAL_SERVER_ERROR",
+        message: error.message,
+      },
+      500,
+    );
   }
 };

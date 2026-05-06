@@ -17,9 +17,11 @@ export const createNewTask = async (task: Task) => {
   }
 };
 
-/**
- * キャッシュからタスク一覧を取得する（高速レスポンス用）
- */
-export const getTasksFromCache = async () => {
-  return await pgRepo.fetchCachedTasks();
+export const getTasksFromCache = async (filters: {
+  area?: string;
+  status?: string;
+  excludeStatus?: string[];
+}) => {
+  // DBリポジトリを呼び出す
+  return await pgRepo.getTasks(filters);
 };

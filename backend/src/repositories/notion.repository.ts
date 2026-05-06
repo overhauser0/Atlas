@@ -12,12 +12,12 @@ export const createPage = async (task: Task) => {
     parent: { database_id: DATABASE_ID },
     properties: {
       Name: { title: [{ text: { content: task.title } }] },
-      Status: { status: { name: task.status } },
+      State: { status: { name: task.status } },
       _Area: { select: { name: task.area } },
       _Type: { select: { name: task.type } },
       _Topics: { multi_select: task.topics.map((t) => ({ name: t })) },
       _Flags: { multi_select: task.flags.map((f) => ({ name: f })) },
-      Description: { rich_text: [{ text: { content: task.content } }] },
+      Note: { rich_text: [{ text: { content: task.content } }] },
       Date: task.dueDate ? { date: { start: task.dueDate } } : undefined,
     },
   });
@@ -29,7 +29,7 @@ export const createPage = async (task: Task) => {
 export const updatePage = async (pageId: string, task: Partial<Task>) => {
   const props: any = {};
   if (task.title) props.Name = { title: [{ text: { content: task.title } }] };
-  if (task.status) props.Status = { status: { name: task.status } };
+  if (task.status) props.State = { status: { name: task.status } };
   if (task.area) props._Area = { select: { name: task.area } };
   if (task.type) props._Type = { select: { name: task.type } };
   if (task.topics)
@@ -37,7 +37,7 @@ export const updatePage = async (pageId: string, task: Partial<Task>) => {
   if (task.flags)
     props._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
   if (task.content)
-    props.Description = { rich_text: [{ text: { content: task.content } }] };
+    props.Note = { rich_text: [{ text: { content: task.content } }] };
   if (task.dueDate !== undefined)
     props.Date = { date: task.dueDate ? { start: task.dueDate } : null };
 
@@ -51,9 +51,21 @@ export const updatePage = async (pageId: string, task: Partial<Task>) => {
  * Notionから全データを取得する（同期用）
  */
 export const fetchAllPages = async () => {
-  const response = await notion.databases.query({
-    database_id: DATABASE_ID,
-    sorts: [{ property: "Date", direction: "descending" }],
-  });
-  return response.results;
+  let allPages: any[] = [];
+  let hasMore = true;
+  let cursor: string | undefined = undefined;
+
+  while (hasMore) {
+    const response = await notion.databases.query({
+      database_id: process.env.NOTION_DATABASE_ID!,
+      start_cursor: cursor, // 次のページの開始位置を指定
+      page_size: 100,
+    });
+
+    allPages = [...allPages, ...response.results];
+    hasMore = response.has_more;
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return allPages;
 };

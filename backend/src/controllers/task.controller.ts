@@ -3,7 +3,19 @@ import * as taskService from "../services/task.service";
 import * as syncService from "../services/sync.service";
 
 export const getTasks = async (c: Context) => {
-  const tasks = await taskService.getTasksFromCache();
+  // URLクエリから条件を取得
+  const area = c.req.query("area");
+  const type = c.req.query("type");
+  const status = c.req.query("status");
+  const excludeStatus = c.req.query("excludeStatus");
+
+  const tasks = await taskService.getTasksFromCache({
+    area,
+    type,
+    status,
+    excludeStatus: excludeStatus ? excludeStatus.split(",") : undefined,
+  });
+
   return c.json(tasks);
 };
 
