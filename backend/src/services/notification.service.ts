@@ -7,7 +7,12 @@ import * as taskService from "./task.service";
  * 外部（n8n等）からのプッシュイベントを処理する
  */
 export const handleExternalPush = async (data: PushNotification) => {
-  const today = new Date().toISOString();
+  // 時刻込みのフルタイムスタンプ（DBの更新日時用）
+  const todayIso = new Date().toISOString();
+
+  // JSTでの正しい「今日」の日付（YYYY-MM-DD形式）※スウェーデンを使ったハック
+  const todayDate = new Date().toLocaleDateString("sv-SE");
+
   // 1. 通知履歴としてアーカイブ
   const archived = await pgRepo.archiveNotification(data);
 
@@ -25,9 +30,9 @@ export const handleExternalPush = async (data: PushNotification) => {
       type: "Task",
       topics: data.metadata?.topics || [],
       flags: data.metadata?.flags || [],
-      due_date: data.date || today,
-      last_edited_time: today,
-      synced_at: today,
+      dueDate: data.date || data.date || todayDate,
+      last_edited_time: todayIso,
+      synced_at: todayIso,
     };
     taskResult = await taskService.createNewTask(taskData);
   }
