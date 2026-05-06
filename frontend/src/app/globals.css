@@ -1,16 +1,29 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* src/app/globals.css */
+@import "tailwindcss";
 
-body {
-  /* 深いネイビーから黒へのグラデーション背景 */
-  background: linear-gradient(135deg, #0f172a 0%, #000000 100%);
-  color: #e2e8f0;
-  min-height: 100vh;
+/* 1. 全体テーマの設定 */
+@theme {
+  --color-background-start: #0f172a;
+  --color-background-end: #000000;
+  --color-noir-text: #e2e8f0;
 }
 
-/* Noir Glass 汎用クラス */
-.noir-glass {
+/* 2. ベーススタイルの適用 */
+@layer base {
+  body {
+    background: linear-gradient(
+      135deg,
+      var(--color-background-start) 0%,
+      var(--color-background-end) 100%
+    );
+    color: var(--color-noir-text);
+    min-height: 100vh;
+    @apply antialiased;
+  }
+}
+
+/* 3. Noir Glass ユーティリティの定義 */
+@utility noir-glass {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);

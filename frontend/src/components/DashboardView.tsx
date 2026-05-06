@@ -39,8 +39,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
   const fetchTasks = useCallback(async () => {
     if (!isAuthenticated) return;
     try {
-      const res = await fetch("/api/tasks");
+      const res = await fetch(
+        "/api/v1/tasks?area=Work&type=Task&excludeStatus=Done,Canceled",
+      );
       const data = await res.json();
+
       if (data.success) {
         setTasks(
           data.tasks.filter((task: Task) => {
@@ -72,7 +75,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     const task = tasks.find((t) => t.id === draggingTaskId);
     if (!task) return;
     const newDate = calculateNewDateWithPreservedTime(
-      task.due_date,
+      task.dueDate,
       targetColumn,
     );
     setTasks((prev) =>
@@ -92,7 +95,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     setEditForm({
       title: task.title,
       status: task.status,
-      due_date: task.due_date ? task.due_date.split("T")[0] : "",
+      due_date: task.dueDate ? task.dueDate.split("T")[0] : "",
     });
     setModalConfig({ isOpen: true, mode: "edit", task });
   };
@@ -194,10 +197,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
           </div>
         ) : (
           COLUMNS.map((colName) => {
+            console.log("tasks", tasks);
             // ① フィルタリング
             const filteredTasks = tasks.filter(
               (t) =>
-                getColumnName(t.due_date) === colName && t.status !== "Done",
+                getColumnName(t.dueDate) === colName && t.status !== "Done",
             );
 
             // ② ソート処理を追加

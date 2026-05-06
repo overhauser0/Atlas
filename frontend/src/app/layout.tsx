@@ -1,26 +1,28 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
-export const metadata = {
-  title: "Gleis",
-  description: "Personal WorkOS",
-  manifest: "/manifest.json", // 💡 これを追加
+export const viewport: Viewport = {
   themeColor: "#000000",
-  viewport:
-    "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
+export const metadata: Metadata = {
+  title: "Gleis WorkOS",
+  description: "Noir Glass Personal Dashboard",
+  manifest: "/manifest.json",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html lang="ja">
-      <body className={inter.className}>{children}</body>
+      <body className="antialiased">{children}</body>
     </html>
   );
 }

@@ -5,43 +5,43 @@ import { useEffect, useRef } from "react";
 export default function WakeLockHandler() {
   const wakeLock = useRef<any>(null);
 
-  useEffect(() => {
-    // 💡 Screen Wake Lock API がサポートされているか確認
-    const requestWakeLock = async () => {
-      if ("wakeLock" in navigator) {
-        try {
-          wakeLock.current = await (navigator as any).wakeLock.request(
-            "screen",
-          );
+  const requestWakeLock = async () => {
+    // 1. ページが非表示、またはすでに取得済みの場合は何もしない
+    if (document.visibilityState !== "visible" || wakeLock.current !== null)
+      return;
 
-          // ロックが解除された（手動スリープ等）際の再取得イベント
-          wakeLock.current.addEventListener("release", () => {
-            console.log("Wake Lock was released");
-          });
-        } catch (err: any) {
-          console.error(`${err.name}, ${err.message}`);
-        }
+    try {
+      wakeLock.current = await (navigator as any).wakeLock.request("screen");
+
+      // 解放された時の処理
+      wakeLock.current.addEventListener("release", () => {
+        wakeLock.current = null;
+      });
+
+      console.log("☀️ Wake Lock is active");
+    } catch (err: any) {
+      // ログがうるさい場合は、特定のタイミング以外は無視するようにします
+      if (err.name !== "NotAllowedError") {
+        console.error(`${err.name}, ${err.message}`);
       }
-    };
+    }
+  };
 
+  useEffect(() => {
+    // 初回実行
     requestWakeLock();
 
-    // タブの切り替えやアプリのバックグラウンドからの復帰時にも再取得する
-    const handleVisibilityChange = async () => {
-      if (wakeLock.current !== null && document.visibilityState === "visible") {
-        await requestWakeLock();
+    // 2. ページが再び表示された時に再リクエストするリスナー
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        requestWakeLock();
       }
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      // クリーンアップ時にロックを解放
-      wakeLock.current?.release();
+    return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
   }, []);
 
-  // UIは持たない
-  return null;
+  return null; // UIは持たない
 }
