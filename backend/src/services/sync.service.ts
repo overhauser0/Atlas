@@ -18,8 +18,8 @@ export const syncNotionToLocal = async () => {
       const taskData: Task = {
         id: page.id,
         title: props.Name?.title[0]?.plain_text || "No Title",
-        content: props.Description?.rich_text[0]?.plain_text || "",
-        status: (props.Status?.status?.name as any) || "INBOX",
+        content: props.Note?.rich_text[0]?.plain_text || "",
+        status: (props.State?.status?.name as any) || "INBOX",
         priority: props.Priority?.number || 3,
         area: (props._Area?.select?.name as any) || "Work",
         type: (props._Type?.select?.name as any) || "Task",

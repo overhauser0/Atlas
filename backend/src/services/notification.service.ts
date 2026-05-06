@@ -30,7 +30,7 @@ export const handleExternalPush = async (data: PushNotification) => {
       type: "Task",
       topics: data.metadata?.topics || [],
       flags: data.metadata?.flags || [],
-      dueDate: data.date || data.date || todayDate,
+      dueDate: data.date || todayDate,
       last_edited_time: todayIso,
       synced_at: todayIso,
     };

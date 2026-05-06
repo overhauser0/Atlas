@@ -16,7 +16,10 @@ export const getTasks = async (c: Context) => {
     excludeStatus: excludeStatus ? excludeStatus.split(",") : undefined,
   });
 
-  return c.json(tasks);
+  return c.json({
+    success: true,
+    tasks: tasks || [],
+  });
 };
 
 export const syncTasks = async (c: Context) => {

@@ -41,7 +41,7 @@ export default function Home() {
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      await fetch("/api/sync/notion", { method: "POST" });
+      await fetch("/api/v1/tasks/sync", { method: "POST" });
       window.location.reload();
     } catch (e) {
       console.error(e);

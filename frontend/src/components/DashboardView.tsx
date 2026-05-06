@@ -44,6 +44,8 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       );
       const data = await res.json();
 
+      console.log("Fetched Data", data.tasks);
+
       if (data.success) {
         setTasks(
           data.tasks.filter((task: Task) => {
@@ -75,7 +77,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     const task = tasks.find((t) => t.id === draggingTaskId);
     if (!task) return;
     const newDate = calculateNewDateWithPreservedTime(
-      task.dueDate,
+      task.due_date,
       targetColumn,
     );
     setTasks((prev) =>
@@ -95,7 +97,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     setEditForm({
       title: task.title,
       status: task.status,
-      due_date: task.dueDate ? task.dueDate.split("T")[0] : "",
+      due_date: task.due_date ? task.due_date.split("T")[0] : "",
     });
     setModalConfig({ isOpen: true, mode: "edit", task });
   };
@@ -197,12 +199,12 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
           </div>
         ) : (
           COLUMNS.map((colName) => {
-            console.log("tasks", tasks);
             // ① フィルタリング
-            const filteredTasks = tasks.filter(
-              (t) =>
-                getColumnName(t.dueDate) === colName && t.status !== "Done",
-            );
+            const filteredTasks = tasks.filter((t) => {
+              return (
+                getColumnName(t.due_date) === colName && t.status !== "Done"
+              );
+            });
 
             // ② ソート処理を追加
             const colTasks = filteredTasks.sort((a, b) => {

@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS local_tasks (
     content TEXT,
     area TEXT DEFAULT 'Work',
     type TEXT DEFAULT 'Task',
-    status TEXT DEFAULT 'Todo',
+    status TEXT DEFAULT 'INBOX',
     priority INTEGER DEFAULT 3,
     due_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
