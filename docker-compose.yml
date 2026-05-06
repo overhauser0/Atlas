@@ -18,13 +18,13 @@ services:
     container_name: gleis-frontend
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: http://overhauser0:8000/api
+      NEXT_PUBLIC_API_URL: /api/v1
     volumes:
       - ./frontend:/app
       - /app/node_modules
       - /app/.next
     ports:
-      - "5675:3000"
+      - "5675:5675"
     depends_on:
       - backend
     networks:
@@ -35,6 +35,7 @@ services:
     container_name: gleis-backend
     restart: always
     environment:
+      PORT: 5676
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       NOTION_API_KEY: ${NOTION_API_KEY}
       NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
@@ -42,7 +43,7 @@ services:
       - ./backend:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
     ports:
-      - "8000:8000"
+      - "5676:5676"
     depends_on:
       - db
     networks:

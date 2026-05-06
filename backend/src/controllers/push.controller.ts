@@ -1,20 +1,19 @@
-import { Request, Response } from "express";
-import { PushNotificationSchema } from "../schemas/api.schema";
+import { Context } from "hono";
+import { PushNotificationSchema } from "../schemas/push.schema";
 import * as notificationService from "../services/notification.service";
 
-export const receivePush = async (req: Request, res: Response) => {
-  // Zodバリデーション
-  const result = PushNotificationSchema.safeParse(req.body);
+export const receivePush = async (c: Context) => {
+  const body = await c.req.json();
+  const result = PushNotificationSchema.safeParse(body);
+
   if (!result.success) {
-    return res
-      .status(400)
-      .json({ status: "ERROR", errors: result.error.format() });
+    return c.json({ status: "ERROR", errors: result.error.format() }, 400);
   }
 
   try {
     const data = await notificationService.handleExternalPush(result.data);
-    return res.status(202).json({ status: "ACCEPTED", data });
+    return c.json({ status: "ACCEPTED", data }, 202);
   } catch (error) {
-    return res.status(500).json({ status: "INTERNAL_SERVER_ERROR" });
+    return c.json({ status: "INTERNAL_SERVER_ERROR" }, 500);
   }
 };

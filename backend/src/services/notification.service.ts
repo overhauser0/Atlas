@@ -1,4 +1,4 @@
-import { PushNotification } from "../schemas/api.schema";
+import { PushNotification } from "../schemas/push.schema";
 import { Task } from "../schemas/task.schema";
 import * as pgRepo from "../repositories/postgres.repository";
 import * as taskService from "./task.service";

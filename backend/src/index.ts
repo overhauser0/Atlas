@@ -1,25 +1,29 @@
-import express from "express";
-import cors from "cors";
+import { Hono } from "hono";
+import { serve } from "@hono/node-server";
+import { cors } from "hono/cors";
 import * as pushController from "./controllers/push.controller";
 import * as taskController from "./controllers/task.controller";
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+const app = new Hono();
 
-// --- Routes ---
+// Middleware
+app.use("/*", cors());
 
-// 1. Push Webhook (n8n等からの入り口)
-app.post("/api/v1/push", pushController.receivePush);
+// Routes
+app.get("/health", (c) => c.json({ status: "UP", time: new Date() }));
 
-// 2. Tasks (PWAダッシュボードからの操作)
-app.get("/api/v1/tasks", taskController.getTasks);
-app.post("/api/v1/tasks/sync", taskController.syncTasks);
+// /api/v1 プレフィックスで整理
+const api = new Hono();
+api.post("/push", pushController.receivePush);
+api.get("/tasks", taskController.getTasks);
+api.post("/tasks/sync", taskController.syncTasks);
 
-// 3. Health Check (System)
-app.get("/health", (req, res) => res.json({ status: "UP", time: new Date() }));
+app.route("/api/v1", api);
 
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => {
-  console.log(`🚀 Gleis WorkOS Server running on port ${PORT}`);
+const port = 5676;
+console.log(`🚀 Gleis WorkOS Backend (Hono) running on port ${port}`);
+
+serve({
+  fetch: app.fetch,
+  port,
 });

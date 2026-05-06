@@ -1,17 +1,24 @@
-import { Request, Response } from "express";
+import { Context } from "hono";
 import * as taskService from "../services/task.service";
 import * as syncService from "../services/sync.service";
 
-export const getTasks = async (_req: Request, res: Response) => {
+export const getTasks = async (c: Context) => {
   const tasks = await taskService.getTasksFromCache();
-  res.json(tasks);
+  return c.json(tasks);
 };
 
-export const syncTasks = async (_req: Request, res: Response) => {
+export const syncTasks = async (c: Context) => {
   try {
     const result = await syncService.syncNotionToLocal();
-    res.json({ status: "SYNC_SUCCESS", ...result });
-  } catch (error) {
-    res.status(500).json({ status: "SYNC_FAILED" });
+    return c.json({ status: "SYNC_SUCCESS", ...result });
+  } catch (error: any) {
+    console.error("❌ Sync Task Error:", error.message || error);
+    return c.json(
+      {
+        status: "SYNC_FAILED",
+        message: error.message || "Unknown error",
+      },
+      500,
+    );
   }
 };
