@@ -2,41 +2,46 @@
 import { useEffect, useCallback } from 'react';
 import { useToast } from './Toast';
 
-export default function NotificationHandler() {
-  const { addToast } = useToast();
+interface Props {
+  appSettings: any;
+  onUnreadChange: (hasUnread: boolean) => void;
+  onTaskUpdate: () => void;
+}
 
+export default function NotificationHandler({
+  appSettings,
+  onUnreadChange,
+  onTaskUpdate,
+}: Props) {
   const fetchNotifications = useCallback(async () => {
-    return null; // 💡 一旦通知機能はオフにするため、ここで終了させる
     try {
-      // 💡 バックエンドに新着通知を取りに行く
-      const res = await fetch('/api/notifications/poll');
+      const res = await fetch('/api/v1/notifications');
       const data = await res.json();
 
-      if (data.success && data.notifications.length > 0) {
-        data.notifications.forEach((n: any) => {
-          // トーストを表示
-          addToast(n.title, n.isAlert ? 'alert' : 'info');
+      if (data.success) {
+        // 1. 未読があるかチェック
+        const unreadExists = data.notifications.some((n: any) => !n.is_read);
+        onUnreadChange(unreadExists);
 
-          // 💡 もしタスクとして追加された通知なら、
-          // ページをリロードせずにタスク一覧を更新させるために
-          // windowイベントを発火させる等の工夫ができます
-          if (n.isTask) {
-            window.dispatchEvent(new Event('task-updated'));
-          }
-        });
+        // 2. タスク更新フラグがあればタスク再取得
+        const hasTaskUpdate = data.notifications.some(
+          (n: any) => n.is_task_update && !n.is_read,
+        );
+        if (hasTaskUpdate) onTaskUpdate();
       }
     } catch (e) {
-      console.error('Notification poll error:', e);
+      console.error(e);
     }
-  }, [addToast]);
+  }, [onUnreadChange, onTaskUpdate]);
 
-  /*
+  // 設定された秒数（notificationInterval）ごとにポーリング
   useEffect(() => {
-    // 30秒ごとに新着通知がないか確認（バックエンドの負荷を考慮）
-    const timer = setInterval(fetchNotifications, 30000);
+    const sec = appSettings.notificationInterval || 30;
+    if (sec <= 0) return;
+    const timer = setInterval(fetchNotifications, sec * 1000);
+    fetchNotifications(); // 初回
     return () => clearInterval(timer);
-  }, [fetchNotifications]);
-  */
+  }, [fetchNotifications, appSettings.notificationInterval]);
 
   return null;
 }

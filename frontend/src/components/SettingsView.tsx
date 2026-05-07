@@ -17,15 +17,10 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
   };
 
   return (
-    <div
-      className="flex-1 px-4 pb-20 max-w-2xl mx-auto w-full space-y-10 overflow-y-auto 
-      [&::-webkit-scrollbar]:w-1 
-      [&::-webkit-scrollbar-thumb]:bg-white/10 
-      [&::-webkit-scrollbar-thumb]:rounded-full"
-    >
+    <div className="flex-1 px-4 pb-20 max-w-2xl mx-auto w-full space-y-10 overflow-y-auto noir-scrollbar">
       {/* --- Section: View Settings --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-[0.2em] px-1">
+        <h2 className="flex items-center gap-2 px-1 noir-label">
           <Monitor className="w-3.5 h-3.5" />
           Display
         </h2>
@@ -60,60 +55,72 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
 
       {/* --- Section: Automation --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-[0.2em] px-1">
+        <h2 className="noir-label px-1 flex items-center gap-2">
           <RefreshCw className="w-3.5 h-3.5" />
           Automation
         </h2>
 
-        <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 p-5 space-y-6">
+        <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 p-5 space-y-8">
+          {/* タスク同期設定（分） */}
           <div className="flex items-center justify-between">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
-                Auto Sync Interval
+                Task Sync Interval
               </div>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Frequency of background synchronization with Notion. Set to 0 to
-                disable.
+              <p className="text-xs text-gray-500 mt-1">
+                Notionとのタスク同期頻度（分）
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
               <input
                 type="number"
                 min="0"
-                max="60"
-                value={appSettings.syncInterval || 0}
+                value={appSettings.syncInterval}
                 onChange={(e) =>
                   setAppSettings((s: any) => ({
                     ...s,
                     syncInterval: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-16 bg-black/50 border border-white/10 rounded-lg p-2 text-center text-sm text-white focus:border-neon focus:outline-none transition-colors"
+                className="w-16 noir-input !p-2 text-center"
               />
               <span className="text-xs text-gray-500 font-medium">min</span>
             </div>
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max="60"
-            step="1"
-            value={appSettings.syncInterval || 0}
-            onChange={(e) =>
-              setAppSettings((s: any) => ({
-                ...s,
-                syncInterval: parseInt(e.target.value),
-              }))
-            }
-            className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-neon"
-          />
+          {/* 通知ポーリング設定（秒） */}
+          <div className="flex items-center justify-between">
+            <div className="pr-4">
+              <div className="text-sm font-medium text-gray-200">
+                Notification Poll Interval
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                新着通知の確認頻度（秒）
+              </p>
+            </div>
+            <div className="flex items-center gap-3 shrink-0">
+              <input
+                type="number"
+                min="0"
+                step="10"
+                value={appSettings.notificationInterval}
+                onChange={(e) =>
+                  setAppSettings((s: any) => ({
+                    ...s,
+                    notificationInterval: parseInt(e.target.value) || 0,
+                  }))
+                }
+                className="w-16 noir-input !p-2 text-center"
+              />
+              <span className="text-xs text-gray-500 font-medium">sec</span>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* --- Section: Alerts --- */}
       <section className="flex flex-col gap-4">
-        <h2 className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-[0.2em] px-1">
+        <h2 className="flex items-center gap-2 px-1 noir-label">
           <Bell className="w-3.5 h-3.5" />
           Alerts
         </h2>

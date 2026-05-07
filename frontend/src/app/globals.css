@@ -1,32 +1,64 @@
 /* src/app/globals.css */
 @import 'tailwindcss';
 
-/* 1. 全体テーマの設定 */
+/* 1. テーマ変数の定義 */
 @theme {
   --color-background-start: #0f172a;
   --color-background-end: #000000;
   --color-noir-text: #e2e8f0;
+
+  --color-neon: #0070f3;
+  --color-glass: rgba(255, 255, 255, 0.05);
+  --color-glass-border: rgba(255, 255, 255, 0.12);
 }
 
-/* 2. ベーススタイルの適用 */
-@layer base {
-  body {
-    background: linear-gradient(
-      135deg,
-      var(--color-background-start) 0%,
-      var(--color-background-end) 100%
-    );
-    color: var(--color-noir-text);
-    min-height: 100vh;
-    @apply antialiased;
-  }
-}
+/* 2. カスタムユーティリティの定義 */
 
-/* 3. Noir Glass ユーティリティの定義 */
+/* 基本のガラスパネル */
 @utility noir-glass {
   background: rgba(255, 255, 255, 0.03);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  border: 1px solid var(--color-glass-border);
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.5);
+}
+
+/* 共通スクロールバー */
+@utility noir-scrollbar {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 100px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* 共通入力フォーム */
+@utility noir-input {
+  @apply w-full bg-black/40 border border-white/10 rounded-xl p-3 
+         text-white text-sm transition-all focus:border-neon 
+         focus:outline-none focus:ring-1 focus:ring-neon/30
+         placeholder:text-gray-600 [color-scheme:dark];
+}
+
+/* プライマリボタン */
+@utility noir-btn-primary {
+  @apply bg-neon text-white font-bold py-3 px-6 rounded-xl 
+         shadow-[0_0_15px_rgba(0,112,243,0.3)] 
+         hover:scale-[1.02] active:scale-[0.98] 
+         transition-all disabled:opacity-50 disabled:pointer-events-none;
+}
+
+/* セクションラベル */
+@utility noir-label {
+  @apply text-[12px] font-bold text-gray-500 uppercase tracking-[0.2em];
 }

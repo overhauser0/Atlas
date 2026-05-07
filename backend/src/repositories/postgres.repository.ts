@@ -82,6 +82,26 @@ export const archiveNotification = async (data: PushNotification) => {
 };
 
 /**
+ * 通知履歴を取得する
+ */
+export const getNotifications = async (limit = 50) => {
+  return await db
+    .selectFrom('notifications')
+    .selectAll()
+    .orderBy('created_at', 'desc')
+    .limit(limit)
+    .execute();
+};
+
+export const markAllAsRead = async () => {
+  return await db
+    .updateTable('notifications')
+    .set({ is_read: true })
+    .where('is_read', '=', false)
+    .execute();
+};
+
+/**
  * Notionのデータをキャッシュテーブルに保存・更新する (Upsert)
  */
 export const upsertNotionTaskCache = async (

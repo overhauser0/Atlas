@@ -3,10 +3,10 @@ export interface Task {
   title: string;
   status: string;
   due_date: string | null;
-  source: "NOTION" | "LOCAL";
+  source: 'NOTION' | 'LOCAL';
   area: string | null;
   type: string | null;
   topics: string[];
 }
 
-export type ViewType = "dashboard" | "settings";
+export type ViewType = 'dashboard' | 'settings' | 'notifications';

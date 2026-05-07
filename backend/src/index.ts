@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import * as pushController from './controllers/push.controller';
 import * as taskController from './controllers/task.controller';
+import * as pgRepo from './repositories/postgres.repository';
 
 const app = new Hono();
 
@@ -15,6 +16,11 @@ app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
 // /api/v1 プレフィックスで整理
 const api = new Hono();
 api.post('/push', pushController.receivePush);
+api.get('/notifications', pushController.getNotificationHistory);
+app.post('/notifications/read', async (c) => {
+  await pgRepo.markAllAsRead();
+  return c.json({ success: true });
+});
 api.get('/tasks', taskController.getTasks);
 api.post('/tasks', taskController.createNewTask);
 api.patch('/tasks/:id', taskController.updateTask);

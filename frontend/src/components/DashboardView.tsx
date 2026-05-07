@@ -176,14 +176,7 @@ export default function DashboardView({
 
   return (
     <>
-      <div
-        className="flex-1 overflow-x-auto overflow-y-hidden px-2 snap-x snap-mandatory flex gap-5 pb-2 
-      [&::-webkit-scrollbar]:h-1.5 
-      [&::-webkit-scrollbar-track]:bg-transparent 
-      [&::-webkit-scrollbar-thumb]:bg-white/10 
-      [&::-webkit-scrollbar-thumb]:rounded-full 
-      hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
-      >
+      <div className="flex-1 overflow-x-auto overflow-y-hidden px-2 snap-x snap-mandatory flex gap-5 pb-2 noir-scrollbar">
         {loading ? (
           <div className="flex items-center justify-center h-full w-full text-gray-400 animate-pulse">
             Loading Tasks...
@@ -237,14 +230,7 @@ export default function DashboardView({
                     {colTasks.length}
                   </span>
                 </div>
-                <div
-                  className="flex-1 overflow-y-auto pr-2 pb-12 flex flex-col gap-3 
-                [&::-webkit-scrollbar]:w-1 
-                [&::-webkit-scrollbar-track]:bg-transparent 
-                [&::-webkit-scrollbar-thumb]:bg-white/10 
-                [&::-webkit-scrollbar-thumb]:rounded-full 
-                hover:[&::-webkit-scrollbar-thumb]:bg-white/20"
-                >
+                <div className="flex-1 overflow-y-auto pr-2 pb-12 flex flex-col gap-3 noir-scrollbar">
                   {colTasks.map((task) => (
                     <div
                       key={task.id}
@@ -366,7 +352,7 @@ export default function DashboardView({
                 onChange={(e) =>
                   setEditForm({ ...editForm, due_date: e.target.value })
                 }
-                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon focus:outline-none [color-scheme:dark]"
+                className="noir-input"
               />
               <div className="grid grid-cols-2 gap-2">
                 {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (

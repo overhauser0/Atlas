@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
   LayoutDashboard,
   Settings,
@@ -17,6 +17,7 @@ import { ToastProvider } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import QuickAlarmModal from '@/components/QuickAlarmModal';
 import NotificationHandler from '@/components/NotificationHandler';
+import NotificationsView from '@/components/NotificationsView';
 import { ViewType } from '@/types';
 
 export default function Home() {
@@ -33,8 +34,10 @@ export default function Home() {
   const [appSettings, setAppSettings] = useState({
     shrinkEmptyPastDays: true,
     syncInterval: 5,
+    notificationInterval: 30,
     alarmTime: '',
   });
+  const [hasUnread, setHasUnread] = useState(false);
 
   // ---------------- 認証チェック ----------------
   useEffect(() => {
@@ -56,7 +59,7 @@ export default function Home() {
 
   // ---------------- データの更新 ----------------
   // 更新処理
-  const handleSync = async () => {
+  const handleSync = useCallback(async () => {
     setIsSyncing(true);
     try {
       await fetch('/api/v1/tasks/sync', { method: 'POST' });
@@ -66,7 +69,13 @@ export default function Home() {
     } finally {
       setIsSyncing(false);
     }
-  };
+  }, []);
+  const handleTaskUpdate = useCallback(() => {
+    setRefreshKey((prev) => prev + 1);
+  }, []);
+  const handleMarkAsRead = useCallback(() => {
+    setHasUnread(false);
+  }, []);
 
   // 自動更新タイマーを設置
   useEffect(() => {
@@ -107,7 +116,11 @@ export default function Home() {
           appSettings={appSettings}
           setAppSettings={setAppSettings}
         />
-        <NotificationHandler />
+        <NotificationHandler
+          appSettings={appSettings}
+          onUnreadChange={setHasUnread}
+          onTaskUpdate={handleTaskUpdate}
+        />
         {isMobileMenuOpen && (
           <div
             className="fixed inset-0 bg-black/60 z-30 sm:hidden backdrop-blur-sm"
@@ -139,7 +152,13 @@ export default function Home() {
                 Dashboard
               </span>
             </button>
-            <button className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-white">
+            <button
+              onClick={() => {
+                setCurrentView('notifications');
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-white"
+            >
               <Bell className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
                 Notifications
@@ -196,10 +215,15 @@ export default function Home() {
                 <Menu className="w-6 h-6" />
               </button>
               <h1 className="text-xl font-semibold tracking-wide">
-                {currentView === 'dashboard' ? 'Weekly' : 'Settings'}
+                {currentView}
               </h1>
             </div>
-
+            {/* 未読がある場合のアラートアイコン */}
+            {hasUnread && (
+              <div className="flex items-center justify-center animate-bounce">
+                <Bell className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
+              </div>
+            )}
             {/* 時計 */}
             <div className="relative">
               <button
@@ -229,13 +253,17 @@ export default function Home() {
               />
             </div>
           </header>
-          {currentView === 'dashboard' ? (
+          {currentView === 'dashboard' && (
             <DashboardView
               appSettings={appSettings}
               isAuthenticated={isAuthenticated}
               refreshTrigger={refreshKey}
             />
-          ) : (
+          )}
+          {currentView === 'notifications' && (
+            <NotificationsView onRead={handleMarkAsRead} />
+          )}
+          {currentView === 'settings' && (
             <SettingsView
               appSettings={appSettings}
               setAppSettings={setAppSettings}
