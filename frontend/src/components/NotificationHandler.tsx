@@ -1,31 +1,32 @@
-"use client";
-import { useEffect, useCallback } from "react";
-import { useToast } from "./Toast";
+'use client';
+import { useEffect, useCallback } from 'react';
+import { useToast } from './Toast';
 
 export default function NotificationHandler() {
   const { addToast } = useToast();
 
   const fetchNotifications = useCallback(async () => {
+    return null; // 💡 一旦通知機能はオフにするため、ここで終了させる
     try {
       // 💡 バックエンドに新着通知を取りに行く
-      const res = await fetch("/api/notifications/poll");
+      const res = await fetch('/api/notifications/poll');
       const data = await res.json();
 
       if (data.success && data.notifications.length > 0) {
         data.notifications.forEach((n: any) => {
           // トーストを表示
-          addToast(n.title, n.isAlert ? "alert" : "info");
+          addToast(n.title, n.isAlert ? 'alert' : 'info');
 
           // 💡 もしタスクとして追加された通知なら、
           // ページをリロードせずにタスク一覧を更新させるために
           // windowイベントを発火させる等の工夫ができます
           if (n.isTask) {
-            window.dispatchEvent(new Event("task-updated"));
+            window.dispatchEvent(new Event('task-updated'));
           }
         });
       }
     } catch (e) {
-      console.error("Notification poll error:", e);
+      console.error('Notification poll error:', e);
     }
   }, [addToast]);
 
