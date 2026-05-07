@@ -1,7 +1,7 @@
-import { Kysely, PostgresDialect, Generated, JSONColumnType } from "kysely";
-import { Pool } from "pg";
-import { Task } from "../schemas/task.schema";
-import { PushNotification } from "../schemas/push.schema";
+import { Kysely, PostgresDialect, Generated, JSONColumnType } from 'kysely';
+import { Pool } from 'pg';
+import { Task } from '../schemas/task.schema';
+import { PushNotification } from '../schemas/push.schema';
 
 // --- 1. テーブル定義 (Interfaces) ---
 
@@ -69,7 +69,7 @@ export const db = new Kysely<Database>({ dialect });
  */
 export const archiveNotification = async (data: PushNotification) => {
   return await db
-    .insertInto("notifications")
+    .insertInto('notifications')
     .values({
       title: data.title,
       content: data.content,
@@ -105,9 +105,9 @@ export const upsertNotionTaskCache = async (
   };
 
   return await db
-    .insertInto("notion_tasks_cache")
+    .insertInto('notion_tasks_cache')
     .values(values)
-    .onConflict((oc) => oc.column("id").doUpdateSet(values))
+    .onConflict((oc) => oc.column('id').doUpdateSet(values))
     .returningAll()
     .executeTakeFirst();
 };
@@ -121,7 +121,7 @@ export const updateNotionTaskCache = async (
   updates: Partial<Task>,
 ) => {
   return await db
-    .updateTable("notion_tasks_cache")
+    .updateTable('notion_tasks_cache')
     .set({
       title: updates.title,
       status: updates.status,
@@ -133,7 +133,7 @@ export const updateNotionTaskCache = async (
       due_date: updates.dueDate ? new Date(updates.dueDate) : undefined,
       last_edited_time: new Date(), // 最終編集時刻のみ更新
     })
-    .where("id", "=", id)
+    .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
 };
@@ -143,9 +143,9 @@ export const updateNotionTaskCache = async (
  */
 export const fetchCachedTasks = async () => {
   return await db
-    .selectFrom("notion_tasks_cache")
+    .selectFrom('notion_tasks_cache')
     .selectAll()
-    .orderBy("last_edited_time", "desc")
+    .orderBy('last_edited_time', 'desc')
     .execute();
 };
 
@@ -158,35 +158,37 @@ export const getTasks = async (filters: {
   // 💡 共通のフィルタを適用するヘルパー
   const applyCommonFilters = (qb: any) => {
     let q = qb;
-    if (filters.area) q = q.where("area", "=", filters.area);
-    if (filters.type) q = q.where("type", "=", filters.type);
-    if (filters.status) q = q.where("status", "=", filters.status);
+    if (filters.area) q = q.where('area', '=', filters.area);
+    if (filters.type) q = q.where('type', '=', filters.type);
+    if (filters.status) q = q.where('status', '=', filters.status);
     if (filters.excludeStatus && filters.excludeStatus.length > 0) {
-      q = q.where("status", "not in", filters.excludeStatus);
+      q = q.where('status', 'not in', filters.excludeStatus);
     }
     return q;
   };
 
   // 1. Notionキャッシュから取得
   const notionTasks = await applyCommonFilters(
-    db.selectFrom("notion_tasks_cache").selectAll(),
+    db.selectFrom('notion_tasks_cache').selectAll(),
   )
-    .orderBy("last_edited_time", "desc")
+    .orderBy('last_edited_time', 'desc')
     .execute();
+
+  console.log('notion_tasks_cache', notionTasks);
 
   // 2. ローカルタスクから取得
   const localTasks = await applyCommonFilters(
-    db.selectFrom("local_tasks").selectAll(),
+    db.selectFrom('local_tasks').selectAll(),
   )
-    .orderBy("created_at", "desc")
+    .orderBy('created_at', 'desc')
     .execute();
 
-  console.log("localTasks", localTasks);
+  console.log('local_tasks', localTasks);
 
   // 3. 結合して source を付与
   const combined = [
-    ...notionTasks.map((t) => ({ ...t, source: "NOTION" })),
-    ...localTasks.map((t) => ({ ...t, source: "LOCAL" })),
+    ...notionTasks.map((t) => ({ ...t, source: 'NOTION' })),
+    ...localTasks.map((t) => ({ ...t, source: 'LOCAL' })),
   ];
 
   // 4. 全体を日付順でソート（Notionは最終編集、Localは作成日時で代用）
@@ -206,7 +208,7 @@ export const getTasks = async (filters: {
  */
 export const insertLocalTask = async (task: Task) => {
   return await db
-    .insertInto("local_tasks")
+    .insertInto('local_tasks')
     .values({
       title: task.title,
       content: task.content,
@@ -230,9 +232,19 @@ export const updateLocalTask = async (
   updates: Partial<LocalTasksTable>,
 ) => {
   return await db
-    .updateTable("local_tasks")
+    .updateTable('local_tasks')
     .set(updates)
-    .where("id", "=", id)
+    .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
+};
+
+/**
+ * Notionの最新リストに含まれないキャッシュデータを削除する
+ */
+export const deleteStaleNotionCache = async (activeIds: string[]) => {
+  return await db
+    .deleteFrom('notion_tasks_cache')
+    .where('id', 'not in', activeIds)
+    .execute();
 };

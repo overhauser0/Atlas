@@ -1,5 +1,5 @@
-import { Client } from "@notionhq/client";
-import { Task } from "../schemas/task.schema";
+import { Client } from '@notionhq/client';
+import { Task } from '../schemas/task.schema';
 
 const notion = new Client({ auth: process.env.NOTION_API_KEY });
 const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
@@ -59,11 +59,12 @@ export const fetchAllPages = async () => {
   let cursor: string | undefined = undefined;
 
   while (hasMore) {
-    const response = await notion.databases.query({
-      database_id: process.env.NOTION_DATABASE_ID!,
-      start_cursor: cursor, // 次のページの開始位置を指定
-      page_size: 100,
-    });
+    const response: Awaited<ReturnType<typeof notion.databases.query>> =
+      await notion.databases.query({
+        database_id: process.env.NOTION_DATABASE_ID!,
+        start_cursor: cursor, // 次のページの開始位置を指定
+        page_size: 100,
+      });
 
     allPages = [...allPages, ...response.results];
     hasMore = response.has_more;

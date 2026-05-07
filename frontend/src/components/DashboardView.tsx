@@ -1,14 +1,14 @@
-"use client";
-import { useEffect, useState, useCallback } from "react";
-import { Plus, ExternalLink, X } from "lucide-react";
-import { Task } from "@/types";
+'use client';
+import { useEffect, useState, useCallback } from 'react';
+import { Plus, ExternalLink, X } from 'lucide-react';
+import { Task } from '@/types';
 import {
   COLUMNS,
   getStatusColor,
   getColumnName,
   calculateNewDateWithPreservedTime,
   STATUS_ORDER,
-} from "@/utils/dateUtils";
+} from '@/utils/dateUtils';
 
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
@@ -16,24 +16,24 @@ interface Props {
 }
 
 export default function DashboardView({ appSettings, isAuthenticated }: Props) {
-  const statuses = ["INBOX", "Waiting", "Going", "Done"];
+  const statuses = ['INBOX', 'Waiting', 'Going', 'Done'];
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
-    mode: "create" | "edit";
+    mode: 'create' | 'edit';
     task: Task | null;
-  }>({ isOpen: false, mode: "create", task: null });
+  }>({ isOpen: false, mode: 'create', task: null });
   const [editForm, setEditForm] = useState({
-    title: "",
-    status: "INBOX",
-    due_date: "",
-    source: "LOCAL",
+    title: '',
+    status: 'INBOX',
+    due_date: '',
+    source: 'LOCAL',
   });
   const [isSaving, setIsSaving] = useState(false);
 
-  const todayName = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][
+  const todayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
     new Date().getDay()
   ];
 
@@ -41,18 +41,18 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     if (!isAuthenticated) return;
     try {
       const res = await fetch(
-        "/api/v1/tasks?area=Work&type=Task&excludeStatus=Done,Canceled",
+        '/api/v1/tasks?area=Work&type=Task&excludeStatus=Done,Canceled',
       );
       const data = await res.json();
 
       if (data.success) {
         setTasks(
           data.tasks.filter((task: Task) => {
-            if (task.source === "LOCAL") return task.status != "Done";
+            if (task.source === 'LOCAL') return task.status != 'Done';
             return (
-              task.area === "Work" &&
-              task.type === "Task" &&
-              statuses.includes(task.status || "")
+              task.area === 'Work' &&
+              task.type === 'Task' &&
+              statuses.includes(task.status || '')
             );
           }),
         );
@@ -69,7 +69,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
   }, [fetchTasks]);
 
   const onDrop = async (targetColumn: string) => {
-    if (!draggingTaskId || targetColumn === "Overdue") {
+    if (!draggingTaskId || targetColumn === 'Overdue') {
       setDraggingTaskId(null);
       return;
     }
@@ -86,8 +86,8 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     );
     setDraggingTaskId(null);
     await fetch(`/api/v1/tasks/${task.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...task, due_date: newDate, source: task.source }),
     });
   };
@@ -96,22 +96,22 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     setEditForm({
       title: task.title,
       status: task.status,
-      due_date: task.due_date ? task.due_date.split("T")[0] : "",
-      source: task.source || "LOCAL",
+      due_date: task.due_date ? task.due_date.split('T')[0] : '',
+      source: task.source || 'LOCAL',
     });
-    setModalConfig({ isOpen: true, mode: "edit", task });
+    setModalConfig({ isOpen: true, mode: 'edit', task });
   };
 
   const handleSave = async () => {
-    if (!editForm.title.trim()) return alert("タイトルを入力してください");
+    if (!editForm.title.trim()) return alert('タイトルを入力してください');
     setIsSaving(true);
 
     try {
-      const isEdit = modalConfig.mode === "edit" && modalConfig.task;
+      const isEdit = modalConfig.mode === 'edit' && modalConfig.task;
       const payloadDate = editForm.due_date || null;
 
-      let url = "";
-      let method = "";
+      let url = '';
+      let method = '';
 
       const payload = {
         title: editForm.title,
@@ -120,25 +120,24 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
         source: isEdit ? modalConfig.task.source : editForm.source,
       };
 
-      console.log("source", isEdit, modalConfig.task.source, editForm.source);
       if (isEdit) {
         url = `/api/v1/tasks/${modalConfig.task.id}`;
-        method = "PATCH";
+        method = 'PATCH';
       } else {
         // 新規作成時も、もし backend 側に unified な POST
         // エンドポイントを作ればここもさらに共通化できます
-        method = "POST";
+        method = 'POST';
         url =
-          editForm.source === "local"
-            ? "/api/v1/tasks/local"
-            : "/api/v1/tasks/notion";
+          editForm.source === 'local'
+            ? '/api/v1/tasks/local'
+            : '/api/v1/tasks/notion';
       }
 
-      console.log("fetch detail", url, method, payload);
+      console.log('fetch detail', url, method, payload);
 
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
@@ -155,11 +154,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
             return [...prev, result.task];
           }
         });
-        setModalConfig({ isOpen: false, mode: "create", task: null });
+        setModalConfig({ isOpen: false, mode: 'create', task: null });
       }
     } catch (e) {
       console.error(e);
-      alert("保存に失敗しました");
+      alert('保存に失敗しました');
     } finally {
       setIsSaving(false);
     }
@@ -184,14 +183,14 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
             // ① フィルタリング
             const filteredTasks = tasks.filter((t) => {
               return (
-                getColumnName(t.due_date) === colName && t.status !== "Done"
+                getColumnName(t.due_date) === colName && t.status !== 'Done'
               );
             });
 
             // ② ソート処理を追加
             const colTasks = filteredTasks.sort((a, b) => {
-              const statusA = a.status || "";
-              const statusB = b.status || "";
+              const statusA = a.status || '';
+              const statusB = b.status || '';
 
               // ステータスの優先度比較
               const priorityA = STATUS_ORDER[statusA] || 99;
@@ -202,7 +201,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
               }
 
               // 同一ステータス内の場合はタイトル順（昇順）
-              return (a.title || "").localeCompare(b.title || "", "ja");
+              return (a.title || '').localeCompare(b.title || '', 'ja');
             });
             const todayIndex = COLUMNS.indexOf(todayName);
             const colIndex = COLUMNS.indexOf(colName);
@@ -216,10 +215,10 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
                 key={colName}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(colName)}
-                className={`${shouldShrink ? "w-[168px]" : "w-[280px]"} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
+                className={`${shouldShrink ? 'w-[168px]' : 'w-[280px]'} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div
-                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${colName === "Overdue" ? "text-red-400 border-red-500/30" : colName === todayName ? "text-neon border-neon/50" : "text-gray-400 border-glass-border"}`}
+                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${colName === 'Overdue' ? 'text-red-400 border-red-500/30' : colName === todayName ? 'text-neon border-neon/50' : 'text-gray-400 border-glass-border'}`}
                 >
                   <span>{colName}</span>
                   <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-gray-300">
@@ -239,11 +238,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
                       key={task.id}
                       draggable
                       onDragStart={() => setDraggingTaskId(task.id)}
-                      className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group relative flex flex-col gap-3 ${draggingTaskId === task.id ? "opacity-30 scale-95" : "opacity-100"}`}
+                      className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group relative flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : 'opacity-100'}`}
                     >
-                      {task.source === "NOTION" && (
+                      {task.source === 'NOTION' && (
                         <a
-                          href={`https://notion.so/${task.id.replace(/-/g, "")}`}
+                          href={`https://notion.so/${task.id.replace(/-/g, '')}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
@@ -290,11 +289,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
       <button
         onClick={() => {
           setEditForm({
-            title: "",
-            status: "INBOX",
-            due_date: new Date().toISOString().split("T")[0],
+            title: '',
+            status: 'INBOX',
+            due_date: new Date().toISOString().split('T')[0],
           });
-          setModalConfig({ isOpen: true, mode: "create", task: null });
+          setModalConfig({ isOpen: true, mode: 'create', task: null });
         }}
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.5)] hover:scale-105 transition-transform z-40 border border-white/20"
       >
@@ -306,7 +305,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
           <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-2xl">
             <div className="flex justify-between items-start">
               <h2 className="text-lg font-bold text-white">
-                {modalConfig.mode === "create" ? "New Task" : "Edit Task"}
+                {modalConfig.mode === 'create' ? 'New Task' : 'Edit Task'}
               </h2>
               <button
                 onClick={() =>
@@ -319,17 +318,17 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
             </div>
             <div className="flex flex-col gap-4">
               {/* 💡 追加：ソース（保存先）の切り替えスイッチ */}
-              {modalConfig.mode === "create" && (
+              {modalConfig.mode === 'create' && (
                 <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
-                  {(["LOCAL", "NOTION"] as const).map((src) => (
+                  {(['LOCAL', 'NOTION'] as const).map((src) => (
                     <button
                       key={src}
                       type="button"
                       onClick={() => setEditForm({ ...editForm, source: src })}
                       className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-[0.2em] transition-all ${
                         editForm.source === src
-                          ? "bg-white/10 text-white shadow-sm"
-                          : "text-gray-500 hover:text-gray-300"
+                          ? 'bg-white/10 text-white shadow-sm'
+                          : 'text-gray-500 hover:text-gray-300'
                       }`}
                     >
                       {src}
@@ -355,11 +354,11 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
                 className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon focus:outline-none [color-scheme:dark]"
               />
               <div className="grid grid-cols-2 gap-2">
-                {["INBOX", "Waiting", "Going", "Done"].map((s) => (
+                {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
                   <button
                     key={s}
                     onClick={() => setEditForm({ ...editForm, status: s })}
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 ${editForm.status === s ? "bg-white/10 border-white/30 text-white" : "border-white/5 text-gray-400"}`}
+                    className={`p-2.5 rounded-xl border flex items-center gap-2 ${editForm.status === s ? 'bg-white/10 border-white/30 text-white' : 'border-white/5 text-gray-400'}`}
                   >
                     <div
                       className={`w-2.5 h-2.5 rounded-full ${getStatusColor(s)}`}
@@ -374,7 +373,7 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
               disabled={isSaving}
               className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50"
             >
-              {isSaving ? "Saving..." : "Save Task"}
+              {isSaving ? 'Saving...' : 'Save Task'}
             </button>
           </div>
         </div>
