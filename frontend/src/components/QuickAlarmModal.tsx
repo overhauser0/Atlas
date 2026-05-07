@@ -1,32 +1,43 @@
-"use client";
-import { useState, useEffect } from "react";
+'use client';
+import React from 'react';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  appSettings: any;
+  setAppSettings: (s: any) => void;
 }
 
-export default function QuickAlarmModal({ isOpen, onClose }: Props) {
-  const [tempAlarm, setTempAlarm] = useState("");
+export default function QuickAlarmModal({
+  isOpen,
+  onClose,
+  appSettings,
+  setAppSettings,
+}: Props) {
+  if (!isOpen) return null;
 
-  useEffect(() => {
-    if (isOpen) {
-      setTempAlarm(localStorage.getItem("gleis_alarm_time") || "");
-    }
-  }, [isOpen]);
+  // appSettings から現在の値を取得
+  const currentAlarm = appSettings.alarmTime || '';
 
-  const handleSave = (time: string) => {
-    setTempAlarm(time);
+  const handleUpdate = (time: string) => {
+    setAppSettings((s: any) => ({
+      ...s,
+      alarmTime: time,
+    }));
+
+    // 時刻がセットされたら、少し余韻を残して閉じる
     if (time) {
-      localStorage.setItem("gleis_alarm_time", time);
-      // セットされたら少し余韻を残して自動で閉じる
       setTimeout(onClose, 500);
-    } else {
-      localStorage.removeItem("gleis_alarm_time");
     }
   };
 
-  if (!isOpen) return null;
+  const handleClear = () => {
+    setAppSettings((s: any) => ({
+      ...s,
+      alarmTime: '',
+    }));
+    onClose();
+  };
 
   return (
     <>
@@ -38,19 +49,16 @@ export default function QuickAlarmModal({ isOpen, onClose }: Props) {
         <div className="noir-glass p-2 rounded-xl border border-white/20 shadow-2xl flex items-center gap-2">
           <input
             type="time"
-            value={tempAlarm}
+            value={currentAlarm}
             autoFocus
-            onChange={(e) => handleSave(e.target.value)}
+            onChange={(e) => handleUpdate(e.target.value)}
             className="bg-black/60 border border-white/10 rounded-lg p-2 text-white text-lg font-mono focus:border-neon focus:outline-none [color-scheme:dark]"
           />
-          {tempAlarm && (
+
+          {currentAlarm && (
             <button
-              onClick={() => {
-                localStorage.removeItem("gleis_alarm_time");
-                setTempAlarm("");
-                onClose();
-              }}
-              className="text-[10px] text-gray-500 hover:text-red-400 font-bold px-2"
+              onClick={handleClear}
+              className="text-[10px] text-gray-500 hover:text-red-400 font-bold px-2 tracking-tighter transition-colors"
             >
               CLEAR
             </button>

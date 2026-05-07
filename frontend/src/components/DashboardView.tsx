@@ -13,9 +13,14 @@ import {
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
   isAuthenticated: boolean;
+  refreshTrigger: number;
 }
 
-export default function DashboardView({ appSettings, isAuthenticated }: Props) {
+export default function DashboardView({
+  appSettings,
+  isAuthenticated,
+  refreshTrigger,
+}: Props) {
   const statuses = ['INBOX', 'Waiting', 'Going', 'Done'];
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,36 +42,46 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
     new Date().getDay()
   ];
 
-  const fetchTasks = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const res = await fetch(
-        '/api/v1/tasks?area=Work&type=Task&excludeStatus=Done,Canceled',
-      );
-      const data = await res.json();
+  const fetchTasks = useCallback(
+    async (isSilent = false) => {
+      if (!isAuthenticated) return;
 
-      if (data.success) {
-        setTasks(
-          data.tasks.filter((task: Task) => {
-            if (task.source === 'LOCAL') return task.status != 'Done';
-            return (
-              task.area === 'Work' &&
-              task.type === 'Task' &&
-              statuses.includes(task.status || '')
-            );
-          }),
-        );
+      // 💡 すでにデータがある状態での更新（サイレント更新）なら Loading を出さない
+      if (!isSilent) setLoading(true);
+
+      try {
+        const res = await fetch(
+          '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
+        ); //&type=Task
+        const data = await res.json();
+
+        if (data.success) {
+          setTasks(
+            data.tasks.filter((task: Task) => {
+              if (task.source === 'LOCAL') return task.status != 'Done';
+              return (
+                task.area === 'Work' &&
+                /*task.type === 'Task' &&*/
+                statuses.includes(task.status || '')
+              );
+            }),
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [isAuthenticated]);
+    },
+    [isAuthenticated],
+  );
 
+  // 初回表示時 ＋ 同期ボタンが押された時（refreshTriggerが変化した時）に実行
   useEffect(() => {
-    fetchTasks();
-  }, [fetchTasks]);
+    // 💡 初回（tasksが空）ならLoadingあり、2回目以降ならLoadingなしで更新
+    const isFirstTime = tasks.length === 0;
+    fetchTasks(!isFirstTime);
+  }, [fetchTasks, refreshTrigger]); // 💡 refreshTrigger を監視対象に追加
 
   const onDrop = async (targetColumn: string) => {
     if (!draggingTaskId || targetColumn === 'Overdue') {
@@ -124,13 +139,8 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
         url = `/api/v1/tasks/${modalConfig.task.id}`;
         method = 'PATCH';
       } else {
-        // 新規作成時も、もし backend 側に unified な POST
-        // エンドポイントを作ればここもさらに共通化できます
+        url = '/api/v1/tasks';
         method = 'POST';
-        url =
-          editForm.source === 'local'
-            ? '/api/v1/tasks/local'
-            : '/api/v1/tasks/notion';
       }
 
       console.log('fetch detail', url, method, payload);
@@ -209,16 +219,18 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
               appSettings.shrinkEmptyPastDays &&
               colIndex < todayIndex &&
               colTasks.length === 0;
+            const isToday = colName === todayName;
+            const isOverdue = colName === 'Overdue';
 
             return (
               <div
                 key={colName}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(colName)}
-                className={`${shouldShrink ? 'w-[168px]' : 'w-[280px]'} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
+                className={`${shouldShrink ? 'w-[168px]' : 'w-[280px]'} ${isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div
-                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${colName === 'Overdue' ? 'text-red-400 border-red-500/30' : colName === todayName ? 'text-neon border-neon/50' : 'text-gray-400 border-glass-border'}`}
+                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${isOverdue ? 'text-red-400 border-red-500/30' : isToday ? 'text-neon border-neon/50' : 'text-gray-400 border-glass-border'}`}
                 >
                   <span>{colName}</span>
                   <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-gray-300">
@@ -240,6 +252,9 @@ export default function DashboardView({ appSettings, isAuthenticated }: Props) {
                       onDragStart={() => setDraggingTaskId(task.id)}
                       className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group relative flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : 'opacity-100'}`}
                     >
+                      <div
+                        className={`absolute left-0 top-2 bottom-2 w-[2px] rounded-full ${getStatusColor(task.status)} opacity-50`}
+                      />
                       {task.source === 'NOTION' && (
                         <a
                           href={`https://notion.so/${task.id.replace(/-/g, '')}`}

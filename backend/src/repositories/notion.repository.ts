@@ -8,18 +8,27 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
  * Notionに新しいページを作成する
  */
 export const createPage = async (task: Task) => {
+  const properties: any = {
+    Name: { title: [{ text: { content: task.title } }] },
+    State: { status: { name: task.status || 'INBOX' } },
+    _Area: { select: { name: task.area || 'Work' } },
+    _Type: { select: { name: task.type || 'Task' } },
+    Date: task.dueDate ? { date: { start: task.dueDate } } : undefined,
+  };
+  if (Array.isArray(task?.topics)) {
+    properties._Topics = {
+      multi_select: task.topics.map((t) => ({ name: t })),
+    };
+  }
+  if (Array.isArray(task?.flags)) {
+    properties._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
+  }
+  if (task.content) {
+    properties.Note = { rich_text: [{ text: { content: task.content } }] };
+  }
   return await notion.pages.create({
     parent: { database_id: DATABASE_ID },
-    properties: {
-      Name: { title: [{ text: { content: task.title } }] },
-      State: { status: { name: task.status } },
-      _Area: { select: { name: task.area } },
-      _Type: { select: { name: task.type } },
-      _Topics: { multi_select: task.topics.map((t) => ({ name: t })) },
-      _Flags: { multi_select: task.flags.map((f) => ({ name: f })) },
-      Note: { rich_text: [{ text: { content: task.content } }] },
-      Date: task.dueDate ? { date: { start: task.dueDate } } : undefined,
-    },
+    properties,
   });
 };
 

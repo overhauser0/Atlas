@@ -91,25 +91,28 @@ export const upsertNotionTaskCache = async (
 ) => {
   const values = {
     id: task.id!,
-    title: task.title,
-    content: task.content,
-    status: task.status,
-    priority: task.priority,
-    area: task.area,
-    type: task.type,
-    topics: task.topics,
-    flags: task.flags,
-    due_date: task.dueDate ? new Date(task.dueDate) : null,
+    title: task.title || 'No Title',
+    content: task.content || 'No Content',
+    status: task.status || 'INBOX',
+    priority: task.priority || 3,
+    area: task.area || 'Work',
+    type: task.type || 'Task',
+    topics: task.topics || [],
+    flags: task.flags || [],
+    due_date: task.dueDate ? new Date(task.dueDate) : new Date(),
     last_edited_time: lastEditedTime,
     raw_data: JSON.stringify(rawData),
   };
 
-  return await db
+  const upsertedTask = await db
     .insertInto('notion_tasks_cache')
     .values(values)
     .onConflict((oc) => oc.column('id').doUpdateSet(values))
     .returningAll()
     .executeTakeFirst();
+  upsertedTask.source = 'NOTION'; // 返却するオブジェクトに source を追加
+
+  return upsertedTask;
 };
 
 /**
@@ -120,7 +123,7 @@ export const updateNotionTaskCache = async (
   id: string,
   updates: Partial<Task>,
 ) => {
-  return await db
+  const updatedTask = await db
     .updateTable('notion_tasks_cache')
     .set({
       title: updates.title,
@@ -136,6 +139,9 @@ export const updateNotionTaskCache = async (
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
+  updatedTask.source = 'NOTION'; // 返却するオブジェクトに source を追加
+
+  return updatedTask;
 };
 
 /**
@@ -174,16 +180,12 @@ export const getTasks = async (filters: {
     .orderBy('last_edited_time', 'desc')
     .execute();
 
-  console.log('notion_tasks_cache', notionTasks);
-
   // 2. ローカルタスクから取得
   const localTasks = await applyCommonFilters(
     db.selectFrom('local_tasks').selectAll(),
   )
     .orderBy('created_at', 'desc')
     .execute();
-
-  console.log('local_tasks', localTasks);
 
   // 3. 結合して source を付与
   const combined = [
@@ -207,7 +209,7 @@ export const getTasks = async (filters: {
  * ローカルタスクを保存する
  */
 export const insertLocalTask = async (task: Task) => {
-  return await db
+  const insertedTask = await db
     .insertInto('local_tasks')
     .values({
       title: task.title,
@@ -222,6 +224,9 @@ export const insertLocalTask = async (task: Task) => {
     })
     .returningAll()
     .executeTakeFirst();
+  insertedTask.source = 'LOCAL'; // 返却するオブジェクトに source を追加
+
+  return insertedTask;
 };
 
 /**
@@ -231,12 +236,15 @@ export const updateLocalTask = async (
   id: string,
   updates: Partial<LocalTasksTable>,
 ) => {
-  return await db
+  const updatedTask = await db
     .updateTable('local_tasks')
     .set(updates)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
+  updatedTask.source = 'LOCAL'; // 返却するオブジェクトに source を追加
+
+  return updatedTask;
 };
 
 /**

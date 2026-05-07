@@ -1,5 +1,5 @@
-"use client";
-import { useEffect, useState } from "react";
+'use client';
+import { useEffect, useState } from 'react';
 import {
   LayoutDashboard,
   Settings,
@@ -8,41 +8,59 @@ import {
   X,
   RefreshCw,
   Bell,
-} from "lucide-react";
-import AuthView from "@/components/AuthView";
-import DashboardView from "@/components/DashboardView";
-import SettingsView from "@/components/SettingsView";
-import WakeLockHandler from "@/components/WakeLockHandler";
-import { ToastProvider } from "@/components/Toast";
-import AlarmHandler from "@/components/AlarmHandler";
-import QuickAlarmModal from "@/components/QuickAlarmModal";
-import NotificationHandler from "@/components/NotificationHandler";
-import { ViewType } from "@/types";
+} from 'lucide-react';
+import AuthView from '@/components/AuthView';
+import DashboardView from '@/components/DashboardView';
+import SettingsView from '@/components/SettingsView';
+import WakeLockHandler from '@/components/WakeLockHandler';
+import { ToastProvider } from '@/components/Toast';
+import AlarmHandler from '@/components/AlarmHandler';
+import QuickAlarmModal from '@/components/QuickAlarmModal';
+import NotificationHandler from '@/components/NotificationHandler';
+import { ViewType } from '@/types';
 
 export default function Home() {
+  // 認証状態の管理
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loginError, setLoginError] = useState(false);
-  const [currentView, setCurrentView] = useState<ViewType>("dashboard");
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [appSettings, setAppSettings] = useState({ shrinkEmptyPastDays: true });
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
+  const [appSettings, setAppSettings] = useState({
+    shrinkEmptyPastDays: true,
+    syncInterval: 5,
+    alarmTime: '',
+  });
 
+  // ---------------- 認証チェック ----------------
   useEffect(() => {
-    if (localStorage.getItem("gleis_auth") === "true") setIsAuthenticated(true);
+    if (localStorage.getItem('gleis_auth') === 'true') setIsAuthenticated(true);
     setIsAuthChecking(false);
-    setCurrentTime(new Date());
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    return () => clearInterval(timer);
   }, []);
 
+  // ----------------  アプリ設定 ----------------
+  useEffect(() => {
+    const saved = localStorage.getItem('gleis_settings');
+    if (saved) {
+      setAppSettings(JSON.parse(saved));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
+  }, [appSettings]);
+
+  // ---------------- データの更新 ----------------
+  // 更新処理
   const handleSync = async () => {
     setIsSyncing(true);
     try {
-      await fetch("/api/v1/tasks/sync", { method: "POST" });
-      window.location.reload();
+      await fetch('/api/v1/tasks/sync', { method: 'POST' });
+      setRefreshKey((prev) => prev + 1);
     } catch (e) {
       console.error(e);
     } finally {
@@ -50,6 +68,27 @@ export default function Home() {
     }
   };
 
+  // 自動更新タイマーを設置
+  useEffect(() => {
+    if (!isAuthenticated || appSettings.syncInterval <= 0) return;
+
+    const intervalTime = appSettings.syncInterval * 60 * 1000;
+    const interval = setInterval(() => {
+      console.log('Auto syncing...');
+      handleSync();
+    }, intervalTime);
+
+    return () => clearInterval(interval);
+  }, [isAuthenticated, appSettings.syncInterval]);
+
+  // ---------------- 時計の更新 ----------------
+  useEffect(() => {
+    setCurrentTime(new Date());
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // ---------------- 描画 ----------------
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
     return (
@@ -64,7 +103,10 @@ export default function Home() {
     <ToastProvider>
       <div className="flex h-screen overflow-hidden text-gray-200 relative bg-black">
         <WakeLockHandler />
-        <AlarmHandler />
+        <AlarmHandler
+          appSettings={appSettings}
+          setAppSettings={setAppSettings}
+        />
         <NotificationHandler />
         {isMobileMenuOpen && (
           <div
@@ -74,7 +116,7 @@ export default function Home() {
         )}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? "translate-x-0" : "-translate-x-[120%]"} sm:relative sm:translate-x-0 group w-64 sm:w-20 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
+          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[120%]'} sm:relative sm:translate-x-0 group w-64 sm:w-20 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
         >
           <div className="flex items-center gap-4 mb-8 px-2 mt-2">
             <div className="w-8 h-8 bg-[#0070f3] rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
@@ -87,10 +129,10 @@ export default function Home() {
           <nav className="flex flex-col gap-2 flex-1">
             <button
               onClick={() => {
-                setCurrentView("dashboard");
+                setCurrentView('dashboard');
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === "dashboard" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'dashboard' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               <LayoutDashboard className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
@@ -105,10 +147,10 @@ export default function Home() {
             </button>
             <button
               onClick={() => {
-                setCurrentView("settings");
+                setCurrentView('settings');
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === "settings" ? "bg-white/10 text-white" : "text-gray-400 hover:text-white"}`}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'settings' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               <Settings className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
@@ -123,7 +165,7 @@ export default function Home() {
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-white"
             >
               <RefreshCw
-                className={`w-5 h-5 shrink-0 ${isSyncing ? "animate-spin text-neon" : ""}`}
+                className={`w-5 h-5 shrink-0 ${isSyncing ? 'animate-spin text-neon' : ''}`}
               />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
                 SyncNotion
@@ -131,7 +173,7 @@ export default function Home() {
             </button>
             <button
               onClick={() => {
-                localStorage.removeItem("gleis_auth");
+                localStorage.removeItem('gleis_auth');
                 setIsAuthenticated(false);
               }}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400"
@@ -154,31 +196,27 @@ export default function Home() {
                 <Menu className="w-6 h-6" />
               </button>
               <h1 className="text-xl font-semibold tracking-wide">
-                {currentView === "dashboard" ? "Weekly" : "Settings"}
+                {currentView === 'dashboard' ? 'Weekly' : 'Settings'}
               </h1>
             </div>
 
-            {/* 💡 時計部分を修正 */}
+            {/* 時計 */}
             <div className="relative">
               <button
                 onClick={() => setIsQuickAlarmOpen(!isQuickAlarmOpen)}
                 className="group flex flex-col items-end transition-all active:scale-95"
               >
                 <div className="text-lg text-white font-bold font-mono tracking-widest group-hover:text-neon transition-colors">
-                  {currentTime?.toLocaleTimeString("ja-JP", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }) || "--:--"}
+                  {currentTime?.toLocaleTimeString('ja-JP', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }) || '--:--'}
                 </div>
-                {/* 
-                  アラームがセットされている場合のみ、
-                  小さなドット（bg-red-500）を時計の下に出すと「状態」がわかって便利です
-                */}
+                {/* アラームがある場合ドットで表示 */}
                 <div className="h-1 mt-0.5">
-                  {typeof window !== "undefined" &&
-                    localStorage.getItem("gleis_alarm_time") && (
-                      <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />
-                    )}
+                  {appSettings.alarmTime && (
+                    <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
+                  )}
                 </div>
               </button>
 
@@ -186,13 +224,16 @@ export default function Home() {
               <QuickAlarmModal
                 isOpen={isQuickAlarmOpen}
                 onClose={() => setIsQuickAlarmOpen(false)}
+                appSettings={appSettings}
+                setAppSettings={setAppSettings}
               />
             </div>
           </header>
-          {currentView === "dashboard" ? (
+          {currentView === 'dashboard' ? (
             <DashboardView
               appSettings={appSettings}
               isAuthenticated={isAuthenticated}
+              refreshTrigger={refreshKey}
             />
           ) : (
             <SettingsView
