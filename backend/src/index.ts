@@ -28,6 +28,24 @@ api.post('/tasks/sync', taskController.syncTasks);
 
 app.route('/api/v1', api);
 
+// エラー通知
+app.onError(async (err, c) => {
+  console.error(`[Server Error]: ${err.message}`);
+
+  // エラーを通知履歴に保存する
+  try {
+    await pgRepo.archiveNotification({
+      title: '🚫 System Internal Error',
+      content: `A server-side error occurred: ${err.message}`,
+      category: 'ALERT',
+    });
+  } catch (e) {
+    console.error('Failed to archive error notification', e);
+  }
+
+  return c.json({ success: false, error: 'Internal Server Error' }, 500);
+});
+
 const port = 5676;
 console.log(`🚀 Gleis WorkOS Backend (Hono) running on port ${port}`);
 
