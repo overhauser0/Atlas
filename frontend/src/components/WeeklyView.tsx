@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useState } from 'react';
 import { Plus, ExternalLink, X } from 'lucide-react';
 import { Task } from '@/types';
 import {
@@ -12,18 +12,21 @@ import {
 
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
-  isAuthenticated: boolean;
-  refreshTrigger: number;
+  tasks: Task[];
+  loading: boolean;
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
+  onOpenTaskModal: () => void;
+  onTaskClick: (task: Task) => void;
 }
 
 export default function WeeklyView({
   appSettings,
-  isAuthenticated,
-  refreshTrigger,
+  tasks,
+  loading,
+  setTasks,
+  onOpenTaskModal,
+  onTaskClick,
 }: Props) {
-  const statuses = ['INBOX', 'Waiting', 'Going', 'Done'];
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
   const [modalConfig, setModalConfig] = useState<{
     isOpen: boolean;
@@ -42,47 +45,6 @@ export default function WeeklyView({
     new Date().getDay()
   ];
 
-  const fetchTasks = useCallback(
-    async (isSilent = false) => {
-      if (!isAuthenticated) return;
-
-      // 💡 すでにデータがある状態での更新（サイレント更新）なら Loading を出さない
-      if (!isSilent) setLoading(true);
-
-      try {
-        const res = await fetch(
-          '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
-        ); //&type=Task
-        const data = await res.json();
-
-        if (data.success) {
-          setTasks(
-            data.tasks.filter((task: Task) => {
-              if (task.source === 'LOCAL') return task.status != 'Done';
-              return (
-                task.area === 'Work' &&
-                /*task.type === 'Task' &&*/
-                statuses.includes(task.status || '')
-              );
-            }),
-          );
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [isAuthenticated],
-  );
-
-  // 初回表示時 ＋ 同期ボタンが押された時（refreshTriggerが変化した時）に実行
-  useEffect(() => {
-    // 💡 初回（tasksが空）ならLoadingあり、2回目以降ならLoadingなしで更新
-    const isFirstTime = tasks.length === 0;
-    fetchTasks(!isFirstTime);
-  }, [fetchTasks, refreshTrigger]); // 💡 refreshTrigger を監視対象に追加
-
   const onDrop = async (targetColumn: string) => {
     if (!draggingTaskId || targetColumn === 'Overdue') {
       setDraggingTaskId(null);
@@ -100,6 +62,8 @@ export default function WeeklyView({
       ),
     );
     setDraggingTaskId(null);
+
+    // バックエンドの更新
     await fetch(`/api/v1/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -300,85 +264,6 @@ export default function WeeklyView({
       >
         <Plus className="w-8 h-8" />
       </button>
-
-      {modalConfig.isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-2xl">
-            <div className="flex justify-between items-start">
-              <h2 className="text-lg font-bold text-white">
-                {modalConfig.mode === 'create' ? 'New Task' : 'Edit Task'}
-              </h2>
-              <button
-                onClick={() =>
-                  setModalConfig({ ...modalConfig, isOpen: false })
-                }
-                className="text-gray-400 hover:text-white"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="flex flex-col gap-4">
-              {/* 💡 追加：ソース（保存先）の切り替えスイッチ */}
-              {modalConfig.mode === 'create' && (
-                <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
-                  {(['LOCAL', 'NOTION'] as const).map((src) => (
-                    <button
-                      key={src}
-                      type="button"
-                      onClick={() => setEditForm({ ...editForm, source: src })}
-                      className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold tracking-[0.2em] transition-all ${
-                        editForm.source === src
-                          ? 'bg-white/10 text-white shadow-sm'
-                          : 'text-gray-500 hover:text-gray-300'
-                      }`}
-                    >
-                      {src}
-                    </button>
-                  ))}
-                </div>
-              )}
-              <input
-                type="text"
-                value={editForm.title}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, title: e.target.value })
-                }
-                className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon focus:outline-none"
-                placeholder="Task title..."
-              />
-              <input
-                type="date"
-                value={editForm.due_date}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, due_date: e.target.value })
-                }
-                className="noir-input"
-              />
-              <div className="grid grid-cols-2 gap-2">
-                {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setEditForm({ ...editForm, status: s })}
-                    className={`p-2.5 rounded-xl border flex items-center gap-2 ${editForm.status === s ? 'bg-white/10 border-white/30 text-white' : 'border-white/5 text-gray-400'}`}
-                  >
-                    <div
-                      className={`w-2.5 h-2.5 rounded-full ${getStatusColor(s)}`}
-                    />
-                    <span className="text-xs">{s}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50"
-            >
-              {isSaving ? 'Saving...' : 'Save Task'}
-            </button>
-          </div>
-        </div>
-      )}
     </>
   );
 }

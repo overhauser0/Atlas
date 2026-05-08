@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import {
+  LayoutDashboard,
   Columns2,
   Settings,
   Lock,
@@ -10,15 +11,17 @@ import {
   Bell,
 } from 'lucide-react';
 import AuthView from '@/components/AuthView';
+import DashboardView from '@/components/DashboardView';
 import WeeklyView from '@/components/WeeklyView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import QuickAlarmModal from '@/components/QuickAlarmModal';
+import TaskModal from '@/components/TaskModal';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
-import { ViewType } from '@/types';
+import { Task, ViewType } from '@/types';
 
 export default function Home() {
   // 認証状態の管理
@@ -29,7 +32,6 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
   const [appSettings, setAppSettings] = useState({
     shrinkEmptyPastDays: true,
@@ -38,6 +40,25 @@ export default function Home() {
     alarmTime: '',
   });
   const [hasUnread, setHasUnread] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [isTasksLoading, setIsTasksLoading] = useState(true);
+  const [taskModalConfig, setTaskModalConfig] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    task: Task | null;
+  }>({ isOpen: false, mode: 'create', task: null });
+
+  const openCreateTaskModal = useCallback(() => {
+    setTaskModalConfig({ isOpen: true, mode: 'create', task: null });
+  }, []);
+
+  const openEditTaskModal = useCallback((task: Task) => {
+    setTaskModalConfig({ isOpen: true, mode: 'edit', task });
+  }, []);
+
+  const closeTaskModal = useCallback(() => {
+    setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
+  }, []);
 
   // ---------------- 認証チェック ----------------
   useEffect(() => {
@@ -57,21 +78,63 @@ export default function Home() {
     localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
   }, [appSettings]);
 
+  // ---------------- タスクの管理 ----------------
+  const fetchTasks = useCallback(
+    async (isSilent = false) => {
+      if (!isAuthenticated) return;
+
+      // すでにデータがある状態での更新（サイレント更新）なら Loading を出さない
+      if (!isSilent) setIsTasksLoading(true);
+
+      const statuses = ['INBOX', 'Waiting', 'Going', 'Done'];
+
+      try {
+        const res = await fetch(
+          '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
+        );
+        const data = await res.json();
+
+        if (data.success) {
+          setTasks(
+            data.tasks.filter((task: Task) => {
+              if (task.source === 'LOCAL') return task.status != 'Done';
+              return (
+                task.area === 'Work' && statuses.includes(task.status || '')
+              );
+            }),
+          );
+        }
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setIsTasksLoading(false);
+      }
+    },
+    [isAuthenticated],
+  );
+
+  // 初回表示時に実行
+  useEffect(() => {
+    const isFirstTime = tasks.length === 0;
+    fetchTasks(!isFirstTime);
+  }, [fetchTasks, tasks.length]);
+
   // ---------------- データの更新 ----------------
   // 更新処理
   const handleSync = useCallback(async () => {
     setIsSyncing(true);
     try {
       await fetch('/api/v1/tasks/sync', { method: 'POST' });
-      setRefreshKey((prev) => prev + 1);
+      await fetchTasks(true);
     } catch (e) {
       console.error(e);
     } finally {
       setIsSyncing(false);
     }
-  }, []);
+  }, [fetchTasks]);
+
   const handleTaskUpdate = useCallback(() => {
-    setRefreshKey((prev) => prev + 1);
+    fetchTasks(true);
   }, []);
   const handleMarkAsRead = useCallback(() => {
     setHasUnread(false);
@@ -80,13 +143,11 @@ export default function Home() {
   // 自動更新タイマーを設置
   useEffect(() => {
     if (!isAuthenticated || appSettings.syncInterval <= 0) return;
-
     const intervalTime = appSettings.syncInterval * 60 * 1000;
     const interval = setInterval(() => {
       console.log('Auto syncing...');
       handleSync();
     }, intervalTime);
-
     return () => clearInterval(interval);
   }, [isAuthenticated, appSettings.syncInterval]);
 
@@ -142,6 +203,18 @@ export default function Home() {
           <nav className="flex flex-col gap-2 flex-1">
             <button
               onClick={() => {
+                setCurrentView('dashboard');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'dashboard' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <LayoutDashboard className="w-5 h-5 shrink-0" />
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                Home
+              </span>
+            </button>
+            <button
+              onClick={() => {
                 setCurrentView('weekly');
                 setIsMobileMenuOpen(false);
               }}
@@ -149,7 +222,7 @@ export default function Home() {
             >
               <Columns2 className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                WeeklyView
+                WeeklyTask
               </span>
             </button>
             <button
@@ -253,11 +326,21 @@ export default function Home() {
               />
             </div>
           </header>
+          {currentView === 'dashboard' && (
+            <DashboardView
+              tasks={tasks}
+              onOpenTaskModal={openCreateTaskModal}
+              onTaskClick={openEditTaskModal}
+            />
+          )}
           {currentView === 'weekly' && (
             <WeeklyView
               appSettings={appSettings}
-              isAuthenticated={isAuthenticated}
-              refreshTrigger={refreshKey}
+              tasks={tasks}
+              loading={isTasksLoading}
+              setTasks={setTasks}
+              onOpenTaskModal={openCreateTaskModal}
+              onTaskClick={openEditTaskModal}
             />
           )}
           {currentView === 'notifications' && (
@@ -269,6 +352,13 @@ export default function Home() {
               setAppSettings={setAppSettings}
             />
           )}
+          <TaskModal
+            isOpen={taskModalConfig.isOpen}
+            mode={taskModalConfig.mode}
+            task={taskModalConfig.task}
+            onClose={closeTaskModal}
+            onSuccess={() => fetchTasks(true)}
+          />
         </main>
       </div>
     </ToastProvider>

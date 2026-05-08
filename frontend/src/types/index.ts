@@ -9,4 +9,5 @@ export interface Task {
   topics: string[];
 }
 
-export type ViewType = 'dashboard' | 'settings' | 'notifications';
+export type ViewMode = 'dashboard' | 'weekly' | 'notifications' | 'settings';
+export type ViewType = 'dashboard' | 'weekly' | 'notifications' | 'settings';
