@@ -1,5 +1,4 @@
-export const COLUMNS = [
-  'Overdue',
+export const WEEK_DAYS = [
   'Mon',
   'Tue',
   'Wed',
@@ -7,7 +6,17 @@ export const COLUMNS = [
   'Fri',
   'Sat',
   'Sun',
-];
+] as const;
+
+export const COLUMNS = ['Overdue', ...WEEK_DAYS];
+
+// ステータスの優先順位定義
+export const STATUS_ORDER: Record<string, number> = {
+  INBOX: 1,
+  GOING: 2,
+  WAITING: 3,
+  WRAPPER: 4,
+};
 
 export const getStatusColor = (status: string) => {
   const s = (status || '').toUpperCase();
@@ -35,14 +44,16 @@ export const getColumnName = (dueDateStr: string | null): string => {
   const diffDays = Math.round(
     (taskDate.getTime() - thisMonday.getTime()) / (1000 * 60 * 60 * 24),
   );
-  if (diffDays >= 0 && diffDays <= 6)
-    return ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][diffDays];
+  if (diffDays >= 0 && diffDays <= 6) return WEEK_DAYS[diffDays];
   return 'Future';
 };
 
+type DayOfWeek = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
+type TargetColumnType = DayOfWeek | 'Overdue';
+
 export const calculateNewDateWithPreservedTime = (
   originalDateStr: string | null,
-  targetColumn: string,
+  targetColumn: TargetColumnType,
 ): string | null => {
   if (targetColumn === 'Overdue') return null;
 
@@ -52,9 +63,7 @@ export const calculateNewDateWithPreservedTime = (
   const targetMonday = new Date(today);
   targetMonday.setDate(today.getDate() + diffToMonday);
 
-  const colIndex = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].indexOf(
-    targetColumn,
-  );
+  const colIndex = WEEK_DAYS.indexOf(targetColumn as DayOfWeek);
   const targetDate = new Date(targetMonday);
   targetDate.setDate(targetMonday.getDate() + colIndex);
 
@@ -69,11 +78,4 @@ export const calculateNewDateWithPreservedTime = (
     return `${newDatePart}T${timePart}+09:00`;
   }
   return newDatePart;
-};
-// ステータスの優先順位定義
-export const STATUS_ORDER: Record<string, number> = {
-  INBOX: 1,
-  GOING: 2,
-  WAITING: 3,
-  WRAPPER: 4,
 };

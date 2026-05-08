@@ -1,28 +1,28 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Lock } from "lucide-react";
+import { useState } from 'react';
+import { Lock } from 'lucide-react';
 
 interface AuthViewProps {
   onLogin: () => void;
 }
 
 // 💡 簡易パスワードの設定
-const CORRECT_PASSWORD = "yyyuyy";
+const CORRECT_PASSWORD = 'yyyuyy';
 
 export default function AuthView({ onLogin }: AuthViewProps) {
-  const [passwordInput, setPasswordInput] = useState("");
+  const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordInput === CORRECT_PASSWORD) {
-      localStorage.setItem("gleis_auth", "true");
+      localStorage.setItem('gleis_auth', 'true');
       setLoginError(false);
       onLogin(); // 親（page.tsx）のステートを更新
     } else {
       setLoginError(true);
-      setPasswordInput("");
+      setPasswordInput('');
     }
   };
 
@@ -52,8 +52,8 @@ export default function AuthView({ onLogin }: AuthViewProps) {
               placeholder="Password"
               className={`w-full bg-black/50 border rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none transition-colors ${
                 loginError
-                  ? "border-red-500 focus:border-red-500"
-                  : "border-white/10 focus:border-neon"
+                  ? 'border-red-500 focus:border-red-500'
+                  : 'border-white/10 focus:border-neon'
               }`}
               autoFocus
             />

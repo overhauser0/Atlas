@@ -68,7 +68,8 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 Task Sync Interval
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                Notionとのタスク同期頻度（分）
+                Interval for syncing tasks with Notion (minutes). Set to 0 to
+                disable auto-sync.
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">
@@ -95,7 +96,8 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 Notification Poll Interval
               </div>
               <p className="text-xs text-gray-500 mt-1">
-                新着通知の確認頻度（秒）
+                Interval for checking new notifications (seconds). Set to 0 to
+                disable auto-check.
               </p>
             </div>
             <div className="flex items-center gap-3 shrink-0">

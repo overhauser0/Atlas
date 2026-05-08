@@ -16,7 +16,7 @@ interface Props {
   refreshTrigger: number;
 }
 
-export default function DashboardView({
+export default function WeeklyView({
   appSettings,
   isAuthenticated,
   refreshTrigger,

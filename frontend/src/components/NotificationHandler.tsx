@@ -1,6 +1,5 @@
 'use client';
 import { useEffect, useCallback } from 'react';
-import { useToast } from './Toast';
 
 interface Props {
   appSettings: any;

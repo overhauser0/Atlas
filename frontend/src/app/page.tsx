@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import {
-  LayoutDashboard,
+  Columns2,
   Settings,
   Lock,
   Menu,
@@ -10,7 +10,7 @@ import {
   Bell,
 } from 'lucide-react';
 import AuthView from '@/components/AuthView';
-import DashboardView from '@/components/DashboardView';
+import WeeklyView from '@/components/WeeklyView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider } from '@/components/Toast';
@@ -25,7 +25,7 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loginError, setLoginError] = useState(false);
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>('weekly');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -142,14 +142,14 @@ export default function Home() {
           <nav className="flex flex-col gap-2 flex-1">
             <button
               onClick={() => {
-                setCurrentView('dashboard');
+                setCurrentView('weekly');
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'dashboard' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'weekly' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >
-              <LayoutDashboard className="w-5 h-5 shrink-0" />
+              <Columns2 className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Dashboard
+                WeeklyView
               </span>
             </button>
             <button
@@ -215,7 +215,7 @@ export default function Home() {
                 <Menu className="w-6 h-6" />
               </button>
               <h1 className="text-xl font-semibold tracking-wide">
-                {currentView}
+                {currentView.toUpperCase()}
               </h1>
             </div>
             {/* 未読がある場合のアラートアイコン */}
@@ -253,8 +253,8 @@ export default function Home() {
               />
             </div>
           </header>
-          {currentView === 'dashboard' && (
-            <DashboardView
+          {currentView === 'weekly' && (
+            <WeeklyView
               appSettings={appSettings}
               isAuthenticated={isAuthenticated}
               refreshTrigger={refreshKey}
