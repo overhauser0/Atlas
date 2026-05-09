@@ -101,6 +101,17 @@ export const markAllAsRead = async () => {
     .where('is_read', '=', false)
     .execute();
 };
+/**
+ * 特定の通知を既読にする
+ */
+export const markAsRead = async (id: string) => {
+  return await db
+    .updateTable('notifications')
+    .set({ is_read: true })
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst();
+};
 
 /**
  * Notionのデータをキャッシュテーブルに保存・更新する (Upsert)

@@ -43,3 +43,10 @@ export const handleExternalPush = async (data: PushNotification) => {
 export const getNotificationHistory = async (c: any) => {
   return await pgRepo.getNotifications();
 };
+
+export const markNotificationAsRead = async (id: string) => {
+  return await pgRepo.markAsRead(id);
+};
+export const markAllNotificationsAsRead = async () => {
+  return await pgRepo.markAllAsRead();
+};

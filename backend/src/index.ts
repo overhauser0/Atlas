@@ -17,10 +17,8 @@ app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
 const api = new Hono();
 api.post('/push', pushController.receivePush);
 api.get('/notifications', pushController.getNotificationHistory);
-app.post('/notifications/read', async (c) => {
-  await pgRepo.markAllAsRead();
-  return c.json({ success: true });
-});
+api.post('/notifications/read', pushController.markAllAsRead);
+api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/tasks', taskController.getTasks);
 api.post('/tasks', taskController.createNewTask);
 api.patch('/tasks/:id', taskController.updateTask);

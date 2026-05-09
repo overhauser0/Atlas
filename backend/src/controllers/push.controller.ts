@@ -36,3 +36,38 @@ export const getNotificationHistory = async (c: Context) => {
     );
   }
 };
+
+export const markAsRead = async (c: Context) => {
+  const id = c.req.param('id');
+  try {
+    const updatedNotification =
+      await notificationService.markNotificationAsRead(id);
+    if (!updatedNotification) {
+      return c.json({ message: 'Notification not found' }, 404);
+    }
+
+    return c.json({ notification: updatedNotification });
+  } catch (error: any) {
+    console.error('❌ Mark As Read Controller Error:', error.message || error);
+    return c.json(
+      { message: error.message || 'Failed to mark notification as read' },
+      500,
+    );
+  }
+};
+
+export const markAllAsRead = async (c: Context) => {
+  try {
+    await notificationService.markAllNotificationsAsRead();
+    return c.json({ message: 'All notifications marked as read' });
+  } catch (error: any) {
+    console.error(
+      '❌ Mark All As Read Controller Error:',
+      error.message || error,
+    );
+    return c.json(
+      { message: error.message || 'Failed to mark all notifications as read' },
+      500,
+    );
+  }
+};

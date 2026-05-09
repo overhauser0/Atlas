@@ -45,15 +45,22 @@ export default function DashboardView({
 
   // --- 3. 1年の進捗計算 ---
   const yearProgress = useMemo(() => {
-    const year = new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      timeZone: 'Asia/Tokyo',
-    }).format(today);
-    const start = new Date(`${year}-01-01T00:00:00+09:00`);
-    const end = new Date(`${parseInt(year) + 1}-01-01T00:00:00+09:00`);
+    // 1. まず今日の日付をJSTの文字列 (YYYY/MM/DD, HH:MM:SS) で取得
+    const jstString = today.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
 
-    const progress =
-      (today.getTime() - start.getTime()) / (end.getTime() - start.getTime());
+    // 2. それを元にJST基準の「現在のDate」を作る
+    const jstDate = new Date(jstString);
+
+    // 3. JST基準の「年」を数値で取得
+    const currentYear = jstDate.getFullYear();
+
+    // 4. その年の最初と最後の日時 (ローカル時間として扱う)
+    const start = new Date(currentYear, 0, 1).getTime();
+    const end = new Date(currentYear + 1, 0, 1).getTime();
+    const now = jstDate.getTime();
+
+    // 5. 進捗率の計算
+    const progress = (now - start) / (end - start);
     return Math.floor(Math.max(0, Math.min(100, progress * 100)));
   }, [today]);
 
