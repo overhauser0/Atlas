@@ -32,7 +32,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 Shrink empty past days
               </div>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Automatically reduce the width of past columns to 60% if they
+                Automatically reduce the width of past columns to 40% if they
                 contain no tasks.
               </p>
             </div>

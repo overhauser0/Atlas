@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS notion_tasks_cache (
     type TEXT NOT NULL DEFAULT 'Task', -- Task, Routine, Event等
     topics TEXT[] DEFAULT '{}',        -- Postgresの配列型
     flags TEXT[] DEFAULT '{}',         -- Postgresの配列型
-    due_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- 空なら今日
+    due_date TEXT,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     raw_data JSONB DEFAULT '{}'        -- Notion APIからの生レスポンス保持用
@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS local_tasks (
     type TEXT DEFAULT 'Task',
     status TEXT DEFAULT 'INBOX',
     priority INTEGER DEFAULT 3,
-    due_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    due_date TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     metadata JSONB DEFAULT '{}'        -- 自由な拡張用（topics, flags等を格納）

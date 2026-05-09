@@ -50,8 +50,9 @@ export const updatePage = async (pageId: string, task: Partial<Task>) => {
     properties._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
   if (task.content)
     properties.Note = { rich_text: [{ text: { content: task.content } }] };
-  if (task.dueDate !== undefined)
+  if (task.dueDate !== undefined) {
     properties.Date = { date: task.dueDate ? { start: task.dueDate } : null };
+  }
 
   return await notion.pages.update({
     page_id: pageId,

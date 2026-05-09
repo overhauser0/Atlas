@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { Plus, ExternalLink, X } from 'lucide-react';
+import { Plus, ExternalLink, HardDrive } from 'lucide-react';
 import { Task } from '@/types';
 import {
   COLUMNS,
@@ -67,7 +67,7 @@ export default function WeeklyView({
     await fetch(`/api/v1/tasks/${task.id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...task, due_date: newDate, source: task.source }),
+      body: JSON.stringify({ ...task, dueDate: newDate, source: task.source }),
     });
   };
 
@@ -79,63 +79,6 @@ export default function WeeklyView({
       source: task.source || 'LOCAL',
     });
     setModalConfig({ isOpen: true, mode: 'edit', task });
-  };
-
-  const handleSave = async () => {
-    if (!editForm.title.trim()) return alert('タイトルを入力してください');
-    setIsSaving(true);
-
-    try {
-      const isEdit = modalConfig.mode === 'edit' && modalConfig.task;
-      const payloadDate = editForm.due_date || null;
-
-      let url = '';
-      let method = '';
-
-      const payload = {
-        title: editForm.title,
-        status: editForm.status,
-        dueDate: payloadDate, // サービス層で new Date() されるので文字列のままでOK
-        source: isEdit ? modalConfig.task.source : editForm.source,
-      };
-
-      if (isEdit) {
-        url = `/api/v1/tasks/${modalConfig.task.id}`;
-        method = 'PATCH';
-      } else {
-        url = '/api/v1/tasks';
-        method = 'POST';
-      }
-
-      console.log('fetch detail', url, method, payload);
-
-      const response = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-
-      const result = await response.json();
-
-      if (result.success && result.task) {
-        setTasks((prev) => {
-          const exists = prev.find((t) => t.id === result.task.id);
-          if (exists) {
-            return prev.map((t) => (t.id === result.task.id ? result.task : t));
-          } else {
-            return [...prev, result.task];
-          }
-        });
-        setModalConfig({ isOpen: false, mode: 'create', task: null });
-      }
-    } catch (e) {
-      console.error(e);
-      alert('保存に失敗しました');
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   return (
@@ -184,7 +127,7 @@ export default function WeeklyView({
                 key={colName}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(colName)}
-                className={`${shouldShrink ? 'w-[168px]' : 'w-[280px]'} ${isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
+                className={`${shouldShrink ? 'w-[112px]' : 'w-[280px]'} ${isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div
                   className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${isOverdue ? 'text-red-400 border-red-500/30' : isToday ? 'text-neon border-neon/50' : 'text-gray-400 border-glass-border'}`}
@@ -222,6 +165,12 @@ export default function WeeklyView({
                         />
                         <div className="text-sm font-medium leading-snug flex-1">
                           {task.title}
+                          {task.source === 'LOCAL' && (
+                            <HardDrive
+                              className="w-3.5 h-3.5 inline-block ml-1.5 text-white/20 align-text-bottom"
+                              title="Local Task"
+                            />
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center justify-between mt-auto h-6">
@@ -236,7 +185,7 @@ export default function WeeklyView({
                           ))}
                         </div>
                         <button
-                          onClick={() => openEditModal(task)}
+                          onClick={() => onTaskClick(task)}
                           className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
                         >
                           Detail
@@ -252,14 +201,7 @@ export default function WeeklyView({
       </div>
 
       <button
-        onClick={() => {
-          setEditForm({
-            title: '',
-            status: 'INBOX',
-            due_date: new Date().toISOString().split('T')[0],
-          });
-          setModalConfig({ isOpen: true, mode: 'create', task: null });
-        }}
+        onClick={onOpenTaskModal}
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.5)] hover:scale-105 transition-transform z-40 border border-white/20"
       >
         <Plus className="w-8 h-8" />

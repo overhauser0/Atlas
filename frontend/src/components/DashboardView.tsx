@@ -1,7 +1,13 @@
 'use client';
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Task } from '@/types';
-import { CalendarDays, Plus, ArrowRight } from 'lucide-react';
+import {
+  CalendarDays,
+  Plus,
+  ArrowRight,
+  ExternalLink,
+  HardDrive,
+} from 'lucide-react';
 import { getStatusColor } from '@/utils/dateUtils';
 
 interface DashboardViewProps {
@@ -15,16 +21,43 @@ export default function DashboardView({
   onOpenTaskModal,
   onTaskClick,
 }: DashboardViewProps) {
-  // 本日の日付を取得 (UIのトーンに合わせて英語フォーマット)
   const today = new Date();
+
+  // --- 1. 表示用日付の取得 ---
   const displayDate = today.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',
     day: 'numeric',
+    timeZone: 'Asia/Tokyo',
   });
 
-  // 今日のタスク（完了していないもの）
-  const todayString = today.toISOString().split('T')[0];
+  // --- 2. フィルタリング用のJST日付文字列 (YYYY-MM-DD) の生成 ---
+  const todayString = useMemo(() => {
+    return new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(today)
+      .replace(/\//g, '-'); // YYYY/MM/DD -> YYYY-MM-DD に変換
+  }, [today]);
+
+  // --- 3. 1年の進捗計算 ---
+  const yearProgress = useMemo(() => {
+    const year = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      timeZone: 'Asia/Tokyo',
+    }).format(today);
+    const start = new Date(`${year}-01-01T00:00:00+09:00`);
+    const end = new Date(`${parseInt(year) + 1}-01-01T00:00:00+09:00`);
+
+    const progress =
+      (today.getTime() - start.getTime()) / (end.getTime() - start.getTime());
+    return Math.floor(Math.max(0, Math.min(100, progress * 100)));
+  }, [today]);
+
+  // 今日のタスク（完了していないもの）をフィルタリング
   const todaysTasks = tasks.filter(
     (task) =>
       task.due_date &&
@@ -34,17 +67,30 @@ export default function DashboardView({
 
   return (
     <div className="p-4 md:p-8 space-y-8 animate-fade-in flex-1 overflow-y-auto noir-scrollbar">
-      {/* --- ヘッダー：本日の日付 --- */}
-      <header className="pb-4 border-b border-white/10">
-        <div className="flex items-center gap-3 text-neon mb-2">
-          <CalendarDays className="w-6 h-6" />
-          <span className="text-sm font-bold tracking-widest uppercase">
-            Today
-          </span>
+      {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
+      <header className="pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-neon shadow-[0_0_15px_rgba(0,112,243,0.2)]">
+            <CalendarDays className="w-6 h-6" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
+            {displayDate}
+          </h1>
         </div>
-        <h1 className="text-3xl md:text-4xl font-bold text-white tracking-wide">
-          {displayDate}
-        </h1>
+
+        {/* 右側：1年の進捗バー */}
+        <div className="w-full md:w-64 flex flex-col gap-2">
+          <div className="flex justify-between items-center text-[10px] font-bold tracking-widest text-gray-500 uppercase">
+            <span>{today.getFullYear()} Progress</span>
+            <span className="text-neon">{yearProgress}%</span>
+          </div>
+          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+            <div
+              className="h-full bg-neon shadow-[0_0_10px_rgba(0,112,243,0.5)] transition-all duration-1000 ease-out"
+              style={{ width: `${yearProgress}%` }}
+            />
+          </div>
+        </div>
       </header>
 
       {/* --- ショートカット --- */}
@@ -84,15 +130,36 @@ export default function DashboardView({
                 className="group flex items-center justify-between p-4 rounded-xl noir-glass border border-white/5 hover:border-white/20 cursor-pointer transition-all"
               >
                 <div className="flex items-center gap-4">
-                  {/* ステータスに応じた色のドット */}
                   <div
                     className={`w-3 h-3 rounded-full ${getStatusColor(task.status)} shadow-[0_0_8px_currentColor] opacity-70`}
                   />
-                  <span className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">
+                  <div className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">
                     {task.title}
-                  </span>
+                    {task.source === 'LOCAL' && (
+                      <HardDrive
+                        className="w-4 h-4 inline-block ml-2 text-white/20 group-hover:text-white/40 transition-colors align-text-bottom"
+                        title="Local Task"
+                      />
+                    )}
+                  </div>
                 </div>
-                <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-colors md:opacity-0 md:-translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
+
+                <div className="flex items-center gap-1 md:gap-2">
+                  {task.source === 'NOTION' && (
+                    <a
+                      href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                    >
+                      <ExternalLink className="w-5 h-5" />
+                    </a>
+                  )}
+                  <div className="p-2">
+                    <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:opacity-0 md:-translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
+                  </div>
+                </div>
               </div>
             ))
           )}

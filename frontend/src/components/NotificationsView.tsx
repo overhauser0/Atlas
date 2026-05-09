@@ -24,10 +24,11 @@ export default function NotificationsView({ onRead }: Props) {
       try {
         // 1. 通知リスト取得
         const res = await fetch('/api/v1/notifications');
+
+        if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
+
         const data = await res.json();
-        if (data.success) {
-          setNotifications(data.notifications);
-        }
+        setNotifications(data.notifications);
 
         // 2. 既読にするAPIを叩く
         await fetch('/api/v1/notifications/read', { method: 'POST' });

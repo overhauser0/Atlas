@@ -15,21 +15,32 @@ export default function NotificationHandler({
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await fetch('/api/v1/notifications');
+
+      if (!res.ok) {
+        // throw new Error(`Failed to fetch: ${res.statusText}`);
+        console.warn(`Failed to fetch notifications: ${res.statusText}`);
+        return;
+      }
+
       const data = await res.json();
 
-      if (data.success) {
-        // 1. 未読があるかチェック
-        const unreadExists = data.notifications.some((n: any) => !n.is_read);
-        onUnreadChange(unreadExists);
-
-        // 2. タスク更新フラグがあればタスク再取得
-        const hasTaskUpdate = data.notifications.some(
-          (n: any) => n.is_task_update && !n.is_read,
-        );
-        if (hasTaskUpdate) onTaskUpdate();
+      if (!data.notifications) {
+        console.warn('No notifications field in response');
+        return;
       }
+
+      // 1. 未読があるかチェック
+      const unreadExists = data.notifications.some((n: any) => !n.is_read);
+      onUnreadChange(unreadExists);
+
+      // 2. タスク更新フラグがあればタスク再取得
+      const hasTaskUpdate = data.notifications.some(
+        (n: any) => n.is_task_update && !n.is_read,
+      );
+      if (hasTaskUpdate) onTaskUpdate();
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching notifications:', e);
+      // addToast('Failed to fetch notifications', { type: 'error' });
     }
   }, [onUnreadChange, onTaskUpdate]);
 

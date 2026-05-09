@@ -17,8 +17,8 @@ export const handleExternalPush = async (data: PushNotification) => {
   const archived = await pgRepo.archiveNotification(data);
 
   let taskResult = null;
-  // 2. NotionまたはLocalへのタスク化ロジック
-  if (data.storageTarget === 'NOTION' || data.storageTarget === 'BOTH') {
+  // 2. Notionへのタスク化ロジック
+  if (data.storageTarget === 'NOTION') {
     const taskData: Task = {
       id: data.id || crypto.randomUUID(),
       title: data.title,

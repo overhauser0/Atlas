@@ -66,19 +66,20 @@ export default function TaskModal({
         source: isEdit ? task.source : editForm.source,
       };
 
+      console.log('Saving task with payload:', payload);
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) throw new Error(`Server Error: ${response.status}`);
-      const result = await response.json();
+      if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
 
-      if (result.success) {
-        onSuccess();
-        onClose();
-      }
+      console.log('Task saved successfully', await response.json());
+
+      onSuccess();
+      onClose();
     } catch (e) {
       console.error(e);
       alert('保存に失敗しました');

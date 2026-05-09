@@ -13,18 +13,17 @@ export const COLUMNS = ['Overdue', ...WEEK_DAYS];
 // ステータスの優先順位定義
 export const STATUS_ORDER: Record<string, number> = {
   INBOX: 1,
-  GOING: 2,
-  WAITING: 3,
-  WRAPPER: 4,
+  Going: 2,
+  Waiting: 3,
+  Wrapper: 4,
 };
 
 export const getStatusColor = (status: string) => {
-  const s = (status || '').toUpperCase();
-  if (s === 'INBOX') return 'bg-red-500';
-  if (s === 'WAITING') return 'bg-orange-500';
-  if (s === 'GOING') return 'bg-purple-500';
-  if (s === 'WRAPPER') return 'bg-blue-500';
-  if (s === 'DONE') return 'bg-green-500';
+  if (status === 'INBOX') return 'bg-red-500';
+  if (status === 'Waiting') return 'bg-orange-500';
+  if (status === 'Going') return 'bg-purple-500';
+  if (status === 'Wrapper') return 'bg-blue-500';
+  if (status === 'Done') return 'bg-green-500';
   return 'bg-gray-500';
 };
 

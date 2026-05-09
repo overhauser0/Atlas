@@ -22,24 +22,27 @@ export const createNewTask = async (task: Task) => {
 export const getTasksFromCache = async (filters: {
   area?: string;
   status?: string;
+  type?: string;
   excludeStatus?: string[];
 }) => {
-  // DBリポジトリを呼び出す
+  // 古いローカルタスクは削除する
+  await pgRepo.cleanupOldDoneLocalTasks();
+
   return await pgRepo.getTasks(filters);
 };
 
 export const updateTask = async (id: string, payload: any) => {
-  const { source, dueDate, ...rest } = payload;
+  const { source, ...rest } = payload;
 
   // DB用のオブジェクトに変換
   const updates: any = {
     ...rest,
-    due_date: dueDate ? new Date(dueDate) : null,
   };
 
   if (source === 'NOTION') {
     // 1. Notion 側を更新
     await notionRepo.updatePage(id, updates);
+
     // 2. Postgres のキャッシュを更新
     return await pgRepo.updateNotionTaskCache(id, updates);
   } else {

@@ -92,18 +92,23 @@ export default function Home() {
         const res = await fetch(
           '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
         );
+
+        if (!res.ok) {
+          // throw new Error(`Failed to fetch: ${res.statusText}`);
+          console.warn(`Failed to fetch tasks: ${res.statusText}`);
+          return;
+        }
+
         const data = await res.json();
 
-        if (data.success) {
-          setTasks(
-            data.tasks.filter((task: Task) => {
-              if (task.source === 'LOCAL') return task.status != 'Done';
-              return (
-                task.area === 'Work' && statuses.includes(task.status || '')
-              );
-            }),
-          );
-        }
+        console.log('tasks fetched:', data.tasks);
+
+        setTasks(
+          data.tasks.filter((task: Task) => {
+            if (task.source === 'LOCAL') return task.status != 'Done';
+            return task.area === 'Work' && statuses.includes(task.status || '');
+          }),
+        );
       } catch (e) {
         console.error(e);
       } finally {

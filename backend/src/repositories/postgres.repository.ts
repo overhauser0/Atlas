@@ -15,7 +15,7 @@ export interface LocalTasksTable {
   type: string;
   topics: string[];
   flags: string[];
-  due_date: Date | null;
+  due_date: string | null;
   created_at: Generated<Date>;
 }
 
@@ -43,6 +43,7 @@ export interface NotificationsTable {
   priority: number;
   metadata: JSONColumnType<any>;
   created_at: Generated<Date>;
+  is_read: boolean;
 }
 
 export interface Database {
@@ -119,7 +120,7 @@ export const upsertNotionTaskCache = async (
     type: task.type || 'Task',
     topics: task.topics || [],
     flags: task.flags || [],
-    due_date: task.dueDate ? new Date(task.dueDate) : new Date(),
+    due_date: task.dueDate || null,
     last_edited_time: lastEditedTime,
     raw_data: JSON.stringify(rawData),
   };
@@ -130,7 +131,8 @@ export const upsertNotionTaskCache = async (
     .onConflict((oc) => oc.column('id').doUpdateSet(values))
     .returningAll()
     .executeTakeFirst();
-  upsertedTask.source = 'NOTION'; // 返却するオブジェクトに source を追加
+
+  if (upsertedTask) (upsertedTask as any).source = 'NOTION';
 
   return upsertedTask;
 };
@@ -153,13 +155,14 @@ export const updateNotionTaskCache = async (
       type: updates.type,
       topics: updates.topics,
       flags: updates.flags,
-      due_date: updates.dueDate ? new Date(updates.dueDate) : undefined,
+      due_date: updates.dueDate,
       last_edited_time: new Date(), // 最終編集時刻のみ更新
     })
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
-  updatedTask.source = 'NOTION'; // 返却するオブジェクトに source を追加
+
+  if (updatedTask) (updatedTask as any).source = 'NOTION'; // 返却するオブジェクトに source を追加
 
   return updatedTask;
 };
@@ -197,20 +200,26 @@ export const getTasks = async (filters: {
   const notionTasks = await applyCommonFilters(
     db.selectFrom('notion_tasks_cache').selectAll(),
   )
-    .orderBy('last_edited_time', 'desc')
+    //.orderBy('last_edited_time', 'desc')
     .execute();
 
   // 2. ローカルタスクから取得
   const localTasks = await applyCommonFilters(
     db.selectFrom('local_tasks').selectAll(),
   )
-    .orderBy('created_at', 'desc')
+    //.orderBy('created_at', 'desc')
     .execute();
+
+  const mapTask = (t: any, source: 'NOTION' | 'LOCAL') => ({
+    ...t,
+    source,
+    dueDate: t.due_date, // snake_case を camelCase にマッピング
+  });
 
   // 3. 結合して source を付与
   const combined = [
-    ...notionTasks.map((t) => ({ ...t, source: 'NOTION' })),
-    ...localTasks.map((t) => ({ ...t, source: 'LOCAL' })),
+    ...notionTasks.map((t) => mapTask(t, 'NOTION')),
+    ...localTasks.map((t) => mapTask(t, 'LOCAL')),
   ];
 
   // 4. 全体を日付順でソート（Notionは最終編集、Localは作成日時で代用）
@@ -234,17 +243,18 @@ export const insertLocalTask = async (task: Task) => {
     .values({
       title: task.title,
       content: task.content,
-      status: task.status,
-      priority: task.priority,
-      area: task.area,
-      type: task.type,
-      topics: task.topics,
-      flags: task.flags,
-      due_date: task.dueDate ? new Date(task.dueDate) : null,
+      status: task.status || 'INBOX',
+      priority: task.priority || 3,
+      area: task.area || 'Work',
+      type: task.type || 'Task',
+      topics: task.topics || [],
+      flags: task.flags || [],
+      due_date: task.dueDate || null,
     })
     .returningAll()
     .executeTakeFirst();
-  insertedTask.source = 'LOCAL'; // 返却するオブジェクトに source を追加
+
+  if (insertedTask) (insertedTask as any).source = 'LOCAL';
 
   return insertedTask;
 };
@@ -252,25 +262,57 @@ export const insertLocalTask = async (task: Task) => {
 /**
  * ローカルタスクを更新する
  */
-export const updateLocalTask = async (
-  id: string,
-  updates: Partial<LocalTasksTable>,
-) => {
+export const updateLocalTask = async (id: string, updates: Partial<Task>) => {
+  const { dueDate, ...rest } = updates;
+  const updatesForDb: any = { ...rest };
+  if (dueDate !== undefined) updatesForDb.due_date = dueDate;
+
   const updatedTask = await db
     .updateTable('local_tasks')
-    .set(updates)
+    .set(updatesForDb)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
-  updatedTask.source = 'LOCAL'; // 返却するオブジェクトに source を追加
+
+  if (updatedTask) (updatedTask as any).source = 'LOCAL';
+
+  (updatedTask as any).dueDate = updatedTask.due_date;
+  delete (updatedTask as any).due_date;
 
   return updatedTask;
+};
+
+/**
+ * 60日以上前に「Done」になったローカルタスクをDBから物理削除する
+ */
+export const cleanupOldDoneLocalTasks = async () => {
+  // 現在から60日前の日時を計算
+  const thresholdDate = new Date();
+  thresholdDate.setDate(thresholdDate.getDate() - 60);
+
+  const thresholdDateStr = new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  })
+    .format(thresholdDate)
+    .replace(/\//g, '-');
+
+  // ステータスが 'Done' かつ、更新日時が60日より前のものを削除
+  return await db
+    .deleteFrom('local_tasks')
+    .where('status', '=', 'Done')
+    .where('due_date', 'is not', null)
+    .where('due_date', '<', thresholdDateStr)
+    .execute();
 };
 
 /**
  * Notionの最新リストに含まれないキャッシュデータを削除する
  */
 export const deleteStaleNotionCache = async (activeIds: string[]) => {
+  if (activeIds.length === 0) return; // 空配列でin句を使うとエラーになる対策
   return await db
     .deleteFrom('notion_tasks_cache')
     .where('id', 'not in', activeIds)

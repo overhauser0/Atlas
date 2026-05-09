@@ -7,22 +7,15 @@ export const receivePush = async (c: Context) => {
   const result = PushNotificationSchema.safeParse(body);
 
   if (!result.success) {
-    return c.json({ status: 'ERROR', errors: result.error.format() }, 400);
+    return c.json({ message: result.error.format() }, 400);
   }
 
   try {
     const data = await notificationService.handleExternalPush(result.data);
     return c.json({ status: 'ACCEPTED', data }, 202);
   } catch (error: any) {
-    // ★ エラーの正体をログに書き出す
     console.error('❌ Push Controller Error:', error.message || error);
-    return c.json(
-      {
-        status: 'INTERNAL_SERVER_ERROR',
-        message: error.message,
-      },
-      500,
-    );
+    return c.json({ message: error.message }, 500);
   }
 };
 
@@ -38,10 +31,7 @@ export const getNotificationHistory = async (c: Context) => {
       error.message || error,
     );
     return c.json(
-      {
-        status: 'INTERNAL_SERVER_ERROR',
-        message: error.message,
-      },
+      { message: error.message || 'Failed to retrieve notification history' },
       500,
     );
   }
