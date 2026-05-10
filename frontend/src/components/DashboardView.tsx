@@ -1,5 +1,5 @@
 'use client';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '@/types';
 import {
   CalendarDays,
@@ -64,6 +64,16 @@ export default function DashboardView({
     return Math.floor(Math.max(0, Math.min(100, progress * 100)));
   }, [today]);
 
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimatedProgress(yearProgress);
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [yearProgress]);
+
   // 今日のタスク（完了していないもの）をフィルタリング
   const todaysTasks = tasks.filter(
     (task) =>
@@ -89,12 +99,13 @@ export default function DashboardView({
         <div className="w-full md:w-64 flex flex-col gap-2">
           <div className="flex justify-between items-center text-[10px] font-bold tracking-widest text-gray-500 uppercase">
             <span>{today.getFullYear()} Progress</span>
+            {/* 数値は目標値を表示 */}
             <span className="text-neon">{yearProgress}%</span>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
             <div
               className="h-full bg-neon shadow-[0_0_10px_rgba(0,112,243,0.5)] transition-all duration-1000 ease-out"
-              style={{ width: `${yearProgress}%` }}
+              style={{ width: `${animatedProgress}%` }}
             />
           </div>
         </div>

@@ -78,3 +78,17 @@ export const calculateNewDateWithPreservedTime = (
   }
   return newDatePart;
 };
+
+export const calculateNewDateWithPreservedTimeForCalendar = (
+  originalDateStr: string | null,
+  targetDateStr: string,
+): string | null => {
+  if (!targetDateStr) return null;
+
+  if (originalDateStr && originalDateStr.includes('T')) {
+    const timeMatch = originalDateStr.match(/T(\d{2}:\d{2}:\d{2}(\.\d+)?)/);
+    const timePart = timeMatch ? timeMatch[1] : '09:00:00.000';
+    return `${targetDateStr}T${timePart}+09:00`;
+  }
+  return targetDateStr;
+};

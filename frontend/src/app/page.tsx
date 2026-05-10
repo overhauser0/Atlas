@@ -9,10 +9,14 @@ import {
   X,
   RefreshCw,
   Bell,
+  Kanban,
+  CalendarDays,
 } from 'lucide-react';
 import AuthView from '@/components/AuthView';
 import DashboardView from '@/components/DashboardView';
 import WeeklyView from '@/components/WeeklyView';
+import KanbanView from '@/components/KanbanView';
+import CalendarView from '@/components/CalendarView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider } from '@/components/Toast';
@@ -100,8 +104,6 @@ export default function Home() {
         }
 
         const data = await res.json();
-
-        console.log('tasks fetched:', data.tasks);
 
         setTasks(
           data.tasks.filter((task: Task) => {
@@ -232,6 +234,30 @@ export default function Home() {
             </button>
             <button
               onClick={() => {
+                setCurrentView('kanban');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'kanban' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <Kanban className="w-5 h-5 shrink-0" />
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                Kanban
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setCurrentView('calendar');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'calendar' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <CalendarDays className="w-5 h-5 shrink-0" />
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                Calendar
+              </span>
+            </button>
+            <button
+              onClick={() => {
                 setCurrentView('notifications');
                 setIsMobileMenuOpen(false);
               }}
@@ -341,6 +367,24 @@ export default function Home() {
           {currentView === 'weekly' && (
             <WeeklyView
               appSettings={appSettings}
+              tasks={tasks}
+              loading={isTasksLoading}
+              setTasks={setTasks}
+              onOpenTaskModal={openCreateTaskModal}
+              onTaskClick={openEditTaskModal}
+            />
+          )}
+          {currentView === 'kanban' && (
+            <KanbanView
+              tasks={tasks}
+              loading={isTasksLoading}
+              setTasks={setTasks}
+              onOpenTaskModal={openCreateTaskModal}
+              onTaskClick={openEditTaskModal}
+            />
+          )}
+          {currentView === 'calendar' && (
+            <CalendarView
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
