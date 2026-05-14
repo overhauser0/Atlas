@@ -45,21 +45,12 @@ export default function DashboardView({
 
   // --- 3. 1年の進捗計算 ---
   const yearProgress = useMemo(() => {
-    // 1. まず今日の日付をJSTの文字列 (YYYY/MM/DD, HH:MM:SS) で取得
     const jstString = today.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
-
-    // 2. それを元にJST基準の「現在のDate」を作る
     const jstDate = new Date(jstString);
-
-    // 3. JST基準の「年」を数値で取得
     const currentYear = jstDate.getFullYear();
-
-    // 4. その年の最初と最後の日時 (ローカル時間として扱う)
     const start = new Date(currentYear, 0, 1).getTime();
     const end = new Date(currentYear + 1, 0, 1).getTime();
     const now = jstDate.getTime();
-
-    // 5. 進捗率の計算
     const progress = (now - start) / (end - start);
     return Math.floor(Math.max(0, Math.min(100, progress * 100)));
   }, [today]);
@@ -70,7 +61,6 @@ export default function DashboardView({
     const timer = setTimeout(() => {
       setAnimatedProgress(yearProgress);
     }, 100);
-
     return () => clearTimeout(timer);
   }, [yearProgress]);
 
@@ -83,9 +73,11 @@ export default function DashboardView({
   );
 
   return (
-    <div className="p-4 md:p-8 space-y-8 animate-fade-in flex-1 overflow-y-auto noir-scrollbar">
+    // 修正1: 全体のスクロールを止め、高さを100%に固定
+    <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
       {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
-      <header className="pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+      {/* 修正2: shrink-0 と mb-8 を追加して固定領域にする */}
+      <header className="shrink-0 mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-neon shadow-[0_0_15px_rgba(0,112,243,0.2)]">
             <CalendarDays className="w-6 h-6" />
@@ -99,7 +91,6 @@ export default function DashboardView({
         <div className="w-full md:w-64 flex flex-col gap-2">
           <div className="flex justify-between items-center text-[10px] font-bold tracking-widest text-gray-500 uppercase">
             <span>{today.getFullYear()} Progress</span>
-            {/* 数値は目標値を表示 */}
             <span className="text-neon">{yearProgress}%</span>
           </div>
           <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
@@ -112,8 +103,9 @@ export default function DashboardView({
       </header>
 
       {/* --- ショートカット --- */}
-      <section>
-        <div className="flex items-center gap-3 mb-4">
+      {/* 修正3: shrink-0 と mb-8 を追加して固定領域にする */}
+      <section className="shrink-0 mb-8">
+        <div className="flex items-center gap-3">
           <button
             onClick={onOpenTaskModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
@@ -127,15 +119,17 @@ export default function DashboardView({
       </section>
 
       {/* --- 今日のタスク --- */}
-      <section>
-        <h2 className="text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
+      {/* 修正4: 余った高さをすべて埋める (flex-1) コンテナにする */}
+      <section className="flex-1 flex flex-col min-h-0">
+        <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
           Today's Tasks
           <span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded-full text-xs">
             {todaysTasks.length}
           </span>
         </h2>
 
-        <div className="grid gap-3">
+        {/* 修正5: ここに overflow-y-auto とカスタムスクロールバーを設定 */}
+        <div className="flex-1 overflow-y-auto noir-scrollbar pr-2 pb-4 grid gap-3 content-start">
           {todaysTasks.length === 0 ? (
             <div className="p-8 rounded-2xl noir-glass border border-white/5 text-center text-gray-500">
               No tasks for today. Take a rest!
@@ -169,13 +163,13 @@ export default function DashboardView({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100 md:opacity-0 md:group-hover:opacity-100"
+                      className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
                     >
                       <ExternalLink className="w-5 h-5" />
                     </a>
                   )}
                   <div className="p-2">
-                    <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:opacity-0 md:-translate-x-2 group-hover:opacity-100 group-hover:translate-x-0" />
+                    <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:-translate-x-2 group-hover:translate-x-0" />
                   </div>
                 </div>
               </div>

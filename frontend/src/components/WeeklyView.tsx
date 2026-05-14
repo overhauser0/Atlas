@@ -148,30 +148,37 @@ export default function WeeklyView({
                       <div
                         className={`absolute left-0 top-2 bottom-2 w-[2px] rounded-full ${getStatusColor(task.status)} opacity-50`}
                       />
-                      {task.source === 'NOTION' && (
-                        <a
-                          href={`https://notion.so/${task.id.replace(/-/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute top-2.5 right-2.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                      <div className="flex items-start gap-2.5 pr-10">
-                        <div
-                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${getStatusColor(task.status)}`}
-                        />
-                        <div className="text-sm font-medium leading-snug flex-1">
-                          {task.title}
-                          {task.source === 'LOCAL' && (
-                            <HardDrive
-                              className="w-3.5 h-3.5 inline-block ml-1.5 text-white/20 align-text-bottom"
-                              title="Local Task"
-                            />
-                          )}
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex items-center justify-center shrink-0">
+                          <span
+                            className={`w-2 h-2 rounded-full ${getStatusColor(task.status)}`}
+                          />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-snug truncate">
+                            {task.title}
+                          </p>
+                        </div>
+                        {task.source === 'NOTION' && (
+                          <a
+                            href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
+                        {/* opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity */}
+                        {task.source === 'LOCAL' && (
+                          <span
+                            className="rounded-lg text-gray-500 shrink-0 p-1.5 shrink-0"
+                            title="Local Task"
+                          >
+                            <HardDrive className="w-4 h-4" />
+                          </span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between mt-auto h-6">
                         <div className="flex flex-wrap gap-1.5">
@@ -186,13 +193,14 @@ export default function WeeklyView({
                         </div>
                         <button
                           onClick={() => onTaskClick(task)}
-                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
+                          className="text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
                         >
                           Detail
                         </button>
                       </div>
                     </div>
                   ))}
+                  {/*opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity  */}
                 </div>
               </div>
             );

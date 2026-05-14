@@ -1,45 +1,75 @@
 'use client';
-
 import { useEffect, useRef } from 'react';
 
-export default function WakeLockHandler() {
+// PropsでON/OFFのフラグを受け取る
+interface Props {
+  isEnabled: boolean;
+}
+
+export default function WakeLockHandler({ isEnabled }: Props) {
   const wakeLock = useRef<any>(null);
 
   const requestWakeLock = async () => {
-    // 1. ページが非表示、またはすでに取得済みの場合は何もしない
-    if (document.visibilityState !== 'visible' || wakeLock.current !== null)
-      return;
+    if (!('wakeLock' in navigator) || wakeLock.current !== null) return;
+    if (document.visibilityState !== 'visible') return;
 
     try {
       wakeLock.current = await (navigator as any).wakeLock.request('screen');
-
-      // 解放された時の処理
       wakeLock.current.addEventListener('release', () => {
         wakeLock.current = null;
+        console.log('🌙 Wake Lock released');
       });
-
       console.log('☀️ Wake Lock is active');
     } catch (err: any) {
-      if (err.name !== 'NotAllowedError')
-        console.error(`${err.name}, ${err.message}`);
+      // ユーザー操作がないことによる NotAllowedError はエラー表示しない
+      if (err.name === 'NotAllowedError') {
+        console.log('⏳ Wake Lock awaiting user interaction...');
+      } else {
+        // それ以外の予期せぬエラーは warn (警告) に留める
+        console.warn(`WakeLock Warning: ${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  const releaseWakeLock = () => {
+    if (wakeLock.current) {
+      wakeLock.current.release();
+      wakeLock.current = null;
     }
   };
 
   useEffect(() => {
-    // 初回実行
-    requestWakeLock();
+    // isEnabled が false になったら即座にロックを解除して終了
+    if (!isEnabled) {
+      releaseWakeLock();
+      return;
+    }
 
-    // 2. ページが再び表示された時に再リクエストするリスナー
+    // ONの場合のリスナー登録処理
+    const handleUserInteraction = () => {
+      requestWakeLock();
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && isEnabled) {
         requestWakeLock();
       }
     };
-
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () =>
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
 
-  return null; // UIは持たない
+    // クリーンアップ
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      releaseWakeLock();
+    };
+  }, [isEnabled]); // isEnabled の変更を監視して再実行
+
+  return null;
 }

@@ -1,5 +1,4 @@
 'use client';
-import React, { useState, useEffect } from 'react';
 import { Monitor, Zap, Bell, Clock, RefreshCw } from 'lucide-react';
 
 interface Props {
@@ -22,10 +21,11 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 px-1 noir-label">
           <Monitor className="w-3.5 h-3.5" />
-          Display
+          Display & Appearance
         </h2>
 
         <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 divide-y divide-white/5 overflow-hidden">
+          {/* 項目1: Shrink empty past days */}
           <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
@@ -50,6 +50,31 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
               />
             </button>
           </div>
+
+          {/* 項目2: Keep Screen On (WakeLock) */}
+          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+            <div className="pr-4">
+              <div className="text-sm font-medium text-gray-200">
+                Keep Screen On
+              </div>
+              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+                Prevent the device from sleeping while the dashboard is open.
+              </p>
+            </div>
+            <button
+              onClick={() =>
+                setAppSettings((s: any) => ({
+                  ...s,
+                  wakeLockEnabled: !s.wakeLockEnabled,
+                }))
+              }
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-all duration-300 ${appSettings.wakeLockEnabled !== false ? 'bg-neon shadow-[0_0_10px_rgba(0,112,243,0.4)]' : 'bg-gray-600'}`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300 ${appSettings.wakeLockEnabled !== false ? 'translate-x-6' : 'translate-x-1'}`}
+              />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -60,9 +85,9 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           Automation
         </h2>
 
-        <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 p-5 space-y-8">
+        <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 divide-y divide-white/5 overflow-hidden">
           {/* タスク同期設定（分） */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Task Sync Interval
@@ -90,7 +115,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
 
           {/* 通知ポーリング設定（秒） */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Notification Poll Interval

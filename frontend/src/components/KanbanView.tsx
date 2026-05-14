@@ -91,30 +91,46 @@ export default function KanbanView({
                       key={task.id}
                       draggable
                       onDragStart={() => setDraggingTaskId(task.id)}
-                      className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group relative flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : ''}`}
+                      className={`p-3.5 rounded-xl noir-glass border border-white/5 hover:border-white/10 cursor-grab active:cursor-grabbing transition-all group flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : ''}`}
                     >
-                      <div
-                        className={`absolute left-0 top-2 bottom-2 w-[2px] rounded-full ${getStatusColor(task.status)} opacity-50`}
-                      />
-                      {task.source === 'NOTION' && (
-                        <a
-                          href={`https://notion.so/${task.id.replace(/-/g, '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(e) => e.stopPropagation()}
-                          className="absolute top-2.5 right-2.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                      <div className="flex items-start gap-2.5">
-                        <div
-                          className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${getStatusColor(task.status)}`}
-                        />
-                        <div className="text-sm font-medium leading-snug flex-1">
-                          {task.title}
+                      {/* --- 1行目: ステータスドット + タイトル + Notionリンク --- */}
+                      <div className="flex items-center gap-2.5">
+                        {/* ドット (shrink-0で縮まないようにする) */}
+                        <div className="flex items-center justify-center shrink-0">
+                          <span
+                            className={`w-2 h-2 rounded-full ${getStatusColor(task.status)}`}
+                          />
                         </div>
+                        {/* タイトル (flex-1 min-w-0 と truncate で省略させる) */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium leading-snug truncate">
+                            {task.title}
+                          </p>
+                        </div>
+                        {/* Notionリンク (shrink-0で縮まないようにする) */}
+                        {task.source === 'NOTION' && (
+                          <a
+                            href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()}
+                            className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
+                        {/*opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity */}
+                        {task.source === 'LOCAL' && (
+                          <span
+                            className="rounded-lg text-gray-500 shrink-0 p-1.5 shrink-0"
+                            title="Local Task"
+                          >
+                            <HardDrive className="w-4 h-4" />
+                          </span>
+                        )}
                       </div>
+
+                      {/* --- 2行目: 日付 + Detailボタン --- */}
                       <div className="flex items-center justify-between mt-auto h-6">
                         <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
                           <Calendar className="w-3 h-3" />
@@ -124,9 +140,10 @@ export default function KanbanView({
                               : 'No date'}
                           </span>
                         </div>
+
                         <button
                           onClick={() => onTaskClick(task)}
-                          className="text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                          className="shrink-0 text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
                         >
                           Detail
                         </button>

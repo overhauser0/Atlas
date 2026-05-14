@@ -42,6 +42,7 @@ export default function Home() {
     syncInterval: 5,
     notificationInterval: 30,
     alarmTime: '',
+    wakeLockEnabled: true,
   });
   const [hasUnread, setHasUnread] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -165,6 +166,40 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+  // ---------------- iOS キーボード強制回避ロジック ----------------
+  useEffect(() => {
+    const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+
+      // タップした要素が INPUT, TEXTAREA, SELECT 以外、
+      // かつ contenteditable（編集可能）属性を持っていない場合
+      if (
+        target.tagName !== 'INPUT' &&
+        target.tagName !== 'TEXTAREA' &&
+        target.tagName !== 'SELECT' &&
+        !target.isContentEditable
+      ) {
+        // 現在どこかにフォーカスがあれば、強制的に外す（キーボードを閉じる）
+        if (document.activeElement instanceof HTMLElement) {
+          document.activeElement.blur();
+        }
+      }
+    };
+
+    // 画面全体でタッチ開始を監視
+    // capture: true にすることで、他の要素のクリックイベントよりも先に実行させます
+    document.addEventListener('touchstart', handleTouchStart, {
+      passive: true,
+      capture: true,
+    });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart, {
+        capture: true,
+      });
+    };
+  }, []);
+
   // ---------------- 描画 ----------------
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
@@ -179,7 +214,7 @@ export default function Home() {
   return (
     <ToastProvider>
       <div className="flex h-screen overflow-hidden text-gray-200 relative bg-black">
-        <WakeLockHandler />
+        <WakeLockHandler isEnabled={appSettings.wakeLockEnabled ?? true} />
         <AlarmHandler
           appSettings={appSettings}
           setAppSettings={setAppSettings}
@@ -285,7 +320,7 @@ export default function Home() {
             <button
               onClick={handleSync}
               disabled={isSyncing}
-              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-white"
+              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon"
             >
               <RefreshCw
                 className={`w-5 h-5 shrink-0 ${isSyncing ? 'animate-spin text-neon' : ''}`}
