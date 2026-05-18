@@ -2,6 +2,11 @@ import * as notionRepo from '../repositories/notion.repository';
 import * as pgRepo from '../repositories/postgres.repository';
 import { Task } from '../schemas/task.schema';
 
+// 最終同期時刻を取得する関数
+export const getLastSyncTime = async () => {
+  return await pgRepo.getLastNotionSyncTime();
+};
+
 /**
  * Notionの全データを取得し、ローカルのPostgresキャッシュを最新状態にする
  */
@@ -42,6 +47,9 @@ export const syncNotionToLocal = async () => {
 
   // 3. ローカルのキャッシュから、Notionに存在しない（削除された）タスクを削除
   await pgRepo.deleteStaleNotionCache(activeIds);
+
+  // 4. 同期が成功したら時刻を更新する
+  await pgRepo.updateLastNotionSyncTime(new Date().toISOString());
 
   return {
     status: 'SUCCESS',

@@ -47,7 +47,19 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. インデックスの作成（検索の高速化）
+-- 5. アプリのメタデータ（最終同期時刻など）を保存するテーブル
+CREATE TABLE IF NOT EXISTS app_metadata (
+    key VARCHAR(255) PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 初期値として 1970年の時刻を入れておく
+INSERT INTO app_metadata (key, value) 
+VALUES ('last_notion_sync_time', '1970-01-01T00:00:00Z')
+ON CONFLICT DO NOTHING;
+
+-- 6. インデックスの作成（検索の高速化）
 CREATE INDEX IF NOT EXISTS idx_notion_tasks_area ON notion_tasks_cache(area);
 CREATE INDEX IF NOT EXISTS idx_notion_tasks_status ON notion_tasks_cache(status);
 CREATE INDEX IF NOT EXISTS idx_notion_tasks_due_date ON notion_tasks_cache(due_date);

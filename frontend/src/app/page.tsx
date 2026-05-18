@@ -6,7 +6,6 @@ import {
   Settings,
   Lock,
   Menu,
-  X,
   RefreshCw,
   Bell,
   Kanban,
@@ -28,11 +27,10 @@ import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
 
 export default function Home() {
-  // 認証状態の管理
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loginError, setLoginError] = useState(false);
-  const [currentView, setCurrentView] = useState<ViewType>('weekly');
+  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -74,9 +72,7 @@ export default function Home() {
   // ----------------  アプリ設定 ----------------
   useEffect(() => {
     const saved = localStorage.getItem('gleis_settings');
-    if (saved) {
-      setAppSettings(JSON.parse(saved));
-    }
+    if (saved) setAppSettings(JSON.parse(saved));
   }, []);
 
   useEffect(() => {
@@ -113,7 +109,7 @@ export default function Home() {
           }),
         );
       } catch (e) {
-        console.error(e);
+        console.warn(e);
       } finally {
         setIsTasksLoading(false);
       }
@@ -129,17 +125,34 @@ export default function Home() {
 
   // ---------------- データの更新 ----------------
   // 更新処理
-  const handleSync = useCallback(async () => {
-    setIsSyncing(true);
-    try {
-      await fetch('/api/v1/tasks/sync', { method: 'POST' });
-      await fetchTasks(true);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsSyncing(false);
-    }
-  }, [fetchTasks]);
+  const handleSync = useCallback(
+    async (force = false) => {
+      setIsSyncing(true);
+      try {
+        // 1. 強制同期でない場合、最後の同期から一定時間経過しているかチェック
+        const res = await fetch('/api/v1/tasks/sync', { method: 'GET' });
+        const syncInfo = await res.json();
+
+        const lastSyncTime = new Date(syncInfo.lastSync).getTime();
+        const now = new Date().getTime();
+        const intervalMs = appSettings.syncInterval * 60 * 1000;
+
+        if (force || now - lastSyncTime >= intervalMs) {
+          await fetch('/api/v1/tasks/sync', { method: 'POST' });
+        } else {
+          console.log('Auto sync skipped (already synced by another device)');
+        }
+
+        // 2. タスクを再取得
+        await fetchTasks(true);
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        setIsSyncing(false);
+      }
+    },
+    [fetchTasks, appSettings.syncInterval],
+  );
 
   const handleTaskUpdate = useCallback(() => {
     fetchTasks(true);
@@ -154,10 +167,10 @@ export default function Home() {
     const intervalTime = appSettings.syncInterval * 60 * 1000;
     const interval = setInterval(() => {
       console.log('Auto syncing...');
-      handleSync();
+      handleSync(false);
     }, intervalTime);
     return () => clearInterval(interval);
-  }, [isAuthenticated, appSettings.syncInterval]);
+  }, [isAuthenticated, appSettings.syncInterval, handleSync]);
 
   // ---------------- 時計の更新 ----------------
   useEffect(() => {
@@ -171,15 +184,12 @@ export default function Home() {
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
 
-      // タップした要素が INPUT, TEXTAREA, SELECT 以外、
-      // かつ contenteditable（編集可能）属性を持っていない場合
       if (
         target.tagName !== 'INPUT' &&
         target.tagName !== 'TEXTAREA' &&
         target.tagName !== 'SELECT' &&
         !target.isContentEditable
       ) {
-        // 現在どこかにフォーカスがあれば、強制的に外す（キーボードを閉じる）
         if (document.activeElement instanceof HTMLElement) {
           document.activeElement.blur();
         }
@@ -318,7 +328,7 @@ export default function Home() {
           </nav>
           <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
             <button
-              onClick={handleSync}
+              onClick={() => handleSync(true)}
               disabled={isSyncing}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon"
             >

@@ -39,7 +39,7 @@ export default function NotificationHandler({
       );
       if (hasTaskUpdate) onTaskUpdate();
     } catch (e) {
-      console.error('Error fetching notifications:', e);
+      console.warn('Error fetching notifications:', e);
       // addToast('Failed to fetch notifications', { type: 'error' });
     }
   }, [onUnreadChange, onTaskUpdate]);

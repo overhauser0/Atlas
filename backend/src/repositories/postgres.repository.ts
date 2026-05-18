@@ -329,3 +329,35 @@ export const deleteStaleNotionCache = async (activeIds: string[]) => {
     .where('id', 'not in', activeIds)
     .execute();
 };
+
+/**
+ * 最終同期時刻を取得する
+ */
+export const getLastNotionSyncTime = async (): Promise<string> => {
+  const record = await db
+    .selectFrom('app_metadata')
+    .select('value')
+    .where('key', '=', 'last_notion_sync_time')
+    .executeTakeFirst();
+
+  return record?.value || '1970-01-01T00:00:00Z';
+};
+
+/**
+ * 最終同期時刻を更新する (Upsert)
+ */
+export const updateLastNotionSyncTime = async (nowISO: string) => {
+  await db
+    .insertInto('app_metadata')
+    .values({
+      key: 'last_notion_sync_time',
+      value: nowISO,
+    })
+    .onConflict((oc) =>
+      oc.column('key').doUpdateSet({
+        value: nowISO,
+        updated_at: new Date(),
+      }),
+    )
+    .execute();
+};

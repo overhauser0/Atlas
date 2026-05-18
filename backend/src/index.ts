@@ -23,12 +23,13 @@ api.get('/tasks', taskController.getTasks);
 api.post('/tasks', taskController.createNewTask);
 api.patch('/tasks/:id', taskController.updateTask);
 api.post('/tasks/sync', taskController.syncTasks);
+api.get('/tasks/sync', taskController.getLastSyncTime);
 
 app.route('/api/v1', api);
 
 // エラー通知
 app.onError(async (err, c) => {
-  console.error(`[Server Error]: ${err.message}`);
+  console.warn(`[Server Error]: ${err.message}`);
 
   // エラーを通知履歴に保存する
   try {
@@ -38,7 +39,7 @@ app.onError(async (err, c) => {
       category: 'ALERT',
     });
   } catch (e) {
-    console.error('Failed to archive error notification', e);
+    console.warn('Failed to archive error notification', e);
   }
 
   return c.json({ success: false, error: 'Internal Server Error' }, 500);

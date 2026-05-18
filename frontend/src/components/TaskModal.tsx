@@ -81,7 +81,7 @@ export default function TaskModal({
       onSuccess();
       onClose();
     } catch (e) {
-      console.error(e);
+      console.warn(e);
       alert('保存に失敗しました');
     } finally {
       setIsSaving(false);

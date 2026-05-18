@@ -52,3 +52,13 @@ export const createNewTask = async (c: Context) => {
     return c.json({ message: error.message }, 500);
   }
 };
+
+export const getLastSyncTime = async (c: Context) => {
+  try {
+    const lastSyncTime = await syncService.getLastSyncTime();
+    return c.json({ lastSyncTime });
+  } catch (error: any) {
+    console.warn('Error fetching last sync time:', error);
+    return c.json({ message: error.message }, 500);
+  }
+};

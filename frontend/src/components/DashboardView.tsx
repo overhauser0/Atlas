@@ -76,7 +76,6 @@ export default function DashboardView({
     // 修正1: 全体のスクロールを止め、高さを100%に固定
     <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
       {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
-      {/* 修正2: shrink-0 と mb-8 を追加して固定領域にする */}
       <header className="shrink-0 mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-neon shadow-[0_0_15px_rgba(0,112,243,0.2)]">
@@ -103,7 +102,6 @@ export default function DashboardView({
       </header>
 
       {/* --- ショートカット --- */}
-      {/* 修正3: shrink-0 と mb-8 を追加して固定領域にする */}
       <section className="shrink-0 mb-8">
         <div className="flex items-center gap-3">
           <button
@@ -119,7 +117,6 @@ export default function DashboardView({
       </section>
 
       {/* --- 今日のタスク --- */}
-      {/* 修正4: 余った高さをすべて埋める (flex-1) コンテナにする */}
       <section className="flex-1 flex flex-col min-h-0">
         <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
           Today's Tasks
@@ -127,8 +124,6 @@ export default function DashboardView({
             {todaysTasks.length}
           </span>
         </h2>
-
-        {/* 修正5: ここに overflow-y-auto とカスタムスクロールバーを設定 */}
         <div className="flex-1 overflow-y-auto noir-scrollbar pr-2 pb-4 grid gap-3 content-start">
           {todaysTasks.length === 0 ? (
             <div className="p-8 rounded-2xl noir-glass border border-white/5 text-center text-gray-500">
