@@ -11,6 +11,16 @@ export const getLastSyncTime = async () => {
  * Notionの全データを取得し、ローカルのPostgresキャッシュを最新状態にする
  */
 export const syncNotionToLocal = async () => {
+  // 0. 連続同期のガード（前回の同期から60秒以内ならスキップ）
+  const lastSyncStr = await pgRepo.getLastNotionSyncTime();
+  const lastSyncDate = new Date(lastSyncStr);
+  const now = new Date();
+
+  if (now.getTime() - lastSyncDate.getTime() < 60000) {
+    console.log('Sync skipped: Synced less than 60 seconds ago.');
+    return;
+  }
+
   // 1. Notionリポジトリから全ページ（Rawデータ）を取得
   const notionPages = await notionRepo.fetchAllPages();
 

@@ -29,7 +29,6 @@ import { Task, ViewType } from '@/types';
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [loginError, setLoginError] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('dashboard');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
@@ -95,7 +94,6 @@ export default function Home() {
         );
 
         if (!res.ok) {
-          // throw new Error(`Failed to fetch: ${res.statusText}`);
           console.warn(`Failed to fetch tasks: ${res.statusText}`);
           return;
         }
@@ -213,13 +211,7 @@ export default function Home() {
   // ---------------- 描画 ----------------
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
-    return (
-      <AuthView
-        onLogin={() => setIsAuthenticated(true)}
-        loginError={loginError}
-        setLoginError={setLoginError}
-      />
-    );
+    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
 
   return (
     <ToastProvider>

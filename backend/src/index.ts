@@ -22,8 +22,8 @@ api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/tasks', taskController.getTasks);
 api.post('/tasks', taskController.createNewTask);
 api.patch('/tasks/:id', taskController.updateTask);
-api.post('/tasks/sync', taskController.syncTasks);
 api.get('/tasks/sync', taskController.getLastSyncTime);
+api.post('/tasks/sync', taskController.syncTasks);
 
 app.route('/api/v1', api);
 
