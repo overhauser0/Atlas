@@ -151,17 +151,17 @@ export default function CalendarView({
                   >
                     {day}
                   </div>
-                  <div className="flex flex-col gap-1 overflow-y-auto noir-scrollbar">
+                  <div className="flex flex-col gap-0.5 overflow-y-auto noir-scrollbar">
                     {dayTasks.map((task) => (
                       <div
                         key={task.id}
                         draggable
                         onDragStart={() => setDraggingTaskId(task.id)}
                         onClick={() => onTaskClick(task)}
-                        className={`text-[10px] leading-tight p-1.5 rounded bg-white/5 hover:bg-white/10 cursor-pointer border-l-2 border-transparent transition-all truncate flex items-center justify-between gap-1 group ${draggingTaskId === task.id ? 'opacity-30' : ''}`}
+                        className={`text-[10px] leading-tight p-1 rounded hover:bg-white/10 cursor-pointer transition-all truncate flex items-center justify-between gap-1 group ${draggingTaskId === task.id ? 'opacity-30' : ''}`}
                         style={{
                           borderLeftColor: `var(--${task.status.toLowerCase()}-color, #888)`,
-                        }} // fallback用
+                        }} // fallback用 //card-old-className text-[10px] leading-tight p-1.5 rounded bg-white/5 hover:bg-white/10 cursor-pointer border-l-2 border-transparent transition-all truncate flex items-center justify-between gap-1 group
                       >
                         <div className="flex items-center gap-1 flex-1 min-w-0">
                           <div
@@ -172,7 +172,7 @@ export default function CalendarView({
                           </span>
                         </div>
 
-                        {task.source === 'NOTION' && (
+                        {/* task.source === 'NOTION' && (
                           <a
                             href={`https://notion.so/${task.id.replace(/-/g, '')}`}
                             target="_blank"
@@ -182,7 +182,7 @@ export default function CalendarView({
                           >
                             <ExternalLink className="w-4 h-4" />
                           </a>
-                        )}
+                        )*/}
                       </div>
                     ))}
                   </div>

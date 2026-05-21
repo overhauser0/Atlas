@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, ExternalLink } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/dateUtils';
 
@@ -24,6 +24,7 @@ export default function TaskModal({
     status: 'INBOX',
     due_date: '',
     source: 'LOCAL',
+    id: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -35,6 +36,7 @@ export default function TaskModal({
           status: task.status || 'INBOX',
           due_date: task.due_date ? task.due_date.split('T')[0] : '',
           source: task.source || 'LOCAL',
+          id: task.id || '',
         });
       } else {
         setEditForm({
@@ -42,6 +44,7 @@ export default function TaskModal({
           status: 'INBOX',
           due_date: new Date().toISOString().split('T')[0],
           source: 'LOCAL',
+          id: '',
         });
       }
     }
@@ -109,11 +112,25 @@ export default function TaskModal({
       }}
     >
       <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-2xl">
-        <div className="flex justify-between items-start">
-          <h2 className="text-lg font-bold text-white">
+        <div className="flex items-center gap-2">
+          <h2 className="text-lg font-bold text-white flex-1">
             {mode === 'create' ? 'New Task' : 'Edit Task'}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-white">
+          {editForm.source === 'NOTION' && (
+            <a
+              href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
+            >
+              <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white shrink-0"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>

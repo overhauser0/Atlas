@@ -261,6 +261,7 @@ export default function Home() {
           onNewTask={openCreateTaskModal}
           tasks={tasks}
           onTaskClick={openEditTaskModal}
+          onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
         />
         {isMobileMenuOpen && (
           <div

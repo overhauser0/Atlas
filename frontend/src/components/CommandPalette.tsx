@@ -14,6 +14,7 @@ import {
   CheckSquare,
   Calendar,
   ClipboardPenLine,
+  AlarmClock,
 } from 'lucide-react';
 import { ViewType, Task } from '@/types';
 
@@ -23,8 +24,9 @@ interface CommandPaletteProps {
   onNavigate: (view: ViewType) => void;
   onSync: () => void;
   onNewTask: () => void;
-  tasks: Task[]; // 追加: 取得済みのタスク一覧
-  onTaskClick: (task: Task) => void; // 追加: タスククリック時のハンドラー
+  tasks: Task[];
+  onTaskClick: (task: Task) => void;
+  onQuickAlarmOpen: () => void;
 }
 
 export default function CommandPalette({
@@ -35,6 +37,7 @@ export default function CommandPalette({
   onNewTask,
   tasks,
   onTaskClick,
+  onQuickAlarmOpen,
 }: CommandPaletteProps) {
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,6 +46,12 @@ export default function CommandPalette({
   const commands = [
     { id: 'new-task', label: 'New Task', icon: Plus, action: onNewTask },
     { id: 'sync', label: 'Sync with Notion', icon: RefreshCw, action: onSync },
+    {
+      id: 'timer',
+      label: 'Set Timer',
+      icon: AlarmClock,
+      action: onQuickAlarmOpen,
+    },
     {
       id: 'nav-dashboard',
       label: 'Go to Dashboard',
