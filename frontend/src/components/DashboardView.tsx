@@ -73,7 +73,6 @@ export default function DashboardView({
   );
 
   return (
-    // 修正1: 全体のスクロールを止め、高さを100%に固定
     <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
       {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
       <header className="shrink-0 mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">

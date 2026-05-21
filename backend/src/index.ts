@@ -3,6 +3,7 @@ import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
 import * as pushController from './controllers/push.controller';
 import * as taskController from './controllers/task.controller';
+import * as reviewController from './controllers/review.controller';
 import * as pgRepo from './repositories/postgres.repository';
 
 const app = new Hono();
@@ -24,6 +25,8 @@ api.post('/tasks', taskController.createNewTask);
 api.patch('/tasks/:id', taskController.updateTask);
 api.get('/tasks/sync', taskController.getLastSyncTime);
 api.post('/tasks/sync', taskController.syncTasks);
+api.get('/reviews', reviewController.getReviews);
+api.patch('/reviews/:pageId', reviewController.updateReview);
 
 app.route('/api/v1', api);
 

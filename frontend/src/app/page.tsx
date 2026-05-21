@@ -10,18 +10,21 @@ import {
   Bell,
   Kanban,
   CalendarDays,
+  ClipboardPenLine,
 } from 'lucide-react';
 import AuthView from '@/components/AuthView';
 import DashboardView from '@/components/DashboardView';
 import WeeklyView from '@/components/WeeklyView';
 import KanbanView from '@/components/KanbanView';
 import CalendarView from '@/components/CalendarView';
+import ReviewView from '@/components/ReviewView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import QuickAlarmModal from '@/components/QuickAlarmModal';
 import TaskModal from '@/components/TaskModal';
+import CommandPalette from '@/components/CommandPalette';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
@@ -61,6 +64,7 @@ export default function Home() {
   const closeTaskModal = useCallback(() => {
     setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
 
   // ---------------- 認証チェック ----------------
   useEffect(() => {
@@ -115,6 +119,20 @@ export default function Home() {
     [isAuthenticated],
   );
 
+  // ---------------- ショートカットキー (Cmd+K / Ctrl+K) の監視 ----------------
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl または Cmd (Mac) と K の同時押し
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault(); // ブラウザのデフォルトの検索窓が開くのを防ぐ
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // 初回表示時に実行
   useEffect(() => {
     const isFirstTime = tasks.length === 0;
@@ -131,7 +149,7 @@ export default function Home() {
         const res = await fetch('/api/v1/tasks/sync', { method: 'GET' });
         const syncInfo = await res.json();
 
-        const lastSyncTime = new Date(syncInfo.lastSync).getTime();
+        const lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
         const now = new Date().getTime();
         const intervalMs = appSettings.syncInterval * 60 * 1000;
 
@@ -208,6 +226,12 @@ export default function Home() {
     };
   }, []);
 
+  // ---------------- ReviewView の初期表示月を今月にする ----------------
+  const yyyymm = () => {
+    const now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+
   // ---------------- 描画 ----------------
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
@@ -225,6 +249,18 @@ export default function Home() {
           appSettings={appSettings}
           onUnreadChange={setHasUnread}
           onTaskUpdate={handleTaskUpdate}
+        />
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          onNavigate={(view) => {
+            setCurrentView(view);
+            setIsMobileMenuOpen(false); // モバイルの場合メニューも閉じる
+          }}
+          onSync={() => handleSync(true)}
+          onNewTask={openCreateTaskModal}
+          tasks={tasks}
+          onTaskClick={openEditTaskModal}
         />
         {isMobileMenuOpen && (
           <div
@@ -291,6 +327,18 @@ export default function Home() {
               <CalendarDays className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
                 Calendar
+              </span>
+            </button>
+            <button
+              onClick={() => {
+                setCurrentView('review');
+                setIsMobileMenuOpen(false);
+              }}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'review' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+            >
+              <ClipboardPenLine className="w-5 h-5 shrink-0" />
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                Review
               </span>
             </button>
             <button
@@ -428,6 +476,9 @@ export default function Home() {
               onOpenTaskModal={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
             />
+          )}
+          {currentView === 'review' && (
+            <ReviewView initialYearMonth={yyyymm()} />
           )}
           {currentView === 'notifications' && (
             <NotificationsView onRead={handleMarkAsRead} />

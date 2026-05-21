@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Gleis',
-    statusBarStyle: 'black', // 'black' / 'black-translucent' ※ステータスバーがアプリの上に被さる（透明になる）ため、画面上部に少しパディングが必要になる場合があります
+    statusBarStyle: 'black-translucent', // 'black' / 'black-translucent' ※ステータスバーがアプリの上に被さる（透明になる）ため、画面上部に少しパディングが必要になる場合があります
   },
   manifest: '/manifest.json',
 };

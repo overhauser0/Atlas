@@ -1,4 +1,4 @@
-version: "3.8"
+version: '3.8'
 services:
   db:
     image: postgres:15-alpine
@@ -24,7 +24,7 @@ services:
       - /app/node_modules
       - /app/.next
     ports:
-      - "5675:5675"
+      - '5675:5675'
     depends_on:
       - backend
     networks:
@@ -39,11 +39,13 @@ services:
       DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
       NOTION_API_KEY: ${NOTION_API_KEY}
       NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
+      NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
+      NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
     volumes:
       - ./backend:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
     ports:
-      - "5676:5676"
+      - '5676:5676'
     depends_on:
       - db
     networks:
