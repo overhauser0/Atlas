@@ -29,6 +29,9 @@ export const createPage = async (task: Task) => {
   if (task.content) {
     properties.Note = { rich_text: [{ text: { content: task.content } }] };
   }
+  if (task.url) {
+    properties.URL = { url: task.url };
+  }
   return await notionClient.pages.create({
     parent: { database_id: DATABASE_ID },
     properties,
@@ -55,6 +58,9 @@ export const updatePage = async (pageId: string, task: Partial<Task>) => {
     properties.Note = { rich_text: [{ text: { content: task.content } }] };
   if (task.dueDate !== undefined) {
     properties.Date = { date: task.dueDate ? { start: task.dueDate } : null };
+  }
+  if (task.url !== undefined) {
+    properties.URL = { url: task.url };
   }
 
   return await notionClient.pages.update({

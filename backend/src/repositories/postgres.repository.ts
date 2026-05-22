@@ -15,6 +15,7 @@ export interface LocalTasksTable {
   type: string;
   topics: string[];
   flags: string[];
+  url: string | null;
   due_date: string | null;
   created_at: Generated<Date>;
 }
@@ -30,6 +31,7 @@ export interface NotionTasksCacheTable {
   topics: string[];
   flags: string[];
   due_date: Date | null;
+  url: string | null;
   last_edited_time: Date;
   synced_at: Generated<Date>;
   raw_data: JSONColumnType<any>; // Notion APIからの生のレスポンス
@@ -132,6 +134,7 @@ export const upsertNotionTaskCache = async (
     topics: task.topics || [],
     flags: task.flags || [],
     due_date: task.dueDate || null,
+    url: task.url || null,
     last_edited_time: lastEditedTime,
     raw_data: JSON.stringify(rawData),
   };
@@ -166,6 +169,7 @@ export const updateNotionTaskCache = async (
       type: updates.type,
       topics: updates.topics,
       flags: updates.flags,
+      url: updates.url,
       due_date: updates.dueDate,
       last_edited_time: new Date(), // 最終編集時刻のみ更新
     })
@@ -261,6 +265,7 @@ export const insertLocalTask = async (task: Task) => {
       topics: task.topics || [],
       flags: task.flags || [],
       due_date: task.dueDate || null,
+      url: task.url || null,
     })
     .returningAll()
     .executeTakeFirst();

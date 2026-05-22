@@ -1,6 +1,6 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { X, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { X, ExternalLink, LinkIcon, Text, Calendar } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/dateUtils';
 
@@ -25,8 +25,11 @@ export default function TaskModal({
     due_date: '',
     source: 'LOCAL',
     id: '',
+    url: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -37,6 +40,7 @@ export default function TaskModal({
           due_date: task.due_date ? task.due_date.split('T')[0] : '',
           source: task.source || 'LOCAL',
           id: task.id || '',
+          url: task.url || '',
         });
       } else {
         setEditForm({
@@ -45,10 +49,22 @@ export default function TaskModal({
           due_date: new Date().toISOString().split('T')[0],
           source: 'LOCAL',
           id: '',
+          url: '',
         });
       }
     }
   }, [isOpen, mode, task]);
+
+  // モーダルが開いた時にフォーカスを当てる
+  useEffect(() => {
+    if (isOpen) {
+      // モーダルのDOMが描画されるのを少し待ってからフォーカスする
+      const timer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
 
   // Escキーでモーダルを閉じる関数
   useEffect(() => {
@@ -78,6 +94,7 @@ export default function TaskModal({
         status: editForm.status,
         dueDate: payloadDate,
         source: isEdit ? task.source : editForm.source,
+        url: editForm.url || null,
       };
 
       console.log('Saving task with payload:', payload);
@@ -119,7 +136,7 @@ export default function TaskModal({
           <h2 className="text-lg font-bold text-white flex-1">
             {mode === 'create' ? 'New Task' : 'Edit Task'}
           </h2>
-          {editForm.source === 'NOTION' && (
+          {editForm.source === 'NOTION' && task?.id && (
             <a
               href={`https://notion.so/${task.id.replace(/-/g, '')}`}
               target="_blank"
@@ -156,23 +173,34 @@ export default function TaskModal({
               ))}
             </div>
           )}
-          <input
-            type="text"
-            value={editForm.title}
-            onChange={(e) =>
-              setEditForm({ ...editForm, title: e.target.value })
-            }
-            className="w-full bg-black/50 border border-white/10 rounded-xl p-3 text-white text-sm focus:border-neon focus:outline-none"
-            placeholder="Task title..."
-          />
-          <input
-            type="date"
-            value={editForm.due_date}
-            onChange={(e) =>
-              setEditForm({ ...editForm, due_date: e.target.value })
-            }
-            className="noir-input"
-          />
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Text className="h-4 w-4 text-gray-500" />
+            </div>
+            <input
+              type="text"
+              value={editForm.title}
+              onChange={(e) =>
+                setEditForm({ ...editForm, title: e.target.value })
+              }
+              className="w-full bg-black/50 border border-white/10 rounded-xl p-3 pl-9 text-white text-sm focus:border-neon focus:outline-none"
+              placeholder="Task title..."
+              ref={titleInputRef}
+            />
+          </div>
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <Calendar className="h-4 w-4 text-gray-500" />
+            </div>
+            <input
+              type="date"
+              value={editForm.due_date}
+              onChange={(e) =>
+                setEditForm({ ...editForm, due_date: e.target.value })
+              }
+              className="noir-input pl-9"
+            />
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
               <button
@@ -186,6 +214,33 @@ export default function TaskModal({
                 <span className="text-xs">{s}</span>
               </button>
             ))}
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <LinkIcon className="h-4 w-4 text-gray-500" />
+              </div>
+              <input
+                type="url"
+                value={editForm.url}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, url: e.target.value })
+                }
+                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:border-neon focus:outline-none"
+                placeholder="https://... (optional)"
+              />
+            </div>
+            {editForm.url && (
+              <a
+                href={editForm.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors shrink-0"
+                title="リンクを開く"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            )}
           </div>
         </div>
         <button
