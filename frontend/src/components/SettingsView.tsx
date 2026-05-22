@@ -16,7 +16,8 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
   };
 
   return (
-    <div className="flex-1 px-4 pb-20 max-w-2xl mx-auto w-full space-y-10 overflow-y-auto noir-scrollbar">
+    <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-10 overflow-y-auto noir-scrollbar ">
+      {/* max-w-2xl */}
       {/* --- Section: View Settings --- */}
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 px-1 noir-label">
@@ -58,7 +59,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 Keep Screen On
               </div>
               <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                Prevent the device from sleeping while the dashboard is open.
+                Prevent the device from sleeping while the app is open.
               </p>
             </div>
             <button
@@ -77,7 +78,6 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
         </div>
       </section>
-
       {/* --- Section: Automation --- */}
       <section className="flex flex-col gap-4">
         <h2 className="noir-label px-1 flex items-center gap-2">
@@ -144,7 +144,6 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
         </div>
       </section>
-
       {/* --- Section: Alerts --- */}
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 px-1 noir-label">
@@ -195,35 +194,32 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
               Cmd/Ctrl + K
             </code>
-
-            <div className="text-gray-400">Dashboard (Home)</div>
+            <div className="text-gray-400">Sync Notion</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              0
+              Cmd/Ctrl + S
             </code>
-
-            <div className="text-gray-400">Weekly Task</div>
+            <div className="text-gray-400">Lock Screen</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              1
+              Cmd/Ctrl + L
             </code>
-
-            <div className="text-gray-400">Kanban</div>
+            <div className="text-gray-400">Go To View</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              2
+              0 <span className="text-gray-500">// Home</span>
             </code>
-
-            <div className="text-gray-400">Calendar</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              3
+              1 <span className="text-gray-500">// WeeklyTask</span>
             </code>
-
-            <div className="text-gray-400">Review</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              4
+              2 <span className="text-gray-500">// Kanban</span>
             </code>
-
-            <div className="text-gray-400">Notifications</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              5
+              3 <span className="text-gray-500">// Calendar</span>
+            </code>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              4 <span className="text-gray-500">// Review</span>
+            </code>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              5 <span className="text-gray-500">// Notifications</span>
             </code>
           </div>
         </div>

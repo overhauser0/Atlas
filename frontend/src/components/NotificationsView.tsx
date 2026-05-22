@@ -55,7 +55,8 @@ export default function NotificationsView({ onRead }: Props) {
   }, [onRead]);
 
   return (
-    <div className="flex-1 px-4 pb-20 max-w-2xl mx-auto w-full space-y-6 overflow-y-auto noir-scrollbar">
+    <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-6 overflow-y-auto noir-scrollbar">
+      {/* max-w-2xl */}
       <section className="flex flex-col gap-4">
         <h2 className="noir-label px-1 flex items-center gap-2">
           <Bell className="w-3.5 h-3.5" />

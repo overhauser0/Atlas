@@ -56,10 +56,10 @@ export default function CommandPalette({
       action: onQuickAlarmOpen,
     },
     {
-      id: 'nav-dashboard',
-      label: 'Go to Dashboard',
+      id: 'nav-home',
+      label: 'Go to Home',
       icon: LayoutDashboard,
-      action: () => onNavigate('dashboard'),
+      action: () => onNavigate('home'),
     },
     {
       id: 'nav-weekly',

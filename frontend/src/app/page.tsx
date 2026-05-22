@@ -13,7 +13,7 @@ import {
   ClipboardPenLine,
 } from 'lucide-react';
 import AuthView from '@/components/AuthView';
-import DashboardView from '@/components/DashboardView';
+import HomeView from '@/components/HomeView';
 import WeeklyView from '@/components/WeeklyView';
 import KanbanView from '@/components/KanbanView';
 import CalendarView from '@/components/CalendarView';
@@ -32,7 +32,7 @@ import { Task, ViewType } from '@/types';
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [currentView, setCurrentView] = useState<ViewType>('dashboard');
+  const [currentView, setCurrentView] = useState<ViewType>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -126,58 +126,11 @@ export default function Home() {
     [isAuthenticated],
   );
 
-  // ---------------- ショートカットキー (Cmd+K / Ctrl+K) の監視 ----------------
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ctrl または Cmd (Mac) と K の同時押し
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault(); // ブラウザのデフォルトの検索窓が開くのを防ぐ
-        setIsCommandPaletteOpen((prev) => !prev);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // 初回表示時に実行
   useEffect(() => {
     const isFirstTime = tasks.length === 0;
     fetchTasks(!isFirstTime);
   }, [fetchTasks, tasks.length]);
-
-  // ---------------- 数字キーによるビュー切り替え (1-6) ----------------
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // 入力中は無効化
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement?.tagName === 'INPUT' ||
-        activeElement?.tagName === 'TEXTAREA' ||
-        activeElement?.tagName === 'SELECT' ||
-        (activeElement as HTMLElement)?.isContentEditable;
-
-      if (isInputFocused) return;
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-
-      const keyMap: { [key: string]: ViewType } = {
-        '0': 'dashboard',
-        '1': 'weekly',
-        '2': 'kanban',
-        '3': 'calendar',
-        '4': 'review',
-        '5': 'notifications',
-      };
-
-      if (keyMap[e.key]) {
-        setCurrentView(keyMap[e.key]);
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
 
   // ---------------- データの更新 ----------------
   // 更新処理
@@ -278,6 +231,80 @@ export default function Home() {
     return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
   };
 
+  // ---------------- ショートカットキーの監視 ----------------
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 1. 入力中は無効化
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement?.tagName === 'INPUT' ||
+        activeElement?.tagName === 'TEXTAREA' ||
+        activeElement?.tagName === 'SELECT' ||
+        (activeElement as HTMLElement)?.isContentEditable;
+
+      // 2. Ctrl または Cmd (Mac) の同時押し判定
+      const isModifierPressed = e.metaKey || e.ctrlKey;
+
+      // Cmd+K / Ctrl+K (CommandPalette)
+      if (isModifierPressed && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+        return;
+      }
+
+      // Cmd+S / Ctrl+S (Sync)
+      if (isModifierPressed && e.key === 's') {
+        e.preventDefault();
+        handleSync(true);
+        return;
+      }
+
+      // Cmd+L / Ctrl+L (Lock)
+      if (isModifierPressed && e.key === 'l') {
+        e.preventDefault();
+        localStorage.removeItem('gleis_auth');
+        setIsAuthenticated(false);
+        return;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [handleSync]);
+
+  // ---------------- 数字キーによるビュー切り替え (1-6) ----------------
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 入力中は無効化
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement?.tagName === 'INPUT' ||
+        activeElement?.tagName === 'TEXTAREA' ||
+        activeElement?.tagName === 'SELECT' ||
+        (activeElement as HTMLElement)?.isContentEditable;
+
+      if (isInputFocused) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      const keyMap: { [key: string]: ViewType } = {
+        '0': 'home',
+        '1': 'weekly',
+        '2': 'kanban',
+        '3': 'calendar',
+        '4': 'review',
+        '5': 'notifications',
+      };
+
+      if (keyMap[e.key]) {
+        setCurrentView(keyMap[e.key]);
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // ---------------- 描画 ----------------
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
@@ -334,10 +361,10 @@ export default function Home() {
           <nav className="flex flex-col gap-2 flex-1">
             <button
               onClick={() => {
-                setCurrentView('dashboard');
+                setCurrentView('home');
                 setIsMobileMenuOpen(false);
               }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'dashboard' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'home' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               <LayoutDashboard className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
@@ -493,8 +520,8 @@ export default function Home() {
               />
             </div>
           </header>
-          {currentView === 'dashboard' && (
-            <DashboardView
+          {currentView === 'home' && (
+            <HomeView
               tasks={tasks}
               onOpenTaskModal={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
