@@ -7,8 +7,8 @@ interface AuthViewProps {
   onLogin: () => void;
 }
 
-// 💡 簡易パスワードの設定
-const CORRECT_PASSWORD = 'yyyuyy';
+const CORRECT_PASSWORD =
+  process.env.NEXT_PUBLIC_GLEIS_PASSWORD || 'UNSET_PASSWORD_ERROR';
 
 export default function AuthView({ onLogin }: AuthViewProps) {
   const [passwordInput, setPasswordInput] = useState('');

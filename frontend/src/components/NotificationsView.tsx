@@ -9,7 +9,7 @@ interface Props {
 
 export default function NotificationsView({ onRead }: Props) {
   const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true); // 💡 追加：ローディング状態
+  const [loading, setLoading] = useState(true);
 
   // カテゴリに応じたアイコンを返す関数
   const getIcon = (category: string) => {
@@ -23,7 +23,13 @@ export default function NotificationsView({ onRead }: Props) {
       setLoading(true); // 取得開始
       try {
         // 1. 通知リスト取得
-        const res = await fetch('/api/v1/notifications');
+        const res = await fetch('/api/v1/notifications', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+          },
+        });
 
         if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
 
@@ -31,7 +37,13 @@ export default function NotificationsView({ onRead }: Props) {
         setNotifications(data.notifications);
 
         // 2. 既読にするAPIを叩く
-        await fetch('/api/v1/notifications/read', { method: 'POST' });
+        await fetch('/api/v1/notifications/read', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+          },
+        });
         onRead(); // 親の hasUnread を false にする
       } catch (e) {
         console.error('Failed to fetch notifications:', e);

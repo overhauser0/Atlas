@@ -56,7 +56,13 @@ export default function ReviewView({
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/v1/reviews?month=${currentYM}`)
+    fetch(`/api/v1/reviews?month=${currentYM}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
+    })
       .then((res) => res.json())
       .then(setData)
       .finally(() => setLoading(false));
@@ -66,11 +72,20 @@ export default function ReviewView({
   const handleSave = async (newValue: string) => {
     await fetch(`/api/v1/reviews/${editing.pageId}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
       body: JSON.stringify({ propertyName: editing.propName, text: newValue }),
     });
     // 保存後、再取得して画面を更新
-    fetch(`/api/v1/reviews?month=${currentYM}`)
+    fetch(`/api/v1/reviews?month=${currentYM}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
+    })
       .then((res) => res.json())
       .then(setData);
   };

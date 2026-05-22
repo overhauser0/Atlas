@@ -43,7 +43,10 @@ export default function KanbanView({
     // バックエンドの更新（ステータス変更を送信）
     await fetch(`/api/v1/tasks/${task.id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
       body: JSON.stringify({
         ...task,
         status: targetStatus,

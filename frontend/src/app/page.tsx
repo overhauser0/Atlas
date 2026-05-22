@@ -95,6 +95,13 @@ export default function Home() {
       try {
         const res = await fetch(
           '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+            },
+          },
         );
 
         if (!res.ok) {
@@ -154,7 +161,13 @@ export default function Home() {
         const intervalMs = appSettings.syncInterval * 60 * 1000;
 
         if (force || now - lastSyncTime >= intervalMs) {
-          await fetch('/api/v1/tasks/sync', { method: 'POST' });
+          await fetch('/api/v1/tasks/sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+            },
+          });
         } else {
           console.log('Auto sync skipped (already synced by another device)');
         }
@@ -262,6 +275,10 @@ export default function Home() {
           tasks={tasks}
           onTaskClick={openEditTaskModal}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
+          onLock={() => {
+            localStorage.removeItem('gleis_auth');
+            setIsAuthenticated(false);
+          }}
         />
         {isMobileMenuOpen && (
           <div

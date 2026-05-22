@@ -84,7 +84,10 @@ export default function TaskModal({
 
       const response = await fetch(url, {
         method,
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
         body: JSON.stringify(payload),
       });
 

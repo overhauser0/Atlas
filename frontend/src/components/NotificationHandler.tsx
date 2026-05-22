@@ -14,10 +14,15 @@ export default function NotificationHandler({
 }: Props) {
   const fetchNotifications = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/notifications');
+      const res = await fetch('/api/v1/notifications', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+      });
 
       if (!res.ok) {
-        // throw new Error(`Failed to fetch: ${res.statusText}`);
         console.warn(`Failed to fetch notifications: ${res.statusText}`);
         return;
       }

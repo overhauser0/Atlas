@@ -15,6 +15,7 @@ import {
   Calendar,
   ClipboardPenLine,
   AlarmClock,
+  Lock,
 } from 'lucide-react';
 import { ViewType, Task } from '@/types';
 
@@ -27,6 +28,7 @@ interface CommandPaletteProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   onQuickAlarmOpen: () => void;
+  onLock: () => void;
 }
 
 export default function CommandPalette({
@@ -38,6 +40,7 @@ export default function CommandPalette({
   tasks,
   onTaskClick,
   onQuickAlarmOpen,
+  onLock,
 }: CommandPaletteProps) {
   const [search, setSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
@@ -93,6 +96,12 @@ export default function CommandPalette({
       label: 'Go to Settings',
       icon: Settings,
       action: () => onNavigate('settings'),
+    },
+    {
+      id: 'lock-app',
+      label: 'Lock App',
+      icon: Lock,
+      action: onLock,
     },
   ];
 

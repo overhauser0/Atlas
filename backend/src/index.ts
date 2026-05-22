@@ -11,6 +11,22 @@ const app = new Hono();
 // Middleware
 app.use('/*', cors());
 
+// --- 🔒 APIキー認証ミドルウェア ---
+app.use('/api/v1/*', async (c, next) => {
+  // リクエストヘッダーからAPIキーを取得
+  const apiKey = c.req.header('X-API-KEY');
+  const expectedKey = process.env.GLEIS_API_KEY;
+
+  // サーバー側の環境変数が未設定、またはキーが一致しない場合は401を返す
+  if (!expectedKey || apiKey !== expectedKey) {
+    console.warn('[Auth] Unauthorized API access attempt');
+    return c.json({ success: false, error: 'Unauthorized' }, 401);
+  }
+
+  await next();
+});
+// ----------------------------------
+
 // Routes
 app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
 

@@ -41,6 +41,7 @@ services:
       NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
       NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
       NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
+      GLEIS_API_KEY: ${GLEIS_API_KEY}
     volumes:
       - ./backend:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
