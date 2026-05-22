@@ -1,5 +1,5 @@
 'use client';
-import { Monitor, Zap, Bell, Clock, RefreshCw } from 'lucide-react';
+import { Monitor, Zap, Bell, Clock, RefreshCw, Keyboard } from 'lucide-react';
 
 interface Props {
   appSettings: any;
@@ -179,6 +179,52 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 <Zap className="w-4 h-4 fill-current" />
               </button>
             )}
+          </div>
+        </div>
+      </section>
+      {/* --- Section: Keyboard Shortcuts --- */}
+      <section className="flex flex-col gap-4">
+        <h2 className="flex items-center gap-2 px-1 noir-label">
+          <Keyboard className="w-3.5 h-3.5" />
+          Keyboard Shortcuts
+        </h2>
+
+        <div className="noir-glass rounded-2xl border border-white/5 p-5 space-y-3">
+          <div className="grid grid-cols-[1fr,auto] gap-4 text-sm">
+            <div className="text-gray-400">Command Palette</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              Cmd/Ctrl + K
+            </code>
+
+            <div className="text-gray-400">Dashboard (Home)</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              0
+            </code>
+
+            <div className="text-gray-400">Weekly Task</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              1
+            </code>
+
+            <div className="text-gray-400">Kanban</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              2
+            </code>
+
+            <div className="text-gray-400">Calendar</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              3
+            </code>
+
+            <div className="text-gray-400">Review</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              4
+            </code>
+
+            <div className="text-gray-400">Notifications</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              5
+            </code>
           </div>
         </div>
       </section>

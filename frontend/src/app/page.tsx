@@ -146,6 +146,39 @@ export default function Home() {
     fetchTasks(!isFirstTime);
   }, [fetchTasks, tasks.length]);
 
+  // ---------------- 数字キーによるビュー切り替え (1-6) ----------------
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // 入力中は無効化
+      const activeElement = document.activeElement;
+      const isInputFocused =
+        activeElement?.tagName === 'INPUT' ||
+        activeElement?.tagName === 'TEXTAREA' ||
+        activeElement?.tagName === 'SELECT' ||
+        (activeElement as HTMLElement)?.isContentEditable;
+
+      if (isInputFocused) return;
+      if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+      const keyMap: { [key: string]: ViewType } = {
+        '0': 'dashboard',
+        '1': 'weekly',
+        '2': 'kanban',
+        '3': 'calendar',
+        '4': 'review',
+        '5': 'notifications',
+      };
+
+      if (keyMap[e.key]) {
+        setCurrentView(keyMap[e.key]);
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   // ---------------- データの更新 ----------------
   // 更新処理
   const handleSync = useCallback(
@@ -364,7 +397,7 @@ export default function Home() {
                 setCurrentView('notifications');
                 setIsMobileMenuOpen(false);
               }}
-              className="flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-white"
+              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'notifications' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
             >
               <Bell className="w-5 h-5 shrink-0" />
               <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
