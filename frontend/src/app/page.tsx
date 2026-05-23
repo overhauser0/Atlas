@@ -139,7 +139,15 @@ export default function Home() {
       setIsSyncing(true);
       try {
         // 1. 強制同期でない場合、最後の同期から一定時間経過しているかチェック
-        const res = await fetch('/api/v1/tasks/sync', { method: 'GET' });
+        const res = await fetch('/api/v1/tasks/sync', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+          },
+        });
+        if (!res.ok)
+          throw new Error(`Failed to check sync status: ${res.statusText}`);
         const syncInfo = await res.json();
 
         const lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
