@@ -7,20 +7,25 @@ import {
   ArrowRight,
   ExternalLink,
   HardDrive,
+  Award,
 } from 'lucide-react';
-import { getStatusColor } from '@/utils/dateUtils';
+import { getStatusColor, sortTasksByStatus } from '@/utils/dateUtils';
 
-interface DashboardViewProps {
+interface HomeViewProps {
   tasks: Task[];
   onOpenTaskModal: () => void;
   onTaskClick: (task: Task) => void;
+  completedTasks: Task[];
+  onOpenStats: () => void;
 }
 
-export default function DashboardView({
+export default function HomeView({
   tasks,
+  completedTasks,
   onOpenTaskModal,
   onTaskClick,
-}: DashboardViewProps) {
+  onOpenStats,
+}: HomeViewProps) {
   const today = new Date();
 
   // --- 1. 表示用日付の取得 ---
@@ -71,6 +76,14 @@ export default function DashboardView({
       task.due_date.startsWith(todayString) &&
       task.status !== 'Done',
   );
+  const sortedTodaysTasks = sortTasksByStatus(todaysTasks);
+
+  const completedTodayTasks = completedTasks.filter(
+    (task) =>
+      task.due_date &&
+      task.due_date.startsWith(todayString) &&
+      task.status === 'Done',
+  );
 
   return (
     <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
@@ -100,9 +113,10 @@ export default function DashboardView({
         </div>
       </header>
 
-      {/* --- ショートカット --- */}
+      {/* --- ショートカット & ステータス --- */}
       <section className="shrink-0 mb-8">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center justify-between">
+          {/* 左側: 新規タスクボタン */}
           <button
             onClick={onOpenTaskModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
@@ -110,6 +124,32 @@ export default function DashboardView({
             <Plus className="w-5 h-5 text-neon group-hover:scale-110 transition-transform" />
             <span className="text-sm font-medium text-gray-300 group-hover:text-white">
               New Task
+            </span>
+          </button>
+
+          {/* 右側: 本日の完了タスク数 (読み取り専用のバッジデザイン) */}
+          <button
+            onClick={onOpenStats}
+            className="flex items-center gap-2 px-2 text-gray-400 transition-all duration-500"
+          >
+            <Award
+              className={`w-5 h-5 transition-all duration-500 ${
+                completedTodayTasks.length > 0
+                  ? 'text-neon drop-shadow-[0_0_8px_rgba(0,112,243,0.6)] scale-110'
+                  : 'text-gray-600'
+              }`}
+            />
+            <span className="text-xs font-bold tracking-widest uppercase">
+              Cleared
+              <span
+                className={`text-lg ml-2 transition-colors duration-500 ${
+                  completedTodayTasks.length > 0
+                    ? 'text-white font-black'
+                    : 'text-gray-600 font-bold'
+                }`}
+              >
+                {completedTodayTasks.length}
+              </span>
             </span>
           </button>
         </div>
@@ -120,16 +160,16 @@ export default function DashboardView({
         <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
           Today's Tasks
           <span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded-full text-xs">
-            {todaysTasks.length}
+            {sortedTodaysTasks.length}
           </span>
         </h2>
         <div className="flex-1 overflow-y-auto noir-scrollbar pr-2 pb-4 grid gap-3 content-start">
-          {todaysTasks.length === 0 ? (
+          {sortedTodaysTasks.length === 0 ? (
             <div className="p-8 rounded-2xl noir-glass border border-white/5 text-center text-gray-500">
               No tasks for today. Take a rest!
             </div>
           ) : (
-            todaysTasks.map((task) => (
+            sortedTodaysTasks.map((task) => (
               <div
                 key={task.id}
                 onClick={() => onTaskClick(task)}

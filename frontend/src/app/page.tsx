@@ -24,6 +24,7 @@ import { ToastProvider } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import QuickAlarmModal from '@/components/QuickAlarmModal';
 import TaskModal from '@/components/TaskModal';
+import StatsModal from '@/components/StatsModal';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
@@ -46,6 +47,7 @@ export default function Home() {
   });
   const [hasUnread, setHasUnread] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [taskModalConfig, setTaskModalConfig] = useState<{
     isOpen: boolean;
@@ -65,6 +67,8 @@ export default function Home() {
     setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [statsTargetDate, setStatsTargetDate] = useState<Date>(new Date());
 
   // ---------------- 認証チェック ----------------
   useEffect(() => {
@@ -90,11 +94,12 @@ export default function Home() {
       // すでにデータがある状態での更新（サイレント更新）なら Loading を出さない
       if (!isSilent) setIsTasksLoading(true);
 
-      const statuses = ['INBOX', 'Waiting', 'Going', 'Done'];
+      // 表示タスク
+      const statuses = ['INBOX', 'Waiting', 'Going'];
 
       try {
         const res = await fetch(
-          '/api/v1/tasks?area=Work&excludeStatus=Done,Canceled',
+          '/api/v1/tasks?area=Work&excludeStatus=Canceled',
           {
             method: 'GET',
             headers: {
@@ -117,6 +122,12 @@ export default function Home() {
             return task.area === 'Work' && statuses.includes(task.status || '');
           }),
         );
+
+        // 完了タスクの集計
+        const completedTasks = data.tasks.filter(
+          (task: Task) => task.status === 'Done',
+        );
+        setCompletedTasks(completedTasks);
       } catch (e) {
         console.warn(e);
       } finally {
@@ -146,8 +157,10 @@ export default function Home() {
             'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
           },
         });
+
         if (!res.ok)
           throw new Error(`Failed to check sync status: ${res.statusText}`);
+
         const syncInfo = await res.json();
 
         const lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
@@ -232,6 +245,12 @@ export default function Home() {
       });
     };
   }, []);
+
+  // ---------------- StatsModal の開閉 ----------------
+  const handleOpenStats = (date: Date) => {
+    setStatsTargetDate(date);
+    setIsStatsOpen(true);
+  };
 
   // ---------------- ReviewView の初期表示月を今月にする ----------------
   const yyyymm = () => {
@@ -531,8 +550,10 @@ export default function Home() {
           {currentView === 'home' && (
             <HomeView
               tasks={tasks}
+              completedTasks={completedTasks}
               onOpenTaskModal={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
+              onOpenStats={() => handleOpenStats(new Date())}
             />
           )}
           {currentView === 'weekly' && (
@@ -543,6 +564,7 @@ export default function Home() {
               setTasks={setTasks}
               onOpenTaskModal={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
+              onOpenStats={(date: Date) => handleOpenStats(date)}
             />
           )}
           {currentView === 'kanban' && (
@@ -575,6 +597,13 @@ export default function Home() {
               setAppSettings={setAppSettings}
             />
           )}
+          <StatsModal
+            isOpen={isStatsOpen}
+            completedTasks={completedTasks}
+            targetDate={statsTargetDate}
+            onTaskClick={openEditTaskModal}
+            onClose={() => setIsStatsOpen(false)}
+          />
           <TaskModal
             isOpen={taskModalConfig.isOpen}
             mode={taskModalConfig.mode}

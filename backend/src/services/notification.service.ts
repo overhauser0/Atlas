@@ -20,7 +20,7 @@ export const handleExternalPush = async (data: PushNotification) => {
   // 2. Notionへのタスク化ロジック
   if (data.storageTarget === 'NOTION') {
     const taskData: Task = {
-      id: data.id || crypto.randomUUID(),
+      // id: data.id || crypto.randomUUID(),
       title: data.title,
       content: data.content,
       status: 'INBOX',
@@ -30,10 +30,10 @@ export const handleExternalPush = async (data: PushNotification) => {
       type: 'Task',
       topics: data.metadata?.topics || [],
       flags: data.metadata?.flags || [],
-      dueDate: data.date || todayDate,
-      url: data.url || null,
-      last_edited_time: todayIso,
-      synced_at: todayIso,
+      dueDate: todayDate,
+      url: null,
+      // last_edited_time: todayIso,
+      // synced_at: todayIso,
     };
     taskResult = await taskService.createNewTask(taskData);
   }

@@ -188,7 +188,7 @@ export default function TaskModal({
               ref={titleInputRef}
             />
           </div>
-          <div className="relative flex-1">
+          <div className="relative flex w-full">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Calendar className="h-4 w-4 text-gray-500" />
             </div>
@@ -198,7 +198,7 @@ export default function TaskModal({
               onChange={(e) =>
                 setEditForm({ ...editForm, due_date: e.target.value })
               }
-              className="noir-input pl-9"
+              className="noir-input pl-9 w-auto flex-1 box-border appearance-none min-w-0"
             />
           </div>
           <div className="grid grid-cols-2 gap-2">

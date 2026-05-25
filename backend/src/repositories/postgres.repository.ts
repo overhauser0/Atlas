@@ -1,7 +1,7 @@
 import { Kysely, PostgresDialect, Generated, JSONColumnType } from 'kysely';
 import { Pool } from 'pg';
 import { Task } from '../schemas/task.schema';
-import { PushNotification } from '../schemas/push.schema';
+import { PushNotificationInput } from '../schemas/push.schema';
 
 // --- 1. テーブル定義 (Interfaces) ---
 
@@ -70,7 +70,7 @@ export const db = new Kysely<Database>({ dialect });
 /**
  * 外部からの通知イベントを保存する
  */
-export const archiveNotification = async (data: PushNotification) => {
+export const archiveNotification = async (data: PushNotificationInput) => {
   return await db
     .insertInto('notifications')
     .values({
@@ -79,6 +79,7 @@ export const archiveNotification = async (data: PushNotification) => {
       category: data.category,
       priority: data.priority,
       metadata: JSON.stringify(data.metadata || {}),
+      is_read: false,
     })
     .returningAll()
     .executeTakeFirst();
@@ -170,7 +171,7 @@ export const updateNotionTaskCache = async (
       topics: updates.topics,
       flags: updates.flags,
       url: updates.url,
-      due_date: updates.dueDate,
+      due_date: updates.dueDate ? new Date(updates.dueDate) : null,
       last_edited_time: new Date(), // 最終編集時刻のみ更新
     })
     .where('id', '=', id)
@@ -292,7 +293,7 @@ export const updateLocalTask = async (id: string, updates: Partial<Task>) => {
 
   if (updatedTask) (updatedTask as any).source = 'LOCAL';
 
-  (updatedTask as any).dueDate = updatedTask.due_date;
+  (updatedTask as any).dueDate = updatedTask?.due_date;
   delete (updatedTask as any).due_date;
 
   return updatedTask;

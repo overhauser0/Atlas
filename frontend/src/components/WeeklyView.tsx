@@ -1,13 +1,14 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Plus, ExternalLink, HardDrive } from 'lucide-react';
 import { Task } from '@/types';
 import {
   COLUMNS,
   getStatusColor,
-  getColumnName,
-  calculateNewDateWithPreservedTime,
-  STATUS_ORDER,
+  mergeNewDateWithOriginalTime,
+  sortTasksByStatus,
+  isOverdue,
+  getThisWeekMonday,
 } from '@/utils/dateUtils';
 
 interface Props {
@@ -17,6 +18,7 @@ interface Props {
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   onOpenTaskModal: () => void;
   onTaskClick: (task: Task) => void;
+  onOpenStats: (date: Date) => void;
 }
 
 export default function WeeklyView({
@@ -26,39 +28,23 @@ export default function WeeklyView({
   setTasks,
   onOpenTaskModal,
   onTaskClick,
+  onOpenStats,
 }: Props) {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
-  const [modalConfig, setModalConfig] = useState<{
-    isOpen: boolean;
-    mode: 'create' | 'edit';
-    task: Task | null;
-  }>({ isOpen: false, mode: 'create', task: null });
-  const [editForm, setEditForm] = useState({
-    title: '',
-    status: 'INBOX',
-    due_date: '',
-    source: 'LOCAL',
-  });
-  const [isSaving, setIsSaving] = useState(false);
 
-  const todayName = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][
-    new Date().getDay()
-  ];
-
-  const onDrop = async (targetColumn: string) => {
-    if (!draggingTaskId || targetColumn === 'Overdue') {
+  const onDrop = async (newDateStr: string) => {
+    if (!draggingTaskId || newDateStr === null) {
       setDraggingTaskId(null);
       return;
     }
     const task = tasks.find((t) => t.id === draggingTaskId);
     if (!task) return;
-    const newDate = calculateNewDateWithPreservedTime(
-      task.due_date,
-      targetColumn,
-    );
+
+    const newDateTime = mergeNewDateWithOriginalTime(task.due_date, newDateStr);
+
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === draggingTaskId ? { ...t, due_date: newDate } : t,
+        t.id === draggingTaskId ? { ...t, due_date: newDateTime } : t,
       ),
     );
     setDraggingTaskId(null);
@@ -70,19 +56,74 @@ export default function WeeklyView({
         'Content-Type': 'application/json',
         'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
       },
-      body: JSON.stringify({ ...task, dueDate: newDate, source: task.source }),
+      body: JSON.stringify({
+        ...task,
+        dueDate: newDateTime,
+        source: task.source,
+      }),
     });
   };
 
-  const openEditModal = (task: Task) => {
-    setEditForm({
-      title: task.title,
-      status: task.status,
-      due_date: task.due_date ? task.due_date.split('T')[0] : '',
-      source: task.source || 'LOCAL',
+  const weekColumns = useMemo(() => {
+    const now = new Date();
+
+    // 今日の日付文字列（YYYY-MM-DD）をJSTで取得
+    const todayStr = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    })
+      .format(now)
+      .replace(/\//g, '-');
+
+    // 今週の「月曜日」を取得（週の開始を月曜とする）
+    const startOfWeek = getThisWeekMonday(now);
+
+    // 月曜を起点(0)とした各曜日のオフセット日数
+    const dayOffsets: Record<string, number> = {
+      Mon: 0,
+      Tue: 1,
+      Wed: 2,
+      Thu: 3,
+      Fri: 4,
+      Sat: 5,
+      Sun: 6,
+    };
+
+    return COLUMNS.map((colName) => {
+      if (colName === 'Overdue') {
+        return {
+          name: colName,
+          date: null,
+          dateStr: null,
+          isToday: false,
+          isOverdue: true,
+        };
+      }
+
+      const colDate = new Date(startOfWeek);
+      // カラムの曜日に合わせて月曜からの日数を足す
+      colDate.setDate(startOfWeek.getDate() + dayOffsets[colName]);
+
+      const dateStr = new Intl.DateTimeFormat('ja-JP', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        timeZone: 'Asia/Tokyo',
+      })
+        .format(colDate)
+        .replace(/\//g, '-');
+
+      return {
+        name: colName,
+        date: colDate,
+        dateStr: dateStr,
+        isToday: dateStr === todayStr,
+        isOverdue: false,
+      };
     });
-    setModalConfig({ isOpen: true, mode: 'edit', task });
-  };
+  }, []);
 
   return (
     <>
@@ -92,50 +133,50 @@ export default function WeeklyView({
             Loading Tasks...
           </div>
         ) : (
-          COLUMNS.map((colName) => {
-            // ① フィルタリング
+          weekColumns.map((col) => {
+            // 1. 完了を除外 & 期限切れをピックアップ
             const filteredTasks = tasks.filter((t) => {
-              return (
-                getColumnName(t.due_date) === colName && t.status !== 'Done'
-              );
+              if (t.status === 'Done') return false;
+              if (col.isOverdue) return isOverdue(t.due_date);
+
+              return t.due_date && t.due_date.startsWith(col.dateStr!);
             });
 
-            // ② ソート処理を追加
-            const colTasks = filteredTasks.sort((a, b) => {
-              const statusA = a.status || '';
-              const statusB = b.status || '';
+            // 2. ステータス順でソート
+            const colTasks = sortTasksByStatus(filteredTasks);
 
-              // ステータスの優先度比較
-              const priorityA = STATUS_ORDER[statusA] || 99;
-              const priorityB = STATUS_ORDER[statusB] || 99;
-
-              if (priorityA !== priorityB) {
-                return priorityA - priorityB;
-              }
-
-              // 同一ステータス内の場合はタイトル順（昇順）
-              return (a.title || '').localeCompare(b.title || '', 'ja');
-            });
-            const todayIndex = COLUMNS.indexOf(todayName);
-            const colIndex = COLUMNS.indexOf(colName);
+            const todayIndex = weekColumns.findIndex((c) => c.isToday);
+            const colIndex = weekColumns.indexOf(col);
             const shouldShrink =
               appSettings.shrinkEmptyPastDays &&
+              todayIndex !== -1 &&
               colIndex < todayIndex &&
               colTasks.length === 0;
-            const isToday = colName === todayName;
-            const isOverdue = colName === 'Overdue';
 
             return (
               <div
-                key={colName}
+                key={col.name}
                 onDragOver={(e) => e.preventDefault()}
-                onDrop={() => onDrop(colName)}
-                className={`${shouldShrink ? 'w-[112px]' : 'w-[280px]'} ${isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
+                onDrop={() => onDrop(col.dateStr)}
+                className={`${shouldShrink ? 'w-[112px]' : 'w-[280px]'} ${col.isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div
-                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center ${isOverdue ? 'text-red-400 border-red-500/30' : isToday ? 'text-neon border-neon/50' : 'text-gray-400 border-glass-border'}`}
+                  className={`text-sm font-medium pb-2 border-b flex justify-between items-center transition-all ${
+                    col.isOverdue
+                      ? 'text-red-400 border-red-500/30 cursor-default'
+                      : `cursor-pointer hover:opacity-70 ${col.isToday ? 'text-neon border-neon/50 hover:drop-shadow-[0_0_8px_rgba(0,112,243,0.5)]' : 'text-gray-400 border-glass-border hover:text-gray-200'}`
+                  }`}
+                  title={
+                    col.isOverdue
+                      ? undefined
+                      : `${col.name}のパフォーマンスを見る`
+                  }
+                  onClick={() => {
+                    if (col.isOverdue || !col.date) return;
+                    onOpenStats(col.date);
+                  }}
                 >
-                  <span>{colName}</span>
+                  <span>{col.name}</span>
                   <span className="text-xs bg-white/10 px-2 py-0.5 rounded-full text-gray-300">
                     {colTasks.length}
                   </span>

@@ -27,68 +27,53 @@ export const getStatusColor = (status: string) => {
   return 'bg-gray-500';
 };
 
-export const getColumnName = (dueDateStr: string | null): string => {
-  if (!dueDateStr) return 'Overdue';
+// --- 「今週の月曜日（0時0分0秒）」を取得する共通関数 ---
+export const getThisWeekMonday = (baseDate: Date = new Date()): Date => {
+  const d = new Date(baseDate);
+  const dayOfWeek = d.getDay();
+  // 日曜(0)なら6日前、それ以外なら(曜日-1)日前が月曜日
+  const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+  d.setDate(d.getDate() - diffToMonday);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+// 今週の月曜日以前かどうかを判定する関数
+export const isOverdue = (dueDateStr: string | null): boolean => {
+  if (!dueDateStr) return true; // 日付未定はOverdue(Inbox)扱い
   const taskDate = new Date(dueDateStr);
   taskDate.setHours(0, 0, 0, 0);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const dayOfWeek = today.getDay();
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const thisMonday = new Date(today);
-  thisMonday.setDate(today.getDate() + diffToMonday);
-
-  if (taskDate < thisMonday) return 'Overdue';
-
-  const diffDays = Math.round(
-    (taskDate.getTime() - thisMonday.getTime()) / (1000 * 60 * 60 * 24),
-  );
-  if (diffDays >= 0 && diffDays <= 6) return WEEK_DAYS[diffDays];
-  return 'Future';
+  const thisMonday = getThisWeekMonday();
+  return taskDate < thisMonday;
 };
 
-type DayOfWeek = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat' | 'Sun';
-type TargetColumnType = DayOfWeek | 'Overdue';
-
-export const calculateNewDateWithPreservedTime = (
+export const mergeNewDateWithOriginalTime = (
   originalDateStr: string | null,
-  targetColumn: TargetColumnType,
+  newDateStr: string,
 ): string | null => {
-  if (targetColumn === 'Overdue') return null;
-
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const targetMonday = new Date(today);
-  targetMonday.setDate(today.getDate() + diffToMonday);
-
-  const colIndex = WEEK_DAYS.indexOf(targetColumn as DayOfWeek);
-  const targetDate = new Date(targetMonday);
-  targetDate.setDate(targetMonday.getDate() + colIndex);
-
-  const yyyy = targetDate.getFullYear();
-  const mm = String(targetDate.getMonth() + 1).padStart(2, '0');
-  const dd = String(targetDate.getDate()).padStart(2, '0');
-  const newDatePart = `${yyyy}-${mm}-${dd}`;
-
+  if (!newDateStr) return null;
   if (originalDateStr && originalDateStr.includes('T')) {
     const timeMatch = originalDateStr.match(/T(\d{2}:\d{2}:\d{2}(\.\d+)?)/);
     const timePart = timeMatch ? timeMatch[1] : '09:00:00.000';
-    return `${newDatePart}T${timePart}+09:00`;
+    return `${newDateStr}T${timePart}+09:00`;
   }
-  return newDatePart;
+  return newDateStr;
 };
 
-export const calculateNewDateWithPreservedTimeForCalendar = (
-  originalDateStr: string | null,
-  targetDateStr: string,
-): string | null => {
-  if (!targetDateStr) return null;
+export const sortTasksByStatus = (tasks: any[]) => {
+  return tasks.sort((a, b) => {
+    const statusA = a.status || '';
+    const statusB = b.status || '';
 
-  if (originalDateStr && originalDateStr.includes('T')) {
-    const timeMatch = originalDateStr.match(/T(\d{2}:\d{2}:\d{2}(\.\d+)?)/);
-    const timePart = timeMatch ? timeMatch[1] : '09:00:00.000';
-    return `${targetDateStr}T${timePart}+09:00`;
-  }
-  return targetDateStr;
+    // ステータスの優先度比較
+    const priorityA = STATUS_ORDER[statusA] || 99;
+    const priorityB = STATUS_ORDER[statusB] || 99;
+
+    if (priorityA !== priorityB) {
+      return priorityA - priorityB;
+    }
+
+    // 同一ステータス内の場合はタイトル順（昇順）
+    return (a.title || '').localeCompare(b.title || '', 'ja');
+  });
 };

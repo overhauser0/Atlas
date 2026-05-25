@@ -33,6 +33,10 @@ export const updateTask = async (c: Context) => {
   const id = c.req.param('id');
   const body = await c.req.json();
 
+  if (!id) {
+    return c.json({ message: 'Task ID is required' }, 400);
+  }
+
   try {
     const updatedTask = await taskService.updateTask(id, body);
     return c.json({ task: updatedTask });

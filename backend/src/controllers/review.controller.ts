@@ -36,6 +36,10 @@ export const updateReview = async (c: Context) => {
     // HonoでのURLパラメータの取得
     const pageId = c.req.param('pageId');
 
+    if (!pageId) {
+      return c.json({ error: 'Page ID is required' }, 400);
+    }
+
     // HonoでのJSONボディの取得
     const body = await c.req.json();
     const { propertyName, text } = body;

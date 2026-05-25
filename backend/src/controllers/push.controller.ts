@@ -39,6 +39,9 @@ export const getNotificationHistory = async (c: Context) => {
 
 export const markAsRead = async (c: Context) => {
   const id = c.req.param('id');
+  if (!id) {
+    return c.json({ message: 'Notification ID is required' }, 400);
+  }
   try {
     const updatedNotification =
       await notificationService.markNotificationAsRead(id);

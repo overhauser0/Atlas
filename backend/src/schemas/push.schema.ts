@@ -36,3 +36,5 @@ export const PushNotificationSchema = z.object({
 });
 
 export type PushNotification = z.infer<typeof PushNotificationSchema>;
+
+export type PushNotificationInput = z.input<typeof PushNotificationSchema>;

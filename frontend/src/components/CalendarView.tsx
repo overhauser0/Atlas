@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { Plus, ChevronLeft, ExternalLink, ChevronRight } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
 import {
   getStatusColor,
-  calculateNewDateWithPreservedTimeForCalendar,
+  mergeNewDateWithOriginalTime,
 } from '@/utils/dateUtils';
 
 interface Props {
@@ -40,24 +40,21 @@ export default function CalendarView({
   const nextMonth = () => setCurrentDate(new Date(year, month + 1, 1));
 
   // D&D処理
-  const onDrop = async (targetDateStr: string) => {
+  const onDrop = async (newDateStr: string) => {
     if (!draggingTaskId) return;
     const task = tasks.find((t) => t.id === draggingTaskId);
 
     // 日付が変わらない場合は無視（時刻部分は維持するため、前方一致で簡易判定）
-    if (!task || task.due_date?.startsWith(targetDateStr)) {
+    if (!task || task.due_date?.startsWith(newDateStr)) {
       setDraggingTaskId(null);
       return;
     }
 
-    const newDate = calculateNewDateWithPreservedTimeForCalendar(
-      task.due_date,
-      targetDateStr,
-    );
+    const newDateTime = mergeNewDateWithOriginalTime(task.due_date, newDateStr);
 
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === draggingTaskId ? { ...t, due_date: newDate } : t,
+        t.id === draggingTaskId ? { ...t, due_date: newDateTime } : t,
       ),
     );
     setDraggingTaskId(null);
@@ -70,7 +67,7 @@ export default function CalendarView({
       },
       body: JSON.stringify({
         ...task,
-        dueDate: newDate,
+        dueDate: newDateTime,
         source: task.source,
       }),
     });
