@@ -1,0 +1,17 @@
+@import 'tailwindcss';
+
+@layer utilities {
+  /* スクロールバーを隠すユーティリティクラス */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+/* スマホ特有のバウンススクロールを全体で抑制 */
+body {
+  overscroll-behavior-y: none;
+}

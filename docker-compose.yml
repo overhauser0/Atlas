@@ -13,23 +13,6 @@ services:
       - ./pgdata:/var/lib/postgresql/data
     networks:
       - gleis-net
-  frontend:
-    build: ./frontend
-    container_name: gleis-frontend
-    restart: always
-    environment:
-      NEXT_PUBLIC_API_URL: /api/v1
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
-    ports:
-      - '5675:5675'
-    depends_on:
-      - backend
-    networks:
-      - gleis-net
-
   backend:
     build: ./backend
     container_name: gleis-backend
@@ -51,26 +34,35 @@ services:
       - db
     networks:
       - gleis-net
-
+  frontend:
+    build: ./frontend
+    container_name: gleis-frontend
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: /api/v1
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - '5675:5675'
+    depends_on:
+      - backend
+    networks:
+      - gleis-net
   trails:
     build: ./trails
     container_name: trails
     restart: always
     environment:
-      PORT: 5677
-      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
-      NOTION_API_KEY: ${NOTION_API_KEY}
-      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
-      NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
-      NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
-      GLEIS_API_KEY: ${GLEIS_API_KEY}
+      NEXT_PUBLIC_API_URL: /api/v1
     volumes:
       - ./trails:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
     ports:
       - '5677:5677'
     depends_on:
-      - db
+      - backend
     networks:
       - gleis-net
 

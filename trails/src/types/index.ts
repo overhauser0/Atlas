@@ -1,13 +1,23 @@
-export interface BucketItem {
+export type AppTab = 'Home' | 'Bucket' | 'Travel' | 'Explore' | 'Diary';
+
+export interface LifeItem {
   id: string;
   title: string;
-  location: string;
-  type: string;
-  state: 'Idea' | 'Todo' | 'Done';
-  date: string;
+  status: string;
+  date: string | null;
+  area: string | null;
+  type: string | null;
+  topics: string[];
+  flags: string[];
   note: string;
   url: string;
+  fkw: string[];
   imageUrl: string;
-  tags: string[];
-  iconType: 'key' | 'food' | 'mountain';
+  iconType: string;
+}
+
+export interface DiaryEntry {
+  id: string;
+  date: string;
+  content: string;
 }

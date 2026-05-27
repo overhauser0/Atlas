@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS notion_tasks_cache (
     type TEXT NOT NULL DEFAULT 'Task', -- Task, Routine, Event等
     topics TEXT[] DEFAULT '{}',        -- Postgresの配列型
     flags TEXT[] DEFAULT '{}',         -- Postgresの配列型
+    fkw TEXT[] DEFAULT '{}',           -- Free Key Wordsの配列
     due_date TEXT,
     url TEXT,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -34,7 +35,7 @@ CREATE TABLE IF NOT EXISTS local_tasks (
     url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    metadata JSONB DEFAULT '{}'        -- 自由な拡張用（topics, flags等を格納）
+    metadata JSONB DEFAULT '{}'        -- 自由な拡張用（topics, flags, fkw等を格納）
 );
 
 -- 4. 通知履歴用テーブル

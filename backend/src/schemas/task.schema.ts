@@ -20,6 +20,7 @@ export const TaskSchema = z.object({
   type: z.enum(['Task', 'Note', 'Event']).default('Task'),
   topics: z.array(z.string()).default([]),
   flags: z.array(z.string()).default([]),
+  fkw: z.array(z.string()).default([]),
   url: z.string().url().nullable().optional(),
 });
 

@@ -1,198 +1,279 @@
 'use client';
 
-import { useState } from 'react';
-import {
-  Leaf,
-  Settings,
-  ChevronRight,
-  Key,
-  Utensils,
-  Mountain,
-  Compass,
-  Archive,
-  Plane,
-  BookOpen,
-  Image as ImageIcon,
-} from 'lucide-react';
-import BucketModal from '@/components/BucketModal';
-import { BucketItem } from '@/types';
+import { useState, useEffect, useCallback } from 'react';
+import { Compass, Archive, Plane, BookOpen, ImageIcon } from 'lucide-react';
+import { AppTab, LifeItem } from '@/types';
 
-// モックデータ
-const DUMMY_DATA: BucketItem[] = [
+import HomeView from '@/components/HomeView';
+import BucketView from '@/components/BucketView';
+import TravelView from '@/components/TravelView';
+import ExploreView from '@/components/ExploreView';
+import DiaryView from '@/components/DiaryView';
+import DetailModal from '@/components/DetailModal';
+import ConfigModal from '@/components/ConfigModal';
+
+const DUMMY_DATA: LifeItem[] = [
+  // --- Bucket Data ---
   {
-    id: '1',
+    id: 'b1',
     title: 'Must Not Do Prison Escape',
-    location: 'SCRAP',
-    type: 'Event',
     state: 'Todo',
-    date: '2026-08-10',
-    note: 'リアル脱出ゲームの新作。早めにチケットを確保しておくこと。',
-    url: 'https://realdgame.jp/',
-    imageUrl:
-      'https://images.unsplash.com/photo-1512813117056-118f6fdf18cb?auto=format&fit=crop&w=800&q=80',
-    tags: ['Event', 'Escape', 'Tokyo'],
+    date: null, // PLAN (Date無し)
+    note: 'チケット確保',
+    url: '',
+    imageUrl: '',
+    tags: ['Event'],
     iconType: 'key',
   },
   {
-    id: '2',
+    id: 'b2',
     title: 'Hakata Udon Establishments',
-    location: 'Fukuoka',
-    type: 'Food',
     state: 'Todo',
-    date: '2026-08-12',
-    note: '福岡に行ったら絶対に食べたい。柔らかい麺と、透き通った出汁が特徴。ごぼ天うどんがおすすめ。',
-    url: 'https://tabelog.com/fukuoka/',
-    imageUrl:
-      'https://images.unsplash.com/photo-1618355284248-735c026dbab8?auto=format&fit=crop&w=800&q=80',
-    tags: ['Food', 'Fukuoka', 'Trip'],
+    date: '2026-08-12', // 2026年
+    note: 'ごぼ天うどん',
+    url: '',
+    imageUrl: '',
+    tags: ['Food'],
     iconType: 'food',
   },
   {
-    id: '3',
-    title: 'Montbell Winter Mountain Trekking',
-    location: 'Outdoor Challenge',
-    type: 'Outdoor',
-    state: 'Idea',
-    date: '',
-    note: '冬山登山の装備リストを再確認する。',
-    url: 'https://event.montbell.jp/',
-    imageUrl:
-      'https://images.unsplash.com/photo-1522210871320-1617bdff3e2e?auto=format&fit=crop&w=800&q=80',
-    tags: ['Outdoor', 'Trekking', 'Winter'],
+    id: 'b3',
+    title: 'Miyajima Marathon',
+    state: 'Done',
+    date: '2025-03-30', // Done & 2025年
+    note: '完走！',
+    url: '',
+    imageUrl: '',
+    tags: ['Event'],
     iconType: 'mountain',
+  },
+  // --- Travel Data ---
+  {
+    id: 't1',
+    title: 'Fukuoka Weekend Trip',
+    state: 'Todo',
+    date: '2026-08-10',
+    note: '新幹線予約済み',
+    url: '',
+    imageUrl: '',
+    tags: [],
+    iconType: 'plane',
+  },
+  {
+    id: 't2',
+    category: 'Travel',
+    title: 'Winter Hokkaido',
+    location: 'Sapporo',
+    state: 'Idea',
+    date: null,
+    note: '雪祭りに行きたい',
+    url: '',
+    imageUrl: '',
+    tags: [],
+    iconType: 'plane',
   },
 ];
 
-export default function Home() {
-  const [selectedItem, setSelectedItem] = useState<BucketItem | null>(null);
+export default function AppMain() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [items, setItems] = useState<LifeItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentTab, setCurrentTab] = useState<AppTab>('Bucket');
+  const [selectedItem, setSelectedItem] = useState<LifeItem | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error'>(
+    'synced',
+  );
 
-  const getIcon = (type: string) => {
-    switch (type) {
-      case 'key':
-        return <Key className="w-5 h-5 text-blue-500" />;
-      case 'food':
-        return <Utensils className="w-5 h-5 text-orange-500" />;
-      case 'mountain':
-        return <Mountain className="w-5 h-5 text-green-600" />;
-      default:
-        return <Leaf className="w-5 h-5 text-gray-500" />;
+  // ---------------- 認証チェック ----------------
+  useEffect(() => {
+    // gleisの認証キーを流用 (必要に応じてキー名を変更してください)
+    if (localStorage.getItem('gleis_auth') === 'true') setIsAuthenticated(true);
+    setIsAuthChecking(false);
+  }, []);
+
+  // ---------------- データ取得・同期 ----------------
+  const fetchData = useCallback(
+    async (isSilent = false) => {
+      // if (!isAuthenticated) return;
+      if (!isSilent) setIsLoading(true);
+
+      try {
+        const res = await fetch(
+          '/api/v1/tasks?area=Life&excludeStatus=Canceled',
+          {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+            },
+          },
+        );
+
+        if (!res.ok) throw new Error('Failed to fetch');
+        const data = await res.json();
+
+        console.log('data', data);
+        // gleisのタスク型をLifeItemへ変換
+        const mappedItems: LifeItem[] = data.tasks.map((t: any) => ({
+          id: t.id,
+          title: t.title,
+          status: t.status,
+          date: t.dueDate,
+          area: t.area,
+          type: t.type,
+          topics: t.tags || [],
+          flags: t.flags || [],
+          fkw: t.fkw || [],
+          note: t.note || '',
+          url: t.url || '',
+          imageUrl: t.imageUrl || '',
+          iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
+        }));
+
+        setItems(mappedItems);
+        setSyncStatus('synced');
+      } catch (e) {
+        console.error(e);
+        setSyncStatus('error');
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [isAuthenticated],
+  );
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleSync = async () => {
+    setSyncStatus('syncing');
+    try {
+      await fetch('/api/v1/tasks/sync', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+      });
+      await fetchData(true);
+    } catch (e) {
+      setSyncStatus('error');
     }
   };
 
-  const getIconBg = (type: string) => {
-    switch (type) {
-      case 'key':
-        return 'bg-blue-50';
-      case 'food':
-        return 'bg-orange-50';
-      case 'mountain':
-        return 'bg-green-50';
-      default:
-        return 'bg-gray-100';
-    }
-  };
+  // Bucketのみをフィルタリング
+  const bucketItems = items.filter((item) => item.flags.includes('Bucket'));
+  const travelItems = items.filter((item) => item.topics.includes('Travel'));
+
+  // ---------------- 描画 ----------------
+  /*
+  if (isAuthChecking) return <div className="h-screen bg-gray-100" />;
+  if (!isAuthenticated)
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Authenticate to Trails...
+      </div>
+    );
+
+    */
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
       <main className="flex-1 overflow-y-auto pb-24 no-scrollbar">
-        <div className="max-w-5xl mx-auto w-full p-5 md:p-8">
-          <header className="flex justify-between items-center mb-8">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-md">
-                <Leaf className="w-4 h-4" />
-              </div>
-              <h1 className="text-xl font-bold tracking-tight text-gray-900">
-                Trails
-              </h1>
-            </div>
-            <button className="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-800 flex items-center justify-center shadow-sm transition-colors">
-              <Settings className="w-5 h-5" />
-            </button>
-          </header>
-
-          <div className="mb-6">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Bucket List
-            </h2>
-            <div className="flex gap-2 overflow-x-auto pb-2 -mx-5 px-5 md:mx-0 md:px-0 no-scrollbar">
-              <button className="px-4 py-1.5 rounded-full bg-gray-900 text-white text-xs font-medium shrink-0">
-                All
-              </button>
-              <button className="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-xs font-medium shrink-0 hover:bg-gray-50">
-                Food
-              </button>
-              <button className="px-4 py-1.5 rounded-full bg-white border border-gray-200 text-gray-600 text-xs font-medium shrink-0 hover:bg-gray-50">
-                Event
-              </button>
-            </div>
-          </div>
-
-          <div className="bg-white border border-black/5 rounded-[20px] shadow-[0_4px_20px_rgba(0,0,0,0.03)] flex flex-col divide-y divide-gray-100 overflow-hidden">
-            {DUMMY_DATA.map((item) => (
-              <div
-                key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors"
-              >
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${getIconBg(item.iconType)}`}
-                >
-                  {getIcon(item.iconType)}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">
-                    {item.title}
-                  </p>
-                  <div className="flex gap-2 mt-1">
-                    <span className="text-[10px] text-gray-500 font-medium">
-                      {item.location}
-                    </span>
-                    <span className="text-[10px] text-gray-400">•</span>
-                    <span
-                      className={`text-[10px] font-medium ${item.state === 'Todo' ? 'text-amber-600' : 'text-gray-500'}`}
-                    >
-                      {item.state}
-                    </span>
-                  </div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-gray-300" />
-              </div>
-            ))}
-          </div>
-        </div>
+        {currentTab === 'Home' && (
+          <HomeView
+            onOpenConfig={() => setIsConfigOpen(true)}
+            data={DUMMY_DATA}
+          />
+        )}
+        {currentTab === 'Bucket' && (
+          <BucketView
+            data={bucketItems}
+            onItemClick={setSelectedItem}
+            onOpenConfig={() => setIsConfigOpen(true)}
+          />
+        )}
+        {currentTab === 'Travel' && (
+          <TravelView
+            data={travelItems}
+            onItemClick={setSelectedItem}
+            onOpenConfig={() => setIsConfigOpen(true)}
+          />
+        )}
+        {currentTab === 'Explore' && <ExploreView />}
+        {currentTab === 'Diary' && <DiaryView />}
       </main>
 
-      <BucketModal
+      <div className="fixed bottom-0 w-full bg-white/80 backdrop-blur-xl border-t border-gray-200 z-40">
+        <nav className="max-w-5xl mx-auto flex justify-around items-center px-4 pb-6 pt-3 md:pb-4 md:px-8">
+          <NavButton
+            tab="Home"
+            current={currentTab}
+            icon={<Compass />}
+            onClick={setCurrentTab}
+          />
+          <NavButton
+            tab="Bucket"
+            current={currentTab}
+            icon={<Archive />}
+            onClick={setCurrentTab}
+          />
+          <NavButton
+            tab="Travel"
+            current={currentTab}
+            icon={<Plane />}
+            onClick={setCurrentTab}
+          />
+          <NavButton
+            tab="Explore"
+            current={currentTab}
+            icon={<BookOpen />}
+            onClick={setCurrentTab}
+          />
+          <NavButton
+            tab="Diary"
+            current={currentTab}
+            icon={<ImageIcon />}
+            onClick={setCurrentTab}
+          />
+        </nav>
+      </div>
+
+      <DetailModal
         isOpen={!!selectedItem}
         onClose={() => setSelectedItem(null)}
         item={selectedItem}
       />
-
-      {/* Bottom Navigation */}
-      <div className="fixed bottom-0 w-full bg-white/80 backdrop-blur-xl border-t border-gray-200 z-50">
-        <nav className="max-w-5xl mx-auto flex justify-around items-center px-4 pb-6 pt-3 md:pb-4 md:px-8">
-          <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <Compass className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Home</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-amber-600">
-            <Archive className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Bucket</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <Plane className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Travel</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <BookOpen className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Explore</span>
-          </button>
-          <button className="flex flex-col items-center gap-1 text-gray-400 hover:text-gray-600">
-            <ImageIcon className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Diary</span>
-          </button>
-        </nav>
-      </div>
+      <ConfigModal
+        isOpen={isConfigOpen}
+        onClose={() => setIsConfigOpen(false)}
+      />
     </div>
+  );
+}
+
+function NavButton({
+  tab,
+  current,
+  icon,
+  onClick,
+}: {
+  tab: AppTab;
+  current: AppTab;
+  icon: React.ReactNode;
+  onClick: (t: AppTab) => void;
+}) {
+  const isActive = current === tab;
+  return (
+    <button
+      onClick={() => onClick(tab)}
+      className={`flex flex-col items-center gap-1 ${isActive ? 'text-amber-600' : 'text-gray-400 hover:text-gray-600'}`}
+    >
+      <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{icon}</div>
+      <span className="text-[10px] font-medium">{tab}</span>
+    </button>
   );
 }

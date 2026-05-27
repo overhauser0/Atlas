@@ -23,6 +23,8 @@ export const getTasksFromCache = async (filters: {
   area?: string;
   status?: string;
   type?: string;
+  flags?: string[];
+  topics?: string[];
   excludeStatus?: string[];
 }) => {
   // 古いローカルタスクは削除する

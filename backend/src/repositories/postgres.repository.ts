@@ -136,6 +136,7 @@ export const upsertNotionTaskCache = async (
     flags: task.flags || [],
     due_date: task.dueDate || null,
     url: task.url || null,
+    fkw: task.fkw || [],
     last_edited_time: lastEditedTime,
     raw_data: JSON.stringify(rawData),
   };
@@ -198,6 +199,8 @@ export const getTasks = async (filters: {
   area?: string;
   type?: string;
   status?: string;
+  flags?: string[];
+  topics?: string[];
   excludeStatus?: string[];
 }) => {
   // 💡 共通のフィルタを適用するヘルパー
@@ -206,6 +209,12 @@ export const getTasks = async (filters: {
     if (filters.area) q = q.where('area', '=', filters.area);
     if (filters.type) q = q.where('type', '=', filters.type);
     if (filters.status) q = q.where('status', '=', filters.status);
+    if (filters.flags && filters.flags.length > 0) {
+      q = q.where('flags', 'in', filters.flags);
+    }
+    if (filters.topics && filters.topics.length > 0) {
+      q = q.where('topics', 'in', filters.topics);
+    }
     if (filters.excludeStatus && filters.excludeStatus.length > 0) {
       q = q.where('status', 'not in', filters.excludeStatus);
     }

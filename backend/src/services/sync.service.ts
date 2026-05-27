@@ -42,6 +42,7 @@ export const syncNotionToLocal = async () => {
         type: (props._Type?.select?.name as any) || 'Task',
         topics: props._Topics?.multi_select.map((t: any) => t.name) || [],
         flags: props._Flags?.multi_select.map((f: any) => f.name) || [],
+        fkw: props.FreeKeyWord?.multi_select.map((f: any) => f.name) || [],
         url: props.URL?.url || null,
         dueDate: props.Date?.date?.start || null,
         source: 'NOTION',
