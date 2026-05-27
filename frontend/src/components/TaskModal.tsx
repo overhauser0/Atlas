@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { X, ExternalLink, LinkIcon, Text, Calendar } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/dateUtils';
+import { useToast } from '@/components/Toast';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ export default function TaskModal({
   onClose,
   onSuccess,
 }: TaskModalProps) {
+  const { addToast } = useToast();
+
   const [editForm, setEditForm] = useState({
     title: '',
     status: 'INBOX',
@@ -78,7 +81,7 @@ export default function TaskModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-
+  /*
   const handleSave = async () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
     setIsSaving(true);
@@ -120,6 +123,54 @@ export default function TaskModal({
     } finally {
       setIsSaving(false);
     }
+  };
+  */
+  const handleSave = () => {
+    if (!editForm.title.trim()) return alert('タイトルを入力してください');
+
+    const isEdit = mode === 'edit' && task;
+    const payloadDate = editForm.due_date || null;
+    const url = isEdit ? `/api/v1/tasks/${task.id}` : '/api/v1/tasks';
+    const method = isEdit ? 'PATCH' : 'POST';
+
+    const payload = {
+      title: editForm.title,
+      status: editForm.status,
+      dueDate: payloadDate,
+      source: isEdit ? task.source : editForm.source,
+      url: editForm.url || null,
+    };
+
+    console.log('Saving task with payload:', payload);
+
+    // 🌟 1. 通信を待たずに、即座にモーダルを閉じる（UX向上）
+    onClose();
+
+    // 🌟 2. バックグラウンドで非同期通信を実行
+    fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(`Server Error: ${response.statusText}`);
+        console.log('Task saved successfully', await response.json());
+
+        // 3. 通信完了後、親コンポーネント（タスク一覧）を再取得して更新
+        onSuccess();
+
+        // 4. Toastコンポーネントを呼び出す
+        addToast('タスクを保存しました', 'info');
+      })
+      .catch((e) => {
+        console.warn(e);
+        // エラー時のToast表示
+        addToast('タスクの保存に失敗しました', 'alert');
+      });
   };
 
   return (

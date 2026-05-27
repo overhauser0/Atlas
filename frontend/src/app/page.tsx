@@ -269,6 +269,8 @@ export default function Home() {
         activeElement?.tagName === 'SELECT' ||
         (activeElement as HTMLElement)?.isContentEditable;
 
+      if (isInputFocused) return;
+
       // 2. Ctrl または Cmd (Mac) の同時押し判定
       const isModifierPressed = e.metaKey || e.ctrlKey;
 
@@ -375,7 +377,7 @@ export default function Home() {
         )}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[120%]'} sm:relative sm:translate-x-0 group w-64 sm:w-20 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
+          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[120%]'} sm:relative sm:translate-x-0 group w-64 sm:w-18 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
         >
           <div className="flex items-center gap-4 mb-8 px-2 mt-2">
             <div className="w-8 h-8 bg-[#0070f3] rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">

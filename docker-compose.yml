@@ -52,6 +52,28 @@ services:
     networks:
       - gleis-net
 
+  trails:
+    build: ./trails
+    container_name: trails
+    restart: always
+    environment:
+      PORT: 5677
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+      NOTION_API_KEY: ${NOTION_API_KEY}
+      NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
+      NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
+      NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
+      GLEIS_API_KEY: ${GLEIS_API_KEY}
+    volumes:
+      - ./trails:/app # コードをマウント（ホットリロード用）
+      - /app/node_modules # NASとの同期から除外（高速化）
+    ports:
+      - '5677:5677'
+    depends_on:
+      - db
+    networks:
+      - gleis-net
+
 networks:
   gleis-net:
     driver: bridge
