@@ -11,6 +11,8 @@ import ExploreView from '@/components/ExploreView';
 import DiaryView from '@/components/DiaryView';
 import DetailModal from '@/components/DetailModal';
 import ConfigModal from '@/components/ConfigModal';
+import ViewHeader from '@/components/ViewHeader';
+import AuthView from '@/components/AuthView';
 
 const DUMMY_DATA: LifeItem[] = [
   // --- Bucket Data ---
@@ -80,15 +82,31 @@ export default function AppMain() {
   const [items, setItems] = useState<LifeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [currentTab, setCurrentTab] = useState<AppTab>('Bucket');
-  const [selectedItem, setSelectedItem] = useState<LifeItem | null>(null);
-  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error'>(
     'synced',
   );
 
+  // モーダル系
+  const [selectedItem, setSelectedItem] = useState<LifeItem | null>(null);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
+  const [detailModalConfig, setDetailModalConfig] = useState<{
+    isOpen: boolean;
+    mode: 'create' | 'edit';
+    item: LifeItem | null;
+    defaultFlags: string[];
+  }>({ isOpen: false, mode: 'create', task: null, defaultFlags: [] });
+
+  // ビューごとのタイトルを定義
+  const viewTitles: Record<AppTab, string> = {
+    Home: 'Trails',
+    Bucket: 'Bucket',
+    Travel: 'Travel',
+    Explore: 'Explore',
+    Diary: 'Diary',
+  };
+
   // ---------------- 認証チェック ----------------
   useEffect(() => {
-    // gleisの認証キーを流用 (必要に応じてキー名を変更してください)
     if (localStorage.getItem('gleis_auth') === 'true') setIsAuthenticated(true);
     setIsAuthChecking(false);
   }, []);
@@ -96,7 +114,7 @@ export default function AppMain() {
   // ---------------- データ取得・同期 ----------------
   const fetchData = useCallback(
     async (isSilent = false) => {
-      // if (!isAuthenticated) return;
+      if (!isAuthenticated) return;
       if (!isSilent) setIsLoading(true);
 
       try {
@@ -116,21 +134,33 @@ export default function AppMain() {
 
         console.log('data', data);
         // gleisのタスク型をLifeItemへ変換
-        const mappedItems: LifeItem[] = data.tasks.map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          status: t.status,
-          date: t.dueDate,
-          area: t.area,
-          type: t.type,
-          topics: t.tags || [],
-          flags: t.flags || [],
-          fkw: t.fkw || [],
-          note: t.note || '',
-          url: t.url || '',
-          imageUrl: t.imageUrl || '',
-          iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
-        }));
+        const mappedItems: LifeItem[] = data.tasks.map((t: any) => {
+          const isExplore = t.tags?.some((tag: string) =>
+            ['Drinking', 'Climbing', 'R-Escape'].includes(tag),
+          );
+          return {
+            id: t.id,
+            title: t.title,
+            status: t.status,
+            date: t.dueDate,
+            area: t.area,
+            type: t.type,
+            topics: t.tags || [],
+            flags: t.flags || [],
+            fkw: t.fkw || [],
+            note: t.note || '',
+            url: t.url || '',
+            imageUrl: t.imageUrl || '',
+            iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
+            category: t.flags?.includes('Bucket')
+              ? 'Bucket'
+              : t.topics?.includes('Travel')
+                ? 'Travel'
+                : isExplore
+                  ? 'Explore'
+                  : 'Explore', // デフォルトはExploreへ
+          };
+        });
 
         setItems(mappedItems);
         setSyncStatus('synced');
@@ -164,49 +194,66 @@ export default function AppMain() {
     }
   };
 
-  // Bucketのみをフィルタリング
-  const bucketItems = items.filter((item) => item.flags.includes('Bucket'));
-  const travelItems = items.filter((item) => item.topics.includes('Travel'));
+  // FABクリック時のハンドラ
+  const handleOpenCreate = () => {
+    const flags =
+      currentTab === 'Bucket'
+        ? ['Bucket']
+        : currentTab === 'Travel'
+          ? ['Travel']
+          : ['Explore'];
+    setDetailModalConfig({
+      isOpen: true,
+      mode: 'create',
+      item: null,
+      defaultFlags: flags,
+    });
+  };
 
   // ---------------- 描画 ----------------
-  /*
   if (isAuthChecking) return <div className="h-screen bg-gray-100" />;
   if (!isAuthenticated)
-    return (
-      <div className="h-screen flex items-center justify-center">
-        Authenticate to Trails...
-      </div>
-    );
-
-    */
+    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
-      <main className="flex-1 overflow-y-auto pb-24 no-scrollbar">
+      {/* 1. 固定ヘッダー */}
+      <ViewHeader
+        title={viewTitles[currentTab]}
+        syncStatus={syncStatus}
+        onOpenConfig={() => setIsConfigOpen(true)}
+      />
+
+      {/* 2. スクロール可能なメインエリア */}
+      <main className="flex-1 overflow-y-auto pb-24">
         {currentTab === 'Home' && (
-          <HomeView
-            onOpenConfig={() => setIsConfigOpen(true)}
-            data={DUMMY_DATA}
-          />
+          <HomeView data={items} onNavigate={setCurrentTab} />
         )}
         {currentTab === 'Bucket' && (
           <BucketView
-            data={bucketItems}
+            data={items.filter((i) => i.flags.includes('Bucket'))}
             onItemClick={setSelectedItem}
-            onOpenConfig={() => setIsConfigOpen(true)}
+            onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Travel' && (
           <TravelView
-            data={travelItems}
+            data={items.filter((i) => i.flags.includes('Travel'))}
             onItemClick={setSelectedItem}
-            onOpenConfig={() => setIsConfigOpen(true)}
+            onOpenCreate={handleOpenCreate}
           />
         )}
-        {currentTab === 'Explore' && <ExploreView />}
+        {currentTab === 'Explore' && (
+          <ExploreView
+            data={items.filter((i) => i.flags.includes('Explore'))}
+            onItemClick={setSelectedItem}
+            onOpenCreate={handleOpenCreate}
+          />
+        )}
         {currentTab === 'Diary' && <DiaryView />}
       </main>
 
+      {/* 3. ナビゲーションバー (固定) */}
       <div className="fixed bottom-0 w-full bg-white/80 backdrop-blur-xl border-t border-gray-200 z-40">
         <nav className="max-w-5xl mx-auto flex justify-around items-center px-4 pb-6 pt-3 md:pb-4 md:px-8">
           <NavButton
@@ -242,14 +289,27 @@ export default function AppMain() {
         </nav>
       </div>
 
+      {/* モーダル系 */}
       <DetailModal
-        isOpen={!!selectedItem}
-        onClose={() => setSelectedItem(null)}
-        item={selectedItem}
+        isOpen={detailModalConfig.isOpen}
+        mode={detailModalConfig}
+        item={detailModalConfig.task}
+        defaultFlags={detailModalConfig.defaultFlags}
+        onClose={() => setDetailModalConfig({ isOpen: false })}
+        onUpdate={fetchData}
       />
       <ConfigModal
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
+        onSync={() => {
+          handleSync(); // 既存の同期関数
+          setIsConfigOpen(false);
+        }}
+        onLogout={() => {
+          localStorage.removeItem('gleis_auth');
+          setIsAuthenticated(false);
+          setIsConfigOpen(false);
+        }}
       />
     </div>
   );

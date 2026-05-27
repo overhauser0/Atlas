@@ -7,7 +7,12 @@ import ViewHeader from './ViewHeader';
 import ListItem from './ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
 
-export default function ExploreView({ data, onItemClick, onOpenConfig }: any) {
+export default function ExploreView({
+  data,
+  onItemClick,
+  onOpenConfig,
+  onOpenCreate,
+}: any) {
   const [activeType, setActiveType] = useState<
     'All' | 'Drinking' | 'Climbing' | 'R-Escape'
   >('All');
@@ -15,7 +20,8 @@ export default function ExploreView({ data, onItemClick, onOpenConfig }: any) {
 
   const filteredData = useMemo(() => {
     if (activeType === 'All') return data;
-    return data.filter((item: LifeItem) => item.exploreType === activeType);
+    // item.topicsの中にactiveTypeが含まれているか判定
+    return data.filter((item) => item.topics.includes(activeType));
   }, [data, activeType]);
 
   const grouped = groupItemsByYear(filteredData);
@@ -27,8 +33,6 @@ export default function ExploreView({ data, onItemClick, onOpenConfig }: any) {
 
   return (
     <div className="max-w-5xl mx-auto w-full p-5 md:p-8 pb-24">
-      <ViewHeader title="Explore" onOpenConfig={onOpenConfig} />
-
       {/* Exploreタブ用カテゴリフィルタ */}
       <div className="flex gap-2 overflow-x-auto pb-4 -mx-5 px-5 md:mx-0 md:px-0 no-scrollbar mb-4">
         {tabs.map((t) => (
@@ -65,7 +69,10 @@ export default function ExploreView({ data, onItemClick, onOpenConfig }: any) {
         ))}
       </div>
 
-      <button className="fixed bottom-24 right-6 w-14 h-14 bg-amber-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30">
+      <button
+        onClick={onOpenCreate}
+        className="fixed bottom-24 right-6 w-14 h-14 bg-amber-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30"
+      >
         <Plus className="w-7 h-7" />
       </button>
     </div>
