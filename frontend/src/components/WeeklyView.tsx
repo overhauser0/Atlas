@@ -150,7 +150,7 @@ export default function WeeklyView({
             const shouldShrink =
               appSettings.shrinkEmptyPastDays &&
               todayIndex !== -1 &&
-              colIndex < todayIndex &&
+              colIndex <= todayIndex &&
               colTasks.length === 0;
 
             return (

@@ -134,33 +134,35 @@ export default function AppMain() {
 
         console.log('data', data);
         // gleisのタスク型をLifeItemへ変換
-        const mappedItems: LifeItem[] = data.tasks.map((t: any) => {
-          const isExplore = t.tags?.some((tag: string) =>
-            ['Drinking', 'Climbing', 'R-Escape'].includes(tag),
-          );
-          return {
-            id: t.id,
-            title: t.title,
-            status: t.status,
-            date: t.dueDate,
-            area: t.area,
-            type: t.type,
-            topics: t.tags || [],
-            flags: t.flags || [],
-            fkw: t.fkw || [],
-            note: t.note || '',
-            url: t.url || '',
-            imageUrl: t.imageUrl || '',
-            iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
-            category: t.flags?.includes('Bucket')
-              ? 'Bucket'
-              : t.topics?.includes('Travel')
-                ? 'Travel'
-                : isExplore
-                  ? 'Explore'
-                  : 'Explore', // デフォルトはExploreへ
-          };
-        });
+        const mappedItems: LifeItem[] = data.tasks
+          .filter((t: any) => t.type === 'Event')
+          .map((t: any) => {
+            const isExplore = t.tags?.some((tag: string) =>
+              ['Drinking', 'Climbing', 'R-Escape'].includes(tag),
+            );
+            return {
+              id: t.id,
+              title: t.title,
+              status: t.status,
+              date: t.dueDate,
+              area: t.area,
+              type: t.type,
+              topics: t.topics || [],
+              flags: t.flags || [],
+              fkw: t.fkw || [],
+              note: t.note || '',
+              url: t.url || '',
+              imageUrl: t.imageUrl || '',
+              iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
+              category: t.flags?.includes('Bucket')
+                ? 'Bucket'
+                : t.topics?.includes('Travel')
+                  ? 'Travel'
+                  : isExplore
+                    ? 'Explore'
+                    : 'Explore', // デフォルトはExploreへ
+            };
+          });
 
         setItems(mappedItems);
         setSyncStatus('synced');
@@ -231,21 +233,21 @@ export default function AppMain() {
         )}
         {currentTab === 'Bucket' && (
           <BucketView
-            data={items.filter((i) => i.flags.includes('Bucket'))}
+            data={items.filter((i) => i.category.includes('Bucket'))}
             onItemClick={setSelectedItem}
             onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Travel' && (
           <TravelView
-            data={items.filter((i) => i.flags.includes('Travel'))}
+            data={items.filter((i) => i.category.includes('Travel'))}
             onItemClick={setSelectedItem}
             onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Explore' && (
           <ExploreView
-            data={items.filter((i) => i.flags.includes('Explore'))}
+            data={items.filter((i) => i.category.includes('Explore'))}
             onItemClick={setSelectedItem}
             onOpenCreate={handleOpenCreate}
           />

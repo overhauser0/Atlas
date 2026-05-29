@@ -202,6 +202,10 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
               Cmd/Ctrl + L
             </code>
+            <div className="text-gray-400">Create New Task</div>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              Cmd/Ctrl + T
+            </code>
             <div className="text-gray-400">Go To View</div>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
               0 <span className="text-gray-500">// Home</span>

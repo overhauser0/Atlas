@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react';
 import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ViewHeader from './ViewHeader';
 import ListItem from './ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
 
@@ -21,7 +20,7 @@ export default function ExploreView({
   const filteredData = useMemo(() => {
     if (activeType === 'All') return data;
     // item.topicsの中にactiveTypeが含まれているか判定
-    return data.filter((item) => item.topics.includes(activeType));
+    return data.filter((item: LifeItem) => item.topics.includes(activeType));
   }, [data, activeType]);
 
   const grouped = groupItemsByYear(filteredData);
@@ -58,11 +57,9 @@ export default function ExploreView({
             </h4>
             <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
               {grouped[year].map((item: LifeItem) => (
-                <ListItem
-                  key={item.id}
-                  item={item}
-                  onClick={() => onItemClick(item)}
-                />
+                <div key={item.id}>
+                  <ListItem item={item} onItemClick={() => onItemClick(item)} />
+                </div>
               ))}
             </div>
           </div>

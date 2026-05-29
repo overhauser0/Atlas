@@ -5,6 +5,7 @@ import * as pushController from './controllers/push.controller';
 import * as taskController from './controllers/task.controller';
 import * as reviewController from './controllers/review.controller';
 import * as pgRepo from './repositories/postgres.repository';
+import * as notionRepo from './repositories/notion.repository';
 
 const app = new Hono();
 

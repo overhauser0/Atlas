@@ -58,7 +58,7 @@ export default function TaskModal({
     }
   }, [isOpen, mode, task]);
 
-  // モーダルが開いた時にフォーカスを当てる
+  // モーダルが開いた時にタイトルが空欄なら（＝新規追加なら）フォーカスを当てる
   useEffect(() => {
     if (isOpen) {
       // モーダルのDOMが描画されるのを少し待ってからフォーカスする

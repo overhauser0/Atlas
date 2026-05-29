@@ -1,4 +1,4 @@
-import { ChevronRight, Plane, BadgeCheck, Archive } from 'lucide-react';
+import { ChevronRight, Plane, BadgeCheck, Archive, Leaf } from 'lucide-react';
 import { LifeItem } from '@/types';
 
 interface Props {
@@ -6,13 +6,18 @@ interface Props {
   onItemClick: () => void;
 }
 
-export default function ItemList({ item, onItemClick }: Props) {
+export default function ListItem({ item, onItemClick }: Props) {
   const getIcon = () => {
-    if (item.status === 'Done')
-      return <Archive className="w-5 h-5 text-gray-500" />;
-    if (item.flags.includes('Travel'))
+    if (item.flags.includes('Bucket')) {
+      if (item.status === 'Done') {
+        return <BadgeCheck className="w-5 h-5 text-green-500" />;
+      } else {
+        return <Archive className="w-5 h-5 text-gray-500" />;
+      }
+    }
+    if (item.topics.includes('Travel'))
       return <Plane className="w-5 h-5 text-gray-500" />;
-    return <BadgeCheck className="w-5 h-5 text-green-500" />;
+    return <Leaf className="w-5 h-5 text-green-500" />;
   };
 
   return (
@@ -25,11 +30,11 @@ export default function ItemList({ item, onItemClick }: Props) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 truncate">{item.title}</p>
-        <div className="flex gap-2 mt-1">
+        <div className="flex gap-2 mt-1 flex-wrap">
           {item.fkw.map((tag) => (
             <span
               key={tag}
-              className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded"
+              className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded whitespace-nowrap"
             >
               #{tag}
             </span>

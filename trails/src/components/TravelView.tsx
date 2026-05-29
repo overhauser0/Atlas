@@ -35,11 +35,9 @@ export default function TravelView({
             </h4>
             <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
               {grouped[year].map((item) => (
-                <ListItem
-                  item={item}
-                  icon="Plane"
-                  onItemClick={() => onItemClick(item)}
-                />
+                <div key={item.id}>
+                  <ListItem item={item} onItemClick={() => onItemClick(item)} />
+                </div>
               ))}
             </div>
           </div>

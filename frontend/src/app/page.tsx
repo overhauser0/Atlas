@@ -295,6 +295,13 @@ export default function Home() {
         setIsAuthenticated(false);
         return;
       }
+
+      // Cmd+T / Ctrl+T (new Task)
+      if (isModifierPressed && e.key === 't') {
+        e.preventDefault();
+        openCreateTaskModal();
+        return;
+      }
     };
 
     document.addEventListener('keydown', handleKeyDown);
