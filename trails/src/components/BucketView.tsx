@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, BadgeCheck, Archive } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
 import ListItem from './ListItem';
@@ -34,6 +34,14 @@ export default function BucketView({
     return parseInt(b) - parseInt(a);
   });
 
+  const getIcon = (item: LifeItem) => {
+    if (item.status === 'Done') {
+      return <BadgeCheck className="w-5 h-5 text-green-500" />;
+    } else {
+      return <Archive className="w-5 h-5 text-gray-500" />;
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto w-full p-5 md:p-8">
       {/* タブ形式のフィルタリング */}
@@ -62,7 +70,11 @@ export default function BucketView({
             <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
               {grouped[year].map((item: LifeItem) => (
                 <div key={item.id}>
-                  <ListItem item={item} onItemClick={() => onItemClick(item)} />
+                  <ListItem
+                    item={item}
+                    icon={getIcon(item)}
+                    onItemClick={() => onItemClick(item)}
+                  />
                 </div>
               ))}
             </div>
@@ -73,7 +85,7 @@ export default function BucketView({
       {/* FAB */}
       <button
         onClick={onOpenCreate}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-amber-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>

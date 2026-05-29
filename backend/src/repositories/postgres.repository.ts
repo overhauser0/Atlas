@@ -8,7 +8,7 @@ import { PushNotificationInput } from '../schemas/push.schema';
 export interface LocalTasksTable {
   id: Generated<string>;
   title: string;
-  content: string;
+  note: string;
   status: string;
   priority: number;
   area: string;
@@ -23,7 +23,7 @@ export interface LocalTasksTable {
 export interface NotionTasksCacheTable {
   id: string; // Notion Page ID (UUID)
   title: string;
-  content: string;
+  note: string;
   status: string;
   priority: number;
   area: string;
@@ -40,18 +40,24 @@ export interface NotionTasksCacheTable {
 export interface NotificationsTable {
   id: Generated<string>;
   title: string;
-  content: string;
+  note: string;
   category: string;
   priority: number;
   metadata: JSONColumnType<any>;
   created_at: Generated<Date>;
   is_read: boolean;
 }
+export interface AppMetadataTable {
+  key: string;
+  value: string;
+  updated_at: Generated<Date>;
+}
 
 export interface Database {
   local_tasks: LocalTasksTable;
   notion_tasks_cache: NotionTasksCacheTable;
   notifications: NotificationsTable;
+  app_metadata: AppMetadataTable;
 }
 
 // --- 2. 接続設定 (Existing logic) ---
@@ -75,9 +81,9 @@ export const archiveNotification = async (data: PushNotificationInput) => {
     .insertInto('notifications')
     .values({
       title: data.title,
-      content: data.content,
-      category: data.category,
-      priority: data.priority,
+      note: data.note,
+      category: data.category || 'INFO',
+      priority: data.priority || 3,
       metadata: JSON.stringify(data.metadata || {}),
       is_read: false,
     })
@@ -127,7 +133,7 @@ export const upsertNotionTaskCache = async (
   const values = {
     id: task.id!,
     title: task.title || 'No Title',
-    content: task.content || 'No Content',
+    note: task.note || 'No Content',
     status: task.status || 'INBOX',
     priority: task.priority || 3,
     area: task.area || 'Work',
@@ -172,6 +178,7 @@ export const updateNotionTaskCache = async (
       topics: updates.topics,
       flags: updates.flags,
       url: updates.url,
+      note: updates.note,
       due_date: updates.dueDate ? new Date(updates.dueDate) : null,
       last_edited_time: new Date(), // 最終編集時刻のみ更新
     })
@@ -243,8 +250,8 @@ export const getTasks = async (filters: {
 
   // 3. 結合して source を付与
   const combined = [
-    ...notionTasks.map((t) => mapTask(t, 'NOTION')),
-    ...localTasks.map((t) => mapTask(t, 'LOCAL')),
+    ...notionTasks.map((t: any) => mapTask(t, 'NOTION')),
+    ...localTasks.map((t: any) => mapTask(t, 'LOCAL')),
   ];
 
   // 4. 全体を日付順でソート（Notionは最終編集、Localは作成日時で代用）
@@ -267,7 +274,7 @@ export const insertLocalTask = async (task: Task) => {
     .insertInto('local_tasks')
     .values({
       title: task.title,
-      content: task.content,
+      note: task.note,
       status: task.status || 'INBOX',
       priority: task.priority || 3,
       area: task.area || 'Work',

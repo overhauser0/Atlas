@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const TaskSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'タイトルは必須です'),
-  content: z.string().default(''),
+  note: z.string().default(''),
   status: z
     .enum(['INBOX', 'Waiting', 'Going', 'Wrapper', 'Canceled', 'Done'])
     .default('INBOX'),

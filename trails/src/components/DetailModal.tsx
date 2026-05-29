@@ -1,7 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { X, Save, Loader2 } from 'lucide-react';
+import {
+  Save,
+  Loader2,
+  ExternalLink,
+  Calendar,
+  AlignLeft,
+  ListTodo,
+  Link as LinkIcon, // 追加
+} from 'lucide-react';
 import { LifeItem } from '@/types';
 
 interface Props {
@@ -24,12 +32,13 @@ export default function DetailModal({
   const [formData, setFormData] = useState<LifeItem>({
     id: '',
     title: '',
-    status: 'Todo',
+    status: 'INBOX',
     date: null,
     area: 'Life',
     type: null,
     topics: [],
     flags: [],
+    fkw: [],
     note: '',
     url: '',
     imageUrl: '',
@@ -41,17 +50,18 @@ export default function DetailModal({
     if (isOpen) {
       if (mode === 'edit' && item) {
         setFormData({ ...item });
+        console.log('item', item);
       } else {
-        // 新規作成時はデフォルトフラグをセット
         setFormData({
           id: '',
           title: '',
-          status: 'Todo',
+          status: 'INBOX',
           date: null,
           area: 'Life',
           type: null,
           topics: [],
           flags: defaultFlags,
+          fkw: [],
           note: '',
           url: '',
           imageUrl: '',
@@ -68,6 +78,7 @@ export default function DetailModal({
     const url =
       mode === 'edit' ? `/api/v1/tasks/${formData.id}` : '/api/v1/tasks';
     const method = mode === 'edit' ? 'PATCH' : 'POST';
+
     try {
       const res = await fetch(url, {
         method: method,
@@ -77,6 +88,7 @@ export default function DetailModal({
         },
         body: JSON.stringify(formData),
       });
+
       if (res.ok) {
         onUpdate();
         onClose();
@@ -89,65 +101,143 @@ export default function DetailModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+      onClick={onClose}
+    >
       <div
-        className="bg-white w-full max-w-sm rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom-10 flex flex-col max-h-[90vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // 中身のクリックでは閉じないようにする
       >
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="font-bold text-lg text-gray-900">Edit Task</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+        <div className="overflow-y-auto flex-1 p-6 no-scrollbar flex flex-col gap-4">
+          {formData.imageUrl && (
+            <div className="-mx-6 -mt-6 mb-6 h-56 relative bg-gray-100">
+              <img
+                src={formData.imageUrl}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
 
-        <div className="space-y-4">
           <input
             value={formData.title}
             onChange={(e) =>
               setFormData({ ...formData, title: e.target.value })
             }
-            className="w-full font-bold text-xl border-b border-gray-200 pb-2 focus:outline-none"
+            placeholder="Title"
+            className="w-full font-bold text-2xl text-gray-900 placeholder-gray-400 focus:outline-none mb-2"
           />
 
-          <select
-            value={formData.status}
-            onChange={(e) =>
-              setFormData({ ...formData, status: e.target.value })
-            }
-            className="w-full p-2 bg-gray-50 rounded-lg text-sm"
-          >
-            <option value="INBOX">INBOX</option>
-            <option value="Waiting">Waiting</option>
-            <option value="Going">Going</option>
-            <option value="Done">Done</option>
-          </select>
+          <div className="flex items-center gap-3">
+            <Calendar className="w-5 h-5 text-gray-400 shrink-0" />
+            <input
+              type="date"
+              value={formData.date?.split('T')[0] || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, date: e.target.value })
+              }
+              className="w-full bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
+            />
+          </div>
 
-          <input
-            type="date"
-            value={formData.date || ''}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full p-2 bg-gray-50 rounded-lg text-sm"
-          />
+          <div className="flex items-start gap-3">
+            <AlignLeft className="w-5 h-5 text-gray-400 shrink-0 mt-2" />
+            <textarea
+              value={formData.note || ''}
+              onChange={(e) =>
+                setFormData({ ...formData, note: e.target.value })
+              }
+              placeholder="Add a note..."
+              className="w-full bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100 min-h-[80px] resize-none"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            <LinkIcon className="w-5 h-5 text-gray-400 shrink-0" />
+            <div className="flex w-full gap-2">
+              <input
+                value={formData.url || ''}
+                onChange={(e) =>
+                  setFormData({ ...formData, url: e.target.value })
+                }
+                placeholder="https://..."
+                className="flex-1 bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100 min-w-0"
+              />
+              {formData.url && (
+                <button
+                  onClick={() => window.open(formData.url, '_blank')}
+                  className="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl transition-colors"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ListTodo className="w-5 h-5 text-gray-400 shrink-0" />
+            <select
+              value={formData.status}
+              onChange={(e) =>
+                setFormData({ ...formData, status: e.target.value })
+              }
+              className="w-full bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100 appearance-none"
+            >
+              <option value="INBOX">INBOX</option>
+              <option value="Waiting">Waiting</option>
+              <option value="Going">Going</option>
+              <option value="Done">Done</option>
+            </select>
+          </div>
+
+          {formData.fkw && formData.fkw.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {formData.fkw.map((tag) => (
+                <span key={tag} className="trails-badge">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={isSaving}
-          className="w-full mt-8 bg-amber-500 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-amber-600"
-        >
-          {isSaving ? (
-            <Loader2 className="animate-spin w-5 h-5" />
-          ) : (
-            <>
-              <Save className="w-5 h-5" />
-              Save Changes
-            </>
-          )}
-        </button>
+        <div className="p-6 pt-4 border-t border-gray-100 bg-white">
+          <div className="flex gap-3 mb-3">
+            <button
+              onClick={handleSave}
+              disabled={isSaving}
+              className="flex-1 bg-gray-900 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+            >
+              {isSaving ? (
+                <Loader2 className="animate-spin w-5 h-5" />
+              ) : (
+                <>
+                  <Save className="w-4 h-4" /> Save
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={() =>
+                window.open(
+                  `https://notion.so/${formData.id.replace(/-/g, '')}`,
+                  '_blank',
+                )
+              }
+              className="flex-1 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors bg-primary-50 text-primary-700 hover:bg-primary-100"
+            >
+              <ExternalLink className="w-4 h-4" /> Notion
+            </button>
+          </div>
+
+          <button
+            onClick={onClose}
+            className="w-full bg-gray-100 text-gray-600 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );

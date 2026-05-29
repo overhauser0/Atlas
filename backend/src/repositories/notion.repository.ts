@@ -26,8 +26,8 @@ export const createPage = async (task: Task) => {
   if (Array.isArray(task?.flags)) {
     properties._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
   }
-  if (task.content) {
-    properties.Note = { rich_text: [{ text: { content: task.content } }] };
+  if (task.note) {
+    properties.Note = { rich_text: [{ text: { content: task.note } }] };
   }
   if (task.url) {
     properties.URL = { url: task.url };
@@ -54,8 +54,8 @@ export const updatePage = async (pageId: string, task: Partial<Task>) => {
     };
   if (task.flags)
     properties._Flags = { multi_select: task.flags.map((f) => ({ name: f })) };
-  if (task.content)
-    properties.Note = { rich_text: [{ text: { content: task.content } }] };
+  if (task.note)
+    properties.Note = { rich_text: [{ text: { content: task.note } }] };
   if (task.dueDate !== undefined) {
     properties.Date = { date: task.dueDate ? { start: task.dueDate } : null };
   }

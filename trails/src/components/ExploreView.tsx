@@ -68,7 +68,7 @@ export default function ExploreView({
 
       <button
         onClick={onOpenCreate}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-amber-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>

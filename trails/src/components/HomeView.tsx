@@ -21,18 +21,8 @@ interface Props {
 }
 
 export default function HomeView({ onOpenConfig, onNavigate, data }: Props) {
-  // ダミーの同期ステータス (将来的に状態管理フックを繋ぎます)
-  const syncStatus = 'synced'; // 'syncing' | 'synced' | 'error'
-
   return (
     <div className="max-w-5xl mx-auto w-full p-5 md:p-8 pb-24">
-      {/* 1. Header (アプリ名 + ステータス + 設定) */}
-      <ViewHeader
-        title="Trails"
-        syncStatus={syncStatus} // 親から渡されたステータスを適用
-        onOpenConfig={onOpenConfig}
-      />
-
       {/* 2. Bento Grid Layout */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* 左: 夢と旅のカード */}
@@ -48,7 +38,7 @@ export default function HomeView({ onOpenConfig, onNavigate, data }: Props) {
               </p>
               <h2 className="text-2xl font-bold text-gray-900">Bucket List</h2>
             </div>
-            <div className="text-3xl font-bold text-amber-600">12</div>
+            <div className="text-3xl font-bold text-primary-600">12</div>
           </button>
 
           {/* Travel Card */}
@@ -62,7 +52,7 @@ export default function HomeView({ onOpenConfig, onNavigate, data }: Props) {
               </p>
               <h2 className="text-2xl font-bold text-gray-900">Journeys</h2>
             </div>
-            <div className="text-3xl font-bold text-amber-600">8</div>
+            <div className="text-3xl font-bold text-primary-600">8</div>
           </button>
         </div>
 

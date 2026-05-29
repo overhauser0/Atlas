@@ -6,7 +6,7 @@ import { z } from 'zod';
 export const PushNotificationSchema = z.object({
   // 通知の基本情報
   title: z.string().min(1, 'タイトルは必須です'),
-  content: z.string().default(''),
+  note: z.string().default(''),
 
   // 分類（大文字で統一）
   category: z.enum(['TASK', 'ALERT', 'INFO']).default('INFO'),

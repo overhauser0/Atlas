@@ -14,6 +14,7 @@ export interface LifeItem {
   fkw: string[];
   imageUrl: string;
   iconType: string;
+  category?: string[];
 }
 
 export interface DiaryEntry {

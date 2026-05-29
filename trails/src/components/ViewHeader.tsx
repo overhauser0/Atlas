@@ -1,5 +1,5 @@
 // src/components/ViewHeader.tsx
-import { Settings, RefreshCw, CheckCircle, AlertCircle } from 'lucide-react';
+import { Settings, CloudSync, CloudCheck, CloudAlert } from 'lucide-react';
 
 interface Props {
   title: string;
@@ -24,13 +24,13 @@ export default function ViewHeader({ title, syncStatus, onOpenConfig }: Props) {
       <div className="flex items-center gap-4">
         <div className="text-gray-400">
           {syncStatus === 'syncing' && (
-            <RefreshCw className="w-4 h-4 animate-spin" />
+            <CloudSync className="w-5 h-5 animate-spin" />
           )}
           {syncStatus === 'synced' && (
-            <CheckCircle className="w-4 h-4 text-green-500" />
+            <CloudCheck className="w-5 h-5 text-green-500" />
           )}
           {syncStatus === 'error' && (
-            <AlertCircle className="w-4 h-4 text-red-500" />
+            <CloudAlert className="w-5 h-5 text-red-500" />
           )}
         </div>
         <button

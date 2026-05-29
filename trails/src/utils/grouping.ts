@@ -22,3 +22,14 @@ export const groupItemsByYear = (items: LifeItem[]) => {
 
   return grouped;
 };
+
+export const markCategory = (item: LifeItem) => {
+  const c = [];
+  if (item.flags?.includes('Bucket')) c.push('Bucket');
+  if (item.topics?.includes('Travel')) c.push('Travel');
+  const isExplore = item.topics?.some((topic: string) =>
+    ['Drinking', 'Climbing', 'R-Escape'].includes(topic),
+  );
+  if (isExplore) c.push('Explore');
+  return c;
+};

@@ -36,9 +36,9 @@ export default function ConfigModal({
         <div className="flex-1 space-y-2">
           <button
             onClick={onSync}
-            className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-amber-300 transition-colors text-gray-900 font-bold"
+            className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 transition-colors text-gray-900 font-bold"
           >
-            <RefreshCw className="w-5 h-5 text-amber-500" />
+            <RefreshCw className="w-5 h-5 text-primary-500" />
             Sync with Notion
           </button>
 

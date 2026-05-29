@@ -32,7 +32,7 @@ export default function WeeklyView({
 }: Props) {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
 
-  const onDrop = async (newDateStr: string) => {
+  const onDrop = async (newDateStr: string | null) => {
     if (!draggingTaskId || newDateStr === null) {
       setDraggingTaskId(null);
       return;
@@ -226,7 +226,7 @@ export default function WeeklyView({
                       </div>
                       <div className="flex items-center justify-between mt-auto h-6">
                         <div className="flex flex-wrap gap-1.5">
-                          {task.topics?.map((t) => (
+                          {task.topics?.map((t: any) => (
                             <span
                               key={t}
                               className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400"

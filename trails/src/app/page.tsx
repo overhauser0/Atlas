@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Compass, Archive, Plane, BookOpen, ImageIcon } from 'lucide-react';
 import { AppTab, LifeItem } from '@/types';
+import { markCategory } from '@/utils/grouping';
 
 import HomeView from '@/components/HomeView';
 import BucketView from '@/components/BucketView';
@@ -132,14 +133,10 @@ export default function AppMain() {
         if (!res.ok) throw new Error('Failed to fetch');
         const data = await res.json();
 
-        console.log('data', data);
         // gleisのタスク型をLifeItemへ変換
         const mappedItems: LifeItem[] = data.tasks
           .filter((t: any) => t.type === 'Event')
           .map((t: any) => {
-            const isExplore = t.tags?.some((tag: string) =>
-              ['Drinking', 'Climbing', 'R-Escape'].includes(tag),
-            );
             return {
               id: t.id,
               title: t.title,
@@ -154,13 +151,7 @@ export default function AppMain() {
               url: t.url || '',
               imageUrl: t.imageUrl || '',
               iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
-              category: t.flags?.includes('Bucket')
-                ? 'Bucket'
-                : t.topics?.includes('Travel')
-                  ? 'Travel'
-                  : isExplore
-                    ? 'Explore'
-                    : 'Explore', // デフォルトはExploreへ
+              category: markCategory(t),
             };
           });
 
@@ -196,6 +187,10 @@ export default function AppMain() {
     }
   };
 
+  const openDetailModal = (item: LifeItem) => {
+    // setSelectedItem(item);
+    setDetailModalConfig({ isOpen: true, mode: 'edit', item: item });
+  };
   // FABクリック時のハンドラ
   const handleOpenCreate = () => {
     const flags =
@@ -233,22 +228,22 @@ export default function AppMain() {
         )}
         {currentTab === 'Bucket' && (
           <BucketView
-            data={items.filter((i) => i.category.includes('Bucket'))}
-            onItemClick={setSelectedItem}
+            data={items.filter((i) => i.category?.includes('Bucket'))}
+            onItemClick={openDetailModal}
             onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Travel' && (
           <TravelView
-            data={items.filter((i) => i.category.includes('Travel'))}
-            onItemClick={setSelectedItem}
+            data={items.filter((i) => i.category?.includes('Travel'))}
+            onItemClick={openDetailModal}
             onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Explore' && (
           <ExploreView
-            data={items.filter((i) => i.category.includes('Explore'))}
-            onItemClick={setSelectedItem}
+            data={items.filter((i) => i.category?.includes('Explore'))}
+            onItemClick={openDetailModal}
             onOpenCreate={handleOpenCreate}
           />
         )}
@@ -294,8 +289,8 @@ export default function AppMain() {
       {/* モーダル系 */}
       <DetailModal
         isOpen={detailModalConfig.isOpen}
-        mode={detailModalConfig}
-        item={detailModalConfig.task}
+        mode={detailModalConfig.mode}
+        item={detailModalConfig.item}
         defaultFlags={detailModalConfig.defaultFlags}
         onClose={() => setDetailModalConfig({ isOpen: false })}
         onUpdate={fetchData}
@@ -332,7 +327,7 @@ function NavButton({
   return (
     <button
       onClick={() => onClick(tab)}
-      className={`flex flex-col items-center gap-1 ${isActive ? 'text-amber-600' : 'text-gray-400 hover:text-gray-600'}`}
+      className={`flex flex-col items-center gap-1 ${isActive ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
     >
       <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{icon}</div>
       <span className="text-[10px] font-medium">{tab}</span>

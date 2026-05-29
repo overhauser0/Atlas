@@ -11,6 +11,12 @@
   }
 }
 
+@layer components {
+  .trails-badge {
+    @apply text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md whitespace-nowrap;
+  }
+}
+
 /* スマホ特有のバウンススクロールを全体で抑制 */
 body {
   overscroll-behavior-y: none;

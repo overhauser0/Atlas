@@ -1,41 +1,30 @@
-import { ChevronRight, Plane, BadgeCheck, Archive, Leaf } from 'lucide-react';
+import { ChevronRight, Leaf } from 'lucide-react';
 import { LifeItem } from '@/types';
 
 interface Props {
   item: LifeItem;
+  icon?: React.ReactNode;
   onItemClick: () => void;
 }
 
-export default function ListItem({ item, onItemClick }: Props) {
-  const getIcon = () => {
-    if (item.flags.includes('Bucket')) {
-      if (item.status === 'Done') {
-        return <BadgeCheck className="w-5 h-5 text-green-500" />;
-      } else {
-        return <Archive className="w-5 h-5 text-gray-500" />;
-      }
-    }
-    if (item.topics.includes('Travel'))
-      return <Plane className="w-5 h-5 text-gray-500" />;
-    return <Leaf className="w-5 h-5 text-green-500" />;
-  };
-
+export default function ListItem({
+  item,
+  icon = <Leaf className="w-5 h-5 text-green-500" />,
+  onItemClick,
+}: Props) {
   return (
     <div
       onClick={onItemClick}
       className="p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50"
     >
       <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-        {getIcon()}
+        {icon}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 truncate">{item.title}</p>
         <div className="flex gap-2 mt-1 flex-wrap">
           {item.fkw.map((tag) => (
-            <span
-              key={tag}
-              className="text-[10px] font-medium text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded whitespace-nowrap"
-            >
+            <span key={tag} className="trails-badge">
               #{tag}
             </span>
           ))}

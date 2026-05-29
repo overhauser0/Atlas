@@ -6,7 +6,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE TABLE IF NOT EXISTS notion_tasks_cache (
     id TEXT PRIMARY KEY, -- NotionのIDは文字列のためTEXT
     title TEXT NOT NULL,
-    content TEXT,
+    note TEXT,
     status TEXT NOT NULL DEFAULT 'INBOX',
     priority INTEGER NOT NULL DEFAULT 3,
     area TEXT NOT NULL DEFAULT 'Work', -- Work, Education, Private等
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS notion_tasks_cache (
 CREATE TABLE IF NOT EXISTS local_tasks (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
-    content TEXT,
+    note TEXT,
     area TEXT DEFAULT 'Work',
     type TEXT DEFAULT 'Task',
     status TEXT DEFAULT 'INBOX',
@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS local_tasks (
 CREATE TABLE IF NOT EXISTS notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
-    content TEXT,
+    note TEXT,
     category TEXT DEFAULT 'GENERAL',
     priority INTEGER DEFAULT 3,
     metadata JSONB DEFAULT '{}',

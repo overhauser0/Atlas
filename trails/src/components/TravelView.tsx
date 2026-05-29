@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { Plus, Plane } from 'lucide-react';
 import { LifeItem } from '@/types';
 import ListItem from './ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
@@ -36,7 +36,11 @@ export default function TravelView({
             <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
               {grouped[year].map((item) => (
                 <div key={item.id}>
-                  <ListItem item={item} onItemClick={() => onItemClick(item)} />
+                  <ListItem
+                    item={item}
+                    icon={<Plane className="w-5 h-5 text-gray-500" />}
+                    onItemClick={() => onItemClick(item)}
+                  />
                 </div>
               ))}
             </div>
@@ -46,7 +50,7 @@ export default function TravelView({
 
       <button
         onClick={onOpenCreate}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-amber-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30"
+        className="fixed bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-amber-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>
