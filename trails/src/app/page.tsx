@@ -86,6 +86,7 @@ export default function AppMain() {
               fkw: p.fkw || [],
               note: p.note || '',
               url: p.url || '',
+              prefs: p.prefs || [],
               imageUrl: p.imageUrl || '',
               iconType: p.flags?.includes('Food') ? 'food' : 'leaf',
               category: markCategory(p),

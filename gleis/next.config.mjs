@@ -8,12 +8,12 @@ const nextConfig = {
       {
         // 1. API関連の転送
         source: '/api/:path*',
-        destination: 'http://backend:5676/api/:path*',
+        destination: 'http://atlas-server:5676/api/:path*',
       },
       {
         // 2. ヘルスチェック用の転送を追加
         source: '/health',
-        destination: 'http://backend:5676/health',
+        destination: 'http://atlas-server:5676/health',
       },
     ];
   },

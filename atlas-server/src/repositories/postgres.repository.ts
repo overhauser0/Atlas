@@ -44,7 +44,7 @@ export interface NotificationsTable {
   category: string;
   metadata: JSONColumnType<any>;
   created_at: Generated<Date>;
-  is_read: boolean;
+  is_read: Generated<boolean>;
 }
 export interface AppMetadataTable {
   key: string;
@@ -244,7 +244,6 @@ export const getPieces = async (filters: {
   const mapPiece = (p: any, source: 'NOTION' | 'LOCAL') => ({
     ...p,
     source,
-    date: p.date,
   });
 
   // 3. 結合して source を付与

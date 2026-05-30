@@ -15,7 +15,7 @@ app.use('/*', cors());
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
-  const expectedKey = process.env.GLEIS_API_KEY;
+  const expectedKey = process.env.ATLAS_API_KEY;
 
   // サーバー側の環境変数が未設定、またはキーが一致しない場合は401を返す
   if (!expectedKey || apiKey !== expectedKey) {
@@ -65,7 +65,7 @@ app.onError(async (err, c) => {
 });
 
 const port = 5676;
-console.log(`🚀 Gleis WorkOS Backend (Hono) running on port ${port}`);
+console.log(`🚀 Atlas Server (Hono) running on port ${port}`);
 
 serve({
   fetch: app.fetch,

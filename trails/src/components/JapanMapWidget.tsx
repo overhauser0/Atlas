@@ -65,7 +65,7 @@ export default function JapanMapWidget({ data }: Props) {
     const result: Record<string, number> = {};
     data.forEach((t: any) => {
       // t.prefs 配列に都道府県が入っている想定（または t.fkw など実際のデータ構造に合わせてください）
-      const prefsArray = t.pref || [];
+      const prefsArray = t.prefs || [];
       if (Array.isArray(prefsArray)) {
         prefsArray.forEach((prefName: string) => {
           let p = prefName.replace(/(府|県)$/, '');
@@ -130,7 +130,7 @@ export default function JapanMapWidget({ data }: Props) {
               className={`
                 ${bgClass} ${textClass} rounded sm:rounded-md flex items-center justify-center 
                 text-[8px] sm:text-[10px] font-bold transition-transform duration-300 
-                hover:scale-125 hover:z-10 hover:shadow-md cursor-pointer
+                hover:scale-125 hover:z-10 hover:shadow-md cursor-pointer whitespace-nowrap
               `}
               style={{
                 // +1 しているのは、CSS Grid のライン番号が 1 から始まるため

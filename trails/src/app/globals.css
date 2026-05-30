@@ -1,5 +1,21 @@
 @import 'tailwindcss';
 
+html,
+body {
+  overscroll-behavior: none; /* スクロールのバウンスを無効化 */
+  -webkit-user-select: none; /* テキスト選択を禁止 (iOS Safari向け) */
+  user-select: none; /* テキスト選択を禁止 */
+  -webkit-touch-callout: none; /* 長押しメニューを禁止 */
+  padding-top: env(safe-area-inset-top); /* iOSのセーフエリアに対応 */
+}
+
+/* inputやtextareaは文字入力のために選択を許可する */
+input,
+textarea {
+  -webkit-user-select: auto;
+  user-select: auto;
+}
+
 @theme {
   --color-primary-50: var(--color-amber-50);
   --color-primary-100: var(--color-amber-100);
@@ -29,9 +45,4 @@
   .trails-badge {
     @apply text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md whitespace-nowrap;
   }
-}
-
-/* スマホ特有のバウンススクロールを全体で抑制 */
-body {
-  overscroll-behavior-y: none;
 }
