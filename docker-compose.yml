@@ -2,7 +2,7 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    container_name: gleis-db
+    container_name: atlas-db
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER}
@@ -12,10 +12,10 @@ services:
       - ./postgres/init:/docker-entrypoint-initdb.d
       - ./pgdata:/var/lib/postgresql/data
     networks:
-      - gleis-net
-  backend:
-    build: ./backend
-    container_name: gleis-backend
+      - atlas-net
+  atlas-server:
+    build: ./atlas-server
+    container_name: atlas-server
     restart: always
     environment:
       PORT: 5676
@@ -24,32 +24,32 @@ services:
       NOTION_DATABASE_ID: ${NOTION_DATABASE_ID}
       NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
       NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
-      GLEIS_API_KEY: ${GLEIS_API_KEY}
+      ATLAS_API_KEY: ${ATLAS_API_KEY}
     volumes:
-      - ./backend:/app # コードをマウント（ホットリロード用）
+      - ./atlas-server:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
     ports:
       - '5676:5676'
     depends_on:
       - db
     networks:
-      - gleis-net
+      - atlas-net
   frontend:
-    build: ./frontend
-    container_name: gleis-frontend
+    build: ./gleis
+    container_name: gleis
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: /api/v1
     volumes:
-      - ./frontend:/app
+      - ./gleis:/app
       - /app/node_modules
       - /app/.next
     ports:
       - '5675:5675'
     depends_on:
-      - backend
+      - atlas-server
     networks:
-      - gleis-net
+      - atlas-net
   trails:
     build: ./trails
     container_name: trails
@@ -62,10 +62,10 @@ services:
     ports:
       - '5677:5677'
     depends_on:
-      - backend
+      - atlas-server
     networks:
-      - gleis-net
+      - atlas-net
 
 networks:
-  gleis-net:
+  atlas-net:
     driver: bridge

@@ -15,87 +15,24 @@ import ConfigModal from '@/components/ConfigModal';
 import ViewHeader from '@/components/ViewHeader';
 import AuthView from '@/components/AuthView';
 
-const DUMMY_DATA: LifeItem[] = [
-  // --- Bucket Data ---
-  {
-    id: 'b1',
-    title: 'Must Not Do Prison Escape',
-    state: 'Todo',
-    date: null, // PLAN (Date無し)
-    note: 'チケット確保',
-    url: '',
-    imageUrl: '',
-    tags: ['Event'],
-    iconType: 'key',
-  },
-  {
-    id: 'b2',
-    title: 'Hakata Udon Establishments',
-    state: 'Todo',
-    date: '2026-08-12', // 2026年
-    note: 'ごぼ天うどん',
-    url: '',
-    imageUrl: '',
-    tags: ['Food'],
-    iconType: 'food',
-  },
-  {
-    id: 'b3',
-    title: 'Miyajima Marathon',
-    state: 'Done',
-    date: '2025-03-30', // Done & 2025年
-    note: '完走！',
-    url: '',
-    imageUrl: '',
-    tags: ['Event'],
-    iconType: 'mountain',
-  },
-  // --- Travel Data ---
-  {
-    id: 't1',
-    title: 'Fukuoka Weekend Trip',
-    state: 'Todo',
-    date: '2026-08-10',
-    note: '新幹線予約済み',
-    url: '',
-    imageUrl: '',
-    tags: [],
-    iconType: 'plane',
-  },
-  {
-    id: 't2',
-    category: 'Travel',
-    title: 'Winter Hokkaido',
-    location: 'Sapporo',
-    state: 'Idea',
-    date: null,
-    note: '雪祭りに行きたい',
-    url: '',
-    imageUrl: '',
-    tags: [],
-    iconType: 'plane',
-  },
-];
-
 export default function AppMain() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [items, setItems] = useState<LifeItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [currentTab, setCurrentTab] = useState<AppTab>('Bucket');
+  const [currentTab, setCurrentTab] = useState<AppTab>('Home');
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error'>(
     'synced',
   );
 
   // モーダル系
-  const [selectedItem, setSelectedItem] = useState<LifeItem | null>(null);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [detailModalConfig, setDetailModalConfig] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit';
     item: LifeItem | null;
     defaultFlags: string[];
-  }>({ isOpen: false, mode: 'create', task: null, defaultFlags: [] });
+  }>({ isOpen: false, mode: 'create', item: null, defaultFlags: [] });
 
   // ビューごとのタイトルを定義
   const viewTitles: Record<AppTab, string> = {
@@ -108,7 +45,7 @@ export default function AppMain() {
 
   // ---------------- 認証チェック ----------------
   useEffect(() => {
-    if (localStorage.getItem('gleis_auth') === 'true') setIsAuthenticated(true);
+    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
     setIsAuthChecking(false);
   }, []);
 
@@ -120,7 +57,7 @@ export default function AppMain() {
 
       try {
         const res = await fetch(
-          '/api/v1/tasks?area=Life&excludeStatus=Canceled',
+          '/api/v1/pieces?area=Life&excludeStatus=Canceled',
           {
             method: 'GET',
             headers: {
@@ -134,24 +71,24 @@ export default function AppMain() {
         const data = await res.json();
 
         // gleisのタスク型をLifeItemへ変換
-        const mappedItems: LifeItem[] = data.tasks
-          .filter((t: any) => t.type === 'Event')
-          .map((t: any) => {
+        const mappedItems: LifeItem[] = data.pieces
+          .filter((p: any) => p.type === 'Event')
+          .map((p: any) => {
             return {
-              id: t.id,
-              title: t.title,
-              status: t.status,
-              date: t.dueDate,
-              area: t.area,
-              type: t.type,
-              topics: t.topics || [],
-              flags: t.flags || [],
-              fkw: t.fkw || [],
-              note: t.note || '',
-              url: t.url || '',
-              imageUrl: t.imageUrl || '',
-              iconType: t.flags?.includes('Food') ? 'food' : 'leaf',
-              category: markCategory(t),
+              id: p.id,
+              title: p.title,
+              status: p.status,
+              date: p.date,
+              area: p.area,
+              type: p.type,
+              topics: p.topics || [],
+              flags: p.flags || [],
+              fkw: p.fkw || [],
+              note: p.note || '',
+              url: p.url || '',
+              imageUrl: p.imageUrl || '',
+              iconType: p.flags?.includes('Food') ? 'food' : 'leaf',
+              category: markCategory(p),
             };
           });
 
@@ -174,7 +111,7 @@ export default function AppMain() {
   const handleSync = async () => {
     setSyncStatus('syncing');
     try {
-      await fetch('/api/v1/tasks/sync', {
+      await fetch('/api/v1/pieces/sync', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -222,9 +159,13 @@ export default function AppMain() {
       />
 
       {/* 2. スクロール可能なメインエリア */}
-      <main className="flex-1 overflow-y-auto pb-24">
+      <main className="flex-1 overflow-y-auto pb-24 no-scrollbar">
         {currentTab === 'Home' && (
-          <HomeView data={items} onNavigate={setCurrentTab} />
+          <HomeView
+            data={items}
+            onNavigate={setCurrentTab}
+            onItemClick={openDetailModal}
+          />
         )}
         {currentTab === 'Bucket' && (
           <BucketView
@@ -303,7 +244,7 @@ export default function AppMain() {
           setIsConfigOpen(false);
         }}
         onLogout={() => {
-          localStorage.removeItem('gleis_auth');
+          localStorage.removeItem('atlas_auth');
           setIsAuthenticated(false);
           setIsConfigOpen(false);
         }}

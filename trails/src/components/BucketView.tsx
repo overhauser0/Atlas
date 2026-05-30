@@ -9,16 +9,10 @@ import ListItem from './ListItem';
 interface Props {
   data: LifeItem[];
   onItemClick: (item: LifeItem) => void;
-  onOpenConfig?: () => void;
   onOpenCreate?: () => void;
 }
 
-export default function BucketView({
-  data,
-  onItemClick,
-  onOpenConfig,
-  onOpenCreate,
-}: Props) {
+export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
   const [activeTab, setActiveTab] = useState<'UNDONE' | 'DONE'>('UNDONE');
 
   const filteredData = useMemo(() => {

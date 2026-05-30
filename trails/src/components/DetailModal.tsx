@@ -8,7 +8,7 @@ import {
   Calendar,
   AlignLeft,
   ListTodo,
-  Link as LinkIcon, // 追加
+  Link as LinkIcon,
 } from 'lucide-react';
 import { LifeItem } from '@/types';
 
@@ -46,11 +46,14 @@ export default function DetailModal({
   });
   const [isSaving, setIsSaving] = useState(false);
 
+  // アニメーション制御用のState
+  const [isRendered, setIsRendered] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && item) {
         setFormData({ ...item });
-        console.log('item', item);
       } else {
         setFormData({
           id: '',
@@ -71,14 +74,35 @@ export default function DetailModal({
     }
   }, [isOpen, mode, item, defaultFlags]);
 
-  if (!isOpen || !formData) return null;
+  useEffect(() => {
+    if (isOpen) {
+      setIsRendered(true); // まずDOMを描画
+      // 描画直後にアニメーションを発火させるため、わずかな遅延を入れる
+      setTimeout(() => setIsVisible(true), 10);
+    } else {
+      setIsVisible(false); // アニメーション（閉じる）を開始
+      // アニメーション完了（300ms）を待ってからDOMを消す
+      const timer = setTimeout(() => setIsRendered(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [isOpen]);
+
+  if (!isRendered || !formData) return null;
 
   const handleSave = async () => {
     setIsSaving(true);
     const url =
-      mode === 'edit' ? `/api/v1/tasks/${formData.id}` : '/api/v1/tasks';
+      mode === 'edit' ? `/api/v1/pieces/${formData.id}` : '/api/v1/pieces';
     const method = mode === 'edit' ? 'PATCH' : 'POST';
 
+    const payload = {
+      title: formData.title,
+      status: formData.status,
+      note: formData.note,
+      date: formData.date,
+      source: 'NOTION',
+      url: formData.url || null,
+    };
     try {
       const res = await fetch(url, {
         method: method,
@@ -86,7 +110,7 @@ export default function DetailModal({
           'Content-Type': 'application/json',
           'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       if (res.ok) {
@@ -102,14 +126,23 @@ export default function DetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-0 sm:p-4"
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300 ease-in-out ${
+        isVisible
+          ? 'bg-black/40 backdrop-blur-sm opacity-100'
+          : 'bg-black/0 opacity-0'
+      }`}
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl animate-in slide-in-from-bottom-10 flex flex-col max-h-[90vh] overflow-hidden"
+        className={`bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+          isVisible
+            ? 'translate-y-0 sm:scale-100 sm:opacity-100'
+            : 'translate-y-full sm:translate-y-0 sm:scale-95 sm:opacity-0'
+        }`}
         onClick={(e) => e.stopPropagation()} // 中身のクリックでは閉じないようにする
       >
         <div className="overflow-y-auto flex-1 p-6 no-scrollbar flex flex-col gap-4">
+          {/* 画像 */}
           {formData.imageUrl && (
             <div className="-mx-6 -mt-6 mb-6 h-56 relative bg-gray-100">
               <img
@@ -120,6 +153,7 @@ export default function DetailModal({
             </div>
           )}
 
+          {/* Title */}
           <input
             value={formData.title}
             onChange={(e) =>
@@ -129,6 +163,7 @@ export default function DetailModal({
             className="w-full font-bold text-2xl text-gray-900 placeholder-gray-400 focus:outline-none mb-2"
           />
 
+          {/* Date */}
           <div className="flex items-center gap-3">
             <Calendar className="w-5 h-5 text-gray-400 shrink-0" />
             <input
@@ -141,6 +176,7 @@ export default function DetailModal({
             />
           </div>
 
+          {/* Note */}
           <div className="flex items-start gap-3">
             <AlignLeft className="w-5 h-5 text-gray-400 shrink-0 mt-2" />
             <textarea
@@ -153,6 +189,7 @@ export default function DetailModal({
             />
           </div>
 
+          {/* URL */}
           <div className="flex items-center gap-3">
             <LinkIcon className="w-5 h-5 text-gray-400 shrink-0" />
             <div className="flex w-full gap-2">
@@ -175,6 +212,7 @@ export default function DetailModal({
             </div>
           </div>
 
+          {/* Status */}
           <div className="flex items-center gap-3">
             <ListTodo className="w-5 h-5 text-gray-400 shrink-0" />
             <select
@@ -191,6 +229,7 @@ export default function DetailModal({
             </select>
           </div>
 
+          {/* fkw array */}
           {formData.fkw && formData.fkw.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
               {formData.fkw.map((tag) => (
@@ -202,6 +241,7 @@ export default function DetailModal({
           )}
         </div>
 
+        {/* 下部ボタン */}
         <div className="p-6 pt-4 border-t border-gray-100 bg-white">
           <div className="flex gap-3 mb-3">
             <button

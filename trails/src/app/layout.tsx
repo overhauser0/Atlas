@@ -4,6 +4,14 @@ import './globals.css';
 
 const inter = Inter({ subsets: ['latin'] });
 
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false, // モバイルアプリのような操作感にするためズームを無効化
+  themeColor: '#f3f4f6', // bg-gray-100の色
+};
+
 export const metadata: Metadata = {
   title: 'Trails',
   description: 'LifeOS - Personal Log and Bucket List',
@@ -16,14 +24,6 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Trails',
   },
-};
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false, // モバイルアプリのような操作感にするためズームを無効化
-  themeColor: '#f3f4f6', // bg-gray-100の色
 };
 
 export default function RootLayout({

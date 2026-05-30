@@ -6,12 +6,7 @@ import { LifeItem } from '@/types';
 import ListItem from './ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
 
-export default function ExploreView({
-  data,
-  onItemClick,
-  onOpenConfig,
-  onOpenCreate,
-}: any) {
+export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
   const [activeType, setActiveType] = useState<
     'All' | 'Drinking' | 'Climbing' | 'R-Escape'
   >('All');

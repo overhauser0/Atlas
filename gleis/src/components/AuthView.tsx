@@ -19,7 +19,7 @@ export default function AuthView({ onLogin }: AuthViewProps) {
     if (passwordInput === CORRECT_PASSWORD) {
       localStorage.setItem('atlas_auth', 'true');
       setLoginError(false);
-      onLogin();
+      onLogin(); // 親（page.tsx）のステートを更新
     } else {
       setLoginError(true);
       setPasswordInput('');
@@ -27,35 +27,33 @@ export default function AuthView({ onLogin }: AuthViewProps) {
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100 relative overflow-hidden">
-      {/* 背景の柔らかいアンバーグロウ */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-200 rounded-full blur-[150px] opacity-50 pointer-events-none" />
+    <div className="flex h-screen items-center justify-center bg-black text-white relative overflow-hidden">
+      {/* 背景の装飾的なネオングロウ */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-neon rounded-full blur-[150px] opacity-20 pointer-events-none" />
 
-      <div className="bg-white p-8 rounded-3xl border border-gray-200 w-full max-w-sm flex flex-col items-center z-10 relative shadow-xl">
+      <div className="noir-glass p-8 rounded-3xl border border-white/10 w-full max-w-sm flex flex-col items-center z-10 relative">
         {/* ロゴデザイン */}
-        <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mb-6 shadow-md">
-          T
+        <div className="w-16 h-16 bg-[#0070f3] rounded-2xl flex items-center justify-center text-white font-bold text-4xl mb-6 shadow-[0_0_30px_rgba(0,112,243,0.6)]">
+          G
         </div>
 
-        <h1 className="text-2xl font-bold tracking-widest mb-2 text-gray-900">
-          Trails
-        </h1>
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">
-          Personal LifeOS
+        <h1 className="text-2xl font-bold tracking-widest mb-2">Gleis</h1>
+        <p className="text-xs text-gray-500 uppercase tracking-widest mb-8">
+          Personal WorkOS
         </p>
 
         <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Password"
-              className={`w-full bg-gray-50 border rounded-xl py-3 pl-10 pr-4 text-gray-900 text-sm focus:outline-none transition-colors ${
+              className={`w-full bg-black/50 border rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none transition-colors ${
                 loginError
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:border-primary-500'
+                  : 'border-white/10 focus:border-neon'
               }`}
               autoFocus
             />
@@ -69,7 +67,7 @@ export default function AuthView({ onLogin }: AuthViewProps) {
 
           <button
             type="submit"
-            className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl transition-transform hover:scale-[1.02] active:scale-95"
+            className="w-full bg-white text-black font-bold py-3 rounded-xl transition-transform hover:scale-[1.02] active:scale-95"
           >
             Enter
           </button>

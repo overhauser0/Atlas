@@ -3,18 +3,18 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 
 -- 2. Notionデータキャッシュ用テーブル
 -- Notionからの同期データを高速に検索・表示するためのテーブル
-CREATE TABLE IF NOT EXISTS notion_tasks_cache (
+CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     id TEXT PRIMARY KEY, -- NotionのIDは文字列のためTEXT
     title TEXT NOT NULL,
     note TEXT,
     status TEXT NOT NULL DEFAULT 'INBOX',
-    priority INTEGER NOT NULL DEFAULT 3,
     area TEXT NOT NULL DEFAULT 'Work', -- Work, Education, Private等
     type TEXT NOT NULL DEFAULT 'Task', -- Task, Routine, Event等
     topics TEXT[] DEFAULT '{}',        -- Postgresの配列型
     flags TEXT[] DEFAULT '{}',         -- Postgresの配列型
     fkw TEXT[] DEFAULT '{}',           -- Free Key Wordsの配列
-    due_date TEXT,
+    prefs TEXT[] DEFAULT '{}',
+    date TEXT,
     url TEXT,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -23,15 +23,14 @@ CREATE TABLE IF NOT EXISTS notion_tasks_cache (
 
 -- 3. 外部プッシュ・ローカルタスク用テーブル
 -- PWAや外部API（curl等）から直接入ってくるデータ用
-CREATE TABLE IF NOT EXISTS local_tasks (
+CREATE TABLE IF NOT EXISTS local_pieces (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title TEXT NOT NULL,
     note TEXT,
     area TEXT DEFAULT 'Work',
     type TEXT DEFAULT 'Task',
     status TEXT DEFAULT 'INBOX',
-    priority INTEGER DEFAULT 3,
-    due_date TEXT,
+    date TEXT,
     url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -45,7 +44,6 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT NOT NULL,
     note TEXT,
     category TEXT DEFAULT 'GENERAL',
-    priority INTEGER DEFAULT 3,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,6 +61,6 @@ VALUES ('last_notion_sync_time', '1970-01-01T00:00:00Z')
 ON CONFLICT DO NOTHING;
 
 -- 6. インデックスの作成（検索の高速化）
-CREATE INDEX IF NOT EXISTS idx_notion_tasks_area ON notion_tasks_cache(area);
-CREATE INDEX IF NOT EXISTS idx_notion_tasks_status ON notion_tasks_cache(status);
-CREATE INDEX IF NOT EXISTS idx_notion_tasks_due_date ON notion_tasks_cache(due_date);
+CREATE INDEX IF NOT EXISTS idx_notion_pieces_area ON notion_pieces_cache(area);
+CREATE INDEX IF NOT EXISTS idx_notion_pieces_status ON notion_pieces_cache(status);
+CREATE INDEX IF NOT EXISTS idx_notion_pieces_date ON notion_pieces_cache(date);

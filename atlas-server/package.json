@@ -1,0 +1,22 @@
+{
+  "name": "atlas-server",
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.3.11",
+    "@hono/node-server": "^1.11.1",
+    "zod": "^3.22.4",
+    "@notionhq/client": "^2.2.15",
+    "dotenv": "^16.4.5",
+    "kysely": "^0.27.3",
+    "pg": "^8.11.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/pg": "^8.11.6",
+    "tsx": "^4.10.5",
+    "typescript": "^5.4.5"
+  }
+}
