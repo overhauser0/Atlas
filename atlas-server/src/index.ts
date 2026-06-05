@@ -39,6 +39,7 @@ api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createNewPiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
+api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.get('/pieces/sync', pieceController.getLastSyncTime);
 api.post('/pieces/sync', pieceController.syncPieces);
 api.get('/reviews', reviewController.getReviews);

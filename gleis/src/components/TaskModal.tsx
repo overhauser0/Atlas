@@ -9,6 +9,7 @@ interface TaskModalProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
   task: Task | null;
+  initialTitle?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -17,6 +18,7 @@ export default function TaskModal({
   isOpen,
   mode,
   task,
+  initialTitle = '',
   onClose,
   onSuccess,
 }: TaskModalProps) {
@@ -47,7 +49,7 @@ export default function TaskModal({
         });
       } else {
         setEditForm({
-          title: '',
+          title: initialTitle || '',
           status: 'INBOX',
           date: new Date().toISOString().split('T')[0],
           source: 'LOCAL',
@@ -81,50 +83,7 @@ export default function TaskModal({
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
-  /*
-  const handleSave = async () => {
-    if (!editForm.title.trim()) return alert('タイトルを入力してください');
-    setIsSaving(true);
 
-    try {
-      const isEdit = mode === 'edit' && task;
-      const payloadDate = editForm.date || null;
-      const url = isEdit ? `/api/v1/pieces/${task.id}` : '/api/v1/tasks';
-      const method = isEdit ? 'PATCH' : 'POST';
-
-      const payload = {
-        title: editForm.title,
-        status: editForm.status,
-        dueDate: payloadDate,
-        source: isEdit ? task.source : editForm.source,
-        url: editForm.url || null,
-      };
-
-      console.log('Saving task with payload:', payload);
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
-
-      console.log('Task saved successfully', await response.json());
-
-      onSuccess();
-      onClose();
-    } catch (e) {
-      console.warn(e);
-      alert('保存に失敗しました');
-    } finally {
-      setIsSaving(false);
-    }
-  };
-  */
   const handleSave = () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
 
@@ -143,10 +102,10 @@ export default function TaskModal({
 
     console.log('Saving task with payload:', payload);
 
-    // 🌟 1. 通信を待たずに、即座にモーダルを閉じる（UX向上）
+    // 1. 通信を待たずに、即座にモーダルを閉じる（UX向上）
     onClose();
 
-    // 🌟 2. バックグラウンドで非同期通信を実行
+    // 2. バックグラウンドで非同期通信を実行
     fetch(url, {
       method,
       headers: {

@@ -15,7 +15,7 @@ export const createPage = async (piece: Piece) => {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },
     _Area: { select: { name: piece.area || 'Work' } },
-    _Type: { select: { name: piece.type || 'Piece' } },
+    _Type: { select: { name: piece.type || 'Task' } },
     Date: piece.date ? { date: { start: piece.date } } : undefined,
   };
   if (Array.isArray(piece?.topics)) {
@@ -91,6 +91,33 @@ export const fetchAllPages = async () => {
   }
 
   return allPages;
+};
+
+/**
+ * ページIDを指定して本文（ブロック）を取得する
+ */
+export const getPageBlocks = async (pageId: string) => {
+  let allBlocks: any[] = [];
+  let cursor: string | undefined = undefined;
+
+  // 100件以上のブロックがある場合に対応するためループ処理
+  while (true) {
+    const response = await notionClient.blocks.children.list({
+      block_id: pageId,
+      start_cursor: cursor,
+      page_size: 100, // 1回あたりの最大取得件数
+    });
+
+    allBlocks.push(...response.results);
+
+    if (!response.has_more) {
+      break;
+    }
+    // まだ続きがあればカーソルを更新して次の100件を取得
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return allBlocks;
 };
 
 // ---- レビュー関連のNotion操作 ----

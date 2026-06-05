@@ -5,13 +5,14 @@ import {
   Columns2,
   Settings,
   Lock,
-  Menu,
   RefreshCw,
   Bell,
   Kanban,
   CalendarDays,
   ClipboardPenLine,
 } from 'lucide-react';
+
+// --- Components ---
 import AuthView from '@/components/AuthView';
 import HomeView from '@/components/HomeView';
 import WeeklyView from '@/components/WeeklyView';
@@ -22,22 +23,25 @@ import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
-import QuickAlarmModal from '@/components/QuickAlarmModal';
+import HeaderView from '@/components/HeaderView';
 import TaskModal from '@/components/TaskModal';
 import StatsModal from '@/components/StatsModal';
+import QuickAlarmModal from '@/components/QuickAlarmModal';
+import VoiceCaptureModal from '@/components/VoiceCaptureModal';
+import ActionPanel from '@/components/ActionPanel';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
 
 export default function Home() {
+  // ============================================================================
+  // 1. States (状態管理)
+  // ============================================================================
+
+  // Auth & Settings (認証・設定)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [currentView, setCurrentView] = useState<ViewType>('home');
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
   const [appSettings, setAppSettings] = useState({
     shrinkEmptyPastDays: true,
     syncInterval: 5,
@@ -45,56 +49,43 @@ export default function Home() {
     alarmTime: '',
     wakeLockEnabled: true,
   });
-  const [hasUnread, setHasUnread] = useState(false);
+
+  // Global UI & View (画面・メニュー状態)
+  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [currentTime, setCurrentTime] = useState<Date | null>(null);
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
+
+  // Data (タスク・通知データ)
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Modals & Panels (各種ポップアップの開閉状態)
+  const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
+  const [isActionPanelOpen, setIsActionPanelOpen] = useState(false);
+  const [isVoiceCaptureOpen, setIsVoiceCaptureOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [isStatsOpen, setIsStatsOpen] = useState(false);
+  const [statsTargetDate, setStatsTargetDate] = useState<Date>(new Date());
   const [taskModalConfig, setTaskModalConfig] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit';
     task: Task | null;
+    initialTitle?: string;
   }>({ isOpen: false, mode: 'create', task: null });
 
-  const openCreateTaskModal = useCallback(() => {
-    setTaskModalConfig({ isOpen: true, mode: 'create', task: null });
-  }, []);
+  // ============================================================================
+  // 2. Data Fetching & Sync (データ通信関連)
+  // ============================================================================
 
-  const openEditTaskModal = useCallback((task: Task) => {
-    setTaskModalConfig({ isOpen: true, mode: 'edit', task });
-  }, []);
-
-  const closeTaskModal = useCallback(() => {
-    setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
-  }, []);
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [isStatsOpen, setIsStatsOpen] = useState(false);
-  const [statsTargetDate, setStatsTargetDate] = useState<Date>(new Date());
-
-  // ---------------- 認証チェック ----------------
-  useEffect(() => {
-    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
-    setIsAuthChecking(false);
-  }, []);
-
-  // ----------------  アプリ設定 ----------------
-  useEffect(() => {
-    const saved = localStorage.getItem('gleis_settings');
-    if (saved) setAppSettings(JSON.parse(saved));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
-  }, [appSettings]);
-
-  // ---------------- タスクの管理 ----------------
   const fetchTasks = useCallback(
     async (isSilent = false) => {
       if (!isAuthenticated) return;
-
-      // すでにデータがある状態での更新（サイレント更新）なら Loading を出さない
       if (!isSilent) setIsTasksLoading(true);
 
-      // 表示タスク
       const statuses = ['INBOX', 'Waiting', 'Going'];
 
       try {
@@ -123,11 +114,10 @@ export default function Home() {
           }),
         );
 
-        // 完了タスクの集計
-        const completedTasks = data.pieces.filter(
+        const completed = data.pieces.filter(
           (task: Task) => task.status === 'Done',
         );
-        setCompletedTasks(completedTasks);
+        setCompletedTasks(completed);
       } catch (e) {
         console.warn(e);
       } finally {
@@ -137,19 +127,10 @@ export default function Home() {
     [isAuthenticated],
   );
 
-  // 初回表示時に実行
-  useEffect(() => {
-    const isFirstTime = tasks.length === 0;
-    fetchTasks(!isFirstTime);
-  }, [fetchTasks, tasks.length]);
-
-  // ---------------- データの更新 ----------------
-  // 更新処理
-  const handleSync = useCallback(
+  const handleNotionSync = useCallback(
     async (force = false) => {
       setIsSyncing(true);
       try {
-        // 1. 強制同期でない場合、最後の同期から一定時間経過しているかチェック
         const res = await fetch('/api/v1/pieces/sync', {
           method: 'GET',
           headers: {
@@ -162,7 +143,6 @@ export default function Home() {
           throw new Error(`Failed to check sync status: ${res.statusText}`);
 
         const syncInfo = await res.json();
-
         const lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
         const now = new Date().getTime();
         const intervalMs = appSettings.syncInterval * 60 * 1000;
@@ -179,7 +159,6 @@ export default function Home() {
           console.log('Auto sync skipped (already synced by another device)');
         }
 
-        // 2. タスクを再取得
         await fetchTasks(true);
       } catch (e) {
         console.warn(e);
@@ -190,139 +169,184 @@ export default function Home() {
     [fetchTasks, appSettings.syncInterval],
   );
 
-  const handleTaskUpdate = useCallback(() => {
-    fetchTasks(true);
-  }, []);
-  const handleMarkAsRead = useCallback(() => {
-    setHasUnread(false);
+  // ============================================================================
+  // 3. Handlers (イベント・UI操作関連)
+  // ============================================================================
+
+  // View Navigation
+  const handleViewChange = (view: ViewType) => {
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('atlas_auth');
+    setIsAuthenticated(false);
+  };
+
+  // Task Modals
+  const openCreateTaskModal = useCallback((initialTitle?: string) => {
+    setTaskModalConfig({
+      isOpen: true,
+      mode: 'create',
+      task: null,
+      initialTitle: initialTitle,
+    });
   }, []);
 
-  // 自動更新タイマーを設置
+  const openEditTaskModal = useCallback((task: Task) => {
+    setTaskModalConfig({ isOpen: true, mode: 'edit', task });
+  }, []);
+
+  const closeTaskModal = useCallback(() => {
+    setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
+  }, []);
+
+  // Stats
+  const handleOpenStats = (date: Date) => {
+    setStatsTargetDate(date);
+    setIsStatsOpen(true);
+  };
+
+  // Notifications
+  const handleMarkAsRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+    );
+    try {
+      await fetch(`/api/v1/notifications/${id}/read`, {
+        method: 'POST',
+        headers: { 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '' },
+      });
+    } catch (e) {
+      console.error('Failed to mark as read:', e);
+    }
+  };
+
+  // ============================================================================
+  // 4. Helpers (計算・フォーマット)
+  // ============================================================================
+
+  const getCurrentYearMonth = () => {
+    const now = new Date();
+    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  // ============================================================================
+  // 5. Effects (ライフサイクル・イベント監視)
+  // ============================================================================
+
+  // Auth Init
   useEffect(() => {
-    if (!isAuthenticated || appSettings.syncInterval <= 0) return;
-    const intervalTime = appSettings.syncInterval * 60 * 1000;
-    const interval = setInterval(() => {
-      console.log('Auto syncing...');
-      handleSync(false);
-    }, intervalTime);
-    return () => clearInterval(interval);
-  }, [isAuthenticated, appSettings.syncInterval, handleSync]);
+    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
+    setIsAuthChecking(false);
+  }, []);
 
-  // ---------------- 時計の更新 ----------------
+  // Settings Load & Save
+  useEffect(() => {
+    const saved = localStorage.getItem('gleis_settings');
+    if (saved) setAppSettings(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
+  }, [appSettings]);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    const isFirstTime = tasks.length === 0;
+    fetchTasks(!isFirstTime);
+  }, [fetchTasks, tasks.length]);
+
+  // Timers (Clock & Auto Sync)
   useEffect(() => {
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
 
-  // ---------------- iOS キーボード強制回避ロジック ----------------
+  useEffect(() => {
+    if (!isAuthenticated || appSettings.syncInterval <= 0) return;
+    const interval = setInterval(
+      () => handleNotionSync(false),
+      appSettings.syncInterval * 60 * 1000,
+    );
+    return () => clearInterval(interval);
+  }, [isAuthenticated, appSettings.syncInterval, handleNotionSync]);
+
+  // iOS Keyboard Fix
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-
       if (
         target.tagName !== 'INPUT' &&
         target.tagName !== 'TEXTAREA' &&
         target.tagName !== 'SELECT' &&
         !target.isContentEditable
       ) {
-        if (document.activeElement instanceof HTMLElement) {
+        if (document.activeElement instanceof HTMLElement)
           document.activeElement.blur();
-        }
       }
     };
-
-    // 画面全体でタッチ開始を監視
-    // capture: true にすることで、他の要素のクリックイベントよりも先に実行させます
     document.addEventListener('touchstart', handleTouchStart, {
       passive: true,
       capture: true,
     });
-
-    return () => {
+    return () =>
       document.removeEventListener('touchstart', handleTouchStart, {
         capture: true,
       });
-    };
   }, []);
 
-  // ---------------- StatsModal の開閉 ----------------
-  const handleOpenStats = (date: Date) => {
-    setStatsTargetDate(date);
-    setIsStatsOpen(true);
-  };
-
-  // ---------------- ReviewView の初期表示月を今月にする ----------------
-  const yyyymm = () => {
-    const now = new Date();
-    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-  };
-
-  // ---------------- ショートカットキーの監視 ----------------
+  // Keyboard Shortcuts (Cmd/Ctrl)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 1. 入力中は無効化
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement?.tagName === 'INPUT' ||
-        activeElement?.tagName === 'TEXTAREA' ||
-        activeElement?.tagName === 'SELECT' ||
-        (activeElement as HTMLElement)?.isContentEditable;
+      const active = document.activeElement as HTMLElement;
+      const isInput =
+        active?.tagName === 'INPUT' ||
+        active?.tagName === 'TEXTAREA' ||
+        active?.isContentEditable;
+      if (isInput) return;
 
-      if (isInputFocused) return;
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod) return;
 
-      // 2. Ctrl または Cmd (Mac) の同時押し判定
-      const isModifierPressed = e.metaKey || e.ctrlKey;
-
-      // Cmd+K / Ctrl+K (CommandPalette)
-      if (isModifierPressed && e.key === 'k') {
-        e.preventDefault();
-        setIsCommandPaletteOpen((prev) => !prev);
-        return;
-      }
-
-      // Cmd+S / Ctrl+S (Sync)
-      if (isModifierPressed && e.key === 's') {
-        e.preventDefault();
-        handleSync(true);
-        return;
-      }
-
-      // Cmd+L / Ctrl+L (Lock)
-      if (isModifierPressed && e.key === 'l') {
-        e.preventDefault();
-        localStorage.removeItem('atlas_auth');
-        setIsAuthenticated(false);
-        return;
-      }
-
-      // Cmd+T / Ctrl+T (new Task)
-      if (isModifierPressed && e.key === 't') {
-        e.preventDefault();
-        openCreateTaskModal();
-        return;
+      switch (e.key) {
+        case 'k':
+          e.preventDefault();
+          setIsCommandPaletteOpen((p) => !p);
+          break;
+        case 's':
+          e.preventDefault();
+          handleNotionSync(true);
+          break;
+        case 'l':
+          e.preventDefault();
+          handleLogout();
+          break;
+        case 't':
+          e.preventDefault();
+          openCreateTaskModal();
+          break;
       }
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleSync]);
+  }, [handleNotionSync, openCreateTaskModal]);
 
-  // ---------------- 数字キーによるビュー切り替え (1-6) ----------------
+  // Keyboard Shortcuts (Numbers for Views)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // 入力中は無効化
-      const activeElement = document.activeElement;
-      const isInputFocused =
-        activeElement?.tagName === 'INPUT' ||
-        activeElement?.tagName === 'TEXTAREA' ||
-        activeElement?.tagName === 'SELECT' ||
-        (activeElement as HTMLElement)?.isContentEditable;
+      const active = document.activeElement as HTMLElement;
+      const isInput =
+        active?.tagName === 'INPUT' ||
+        active?.tagName === 'TEXTAREA' ||
+        active?.isContentEditable;
+      if (isInput || e.ctrlKey || e.altKey || e.metaKey) return;
 
-      if (isInputFocused) return;
-      if (e.ctrlKey || e.altKey || e.metaKey) return;
-
-      const keyMap: { [key: string]: ViewType } = {
+      const keyMap: Record<string, ViewType> = {
         '0': 'home',
         '1': 'weekly',
         '2': 'kanban',
@@ -331,17 +355,16 @@ export default function Home() {
         '5': 'notifications',
       };
 
-      if (keyMap[e.key]) {
-        setCurrentView(keyMap[e.key]);
-        setIsMobileMenuOpen(false);
-      }
+      if (keyMap[e.key]) handleViewChange(keyMap[e.key]);
     };
-
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // ---------------- 描画 ----------------
+  // ============================================================================
+  // 6. Render (UI描画)
+  // ============================================================================
+
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
     return <AuthView onLogin={() => setIsAuthenticated(true)} />;
@@ -349,33 +372,40 @@ export default function Home() {
   return (
     <ToastProvider>
       <div className="flex h-screen overflow-hidden text-gray-200 relative bg-black">
-        <WakeLockHandler isEnabled={appSettings.wakeLockEnabled ?? true} />
+        {/* --- Background Handlers & Global Modals --- */}
+        <WakeLockHandler
+          isEnabled={appSettings.wakeLockEnabled ?? true}
+          onStatusChange={setIsWakeLockActive}
+        />
         <AlarmHandler
           appSettings={appSettings}
           setAppSettings={setAppSettings}
         />
         <NotificationHandler
           appSettings={appSettings}
-          onUnreadChange={setHasUnread}
-          onTaskUpdate={handleTaskUpdate}
+          onUpdateNotifications={setNotifications}
+          onTaskUpdate={fetchTasks}
         />
+
+        <VoiceCaptureModal
+          isOpen={isVoiceCaptureOpen}
+          onClose={() => setIsVoiceCaptureOpen(false)}
+          onCapture={(text) => openCreateTaskModal(text)}
+        />
+
         <CommandPalette
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
-          onNavigate={(view) => {
-            setCurrentView(view);
-            setIsMobileMenuOpen(false); // モバイルの場合メニューも閉じる
-          }}
-          onSync={() => handleSync(true)}
-          onNewTask={openCreateTaskModal}
+          onNavigate={handleViewChange}
+          onSync={() => handleNotionSync(true)}
+          onNewTask={() => openCreateTaskModal()}
           tasks={tasks}
           onTaskClick={openEditTaskModal}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
-          onLock={() => {
-            localStorage.removeItem('atlas_auth');
-            setIsAuthenticated(false);
-          }}
+          onLock={handleLogout}
         />
+
+        {/* --- Sidebar Navigation --- */}
         {isMobileMenuOpen && (
           <div
             className="fixed inset-0 bg-black/60 z-30 sm:hidden backdrop-blur-sm"
@@ -395,94 +425,31 @@ export default function Home() {
             </div>
           </div>
           <nav className="flex flex-col gap-2 flex-1">
-            <button
-              onClick={() => {
-                setCurrentView('home');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'home' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <LayoutDashboard className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Home
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('weekly');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'weekly' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <Columns2 className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                WeeklyTask
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('kanban');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'kanban' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <Kanban className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Kanban
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('calendar');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'calendar' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <CalendarDays className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Calendar
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('review');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'review' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <ClipboardPenLine className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Review
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('notifications');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'notifications' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <Bell className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Notifications
-              </span>
-            </button>
-            <button
-              onClick={() => {
-                setCurrentView('settings');
-                setIsMobileMenuOpen(false);
-              }}
-              className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === 'settings' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
-            >
-              <Settings className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                Settings
-              </span>
-            </button>
+            {[
+              { id: 'home', icon: LayoutDashboard, label: 'Home' },
+              { id: 'weekly', icon: Columns2, label: 'WeeklyTask' },
+              { id: 'kanban', icon: Kanban, label: 'Kanban' },
+              { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
+              { id: 'review', icon: ClipboardPenLine, label: 'Review' },
+              { id: 'notifications', icon: Bell, label: 'Notifications' },
+              { id: 'settings', icon: Settings, label: 'Settings' },
+            ].map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleViewChange(item.id as ViewType)}
+                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === item.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+              >
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                  {item.label}
+                </span>
+              </button>
+            ))}
           </nav>
+
           <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
             <button
-              onClick={() => handleSync(true)}
+              onClick={() => handleNotionSync(true)}
               disabled={isSyncing}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon"
             >
@@ -494,10 +461,7 @@ export default function Home() {
               </span>
             </button>
             <button
-              onClick={() => {
-                localStorage.removeItem('atlas_auth');
-                setIsAuthenticated(false);
-              }}
+              onClick={handleLogout}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400"
             >
               <Lock className="w-5 h-5 shrink-0" />
@@ -508,59 +472,23 @@ export default function Home() {
           </div>
         </aside>
 
+        {/* --- Main Content Area --- */}
         <main className="flex-1 flex flex-col m-2 md:m-4 md:ml-0 min-w-0">
-          <header className="h-14 mb-4 flex items-center justify-between px-2 shrink-0">
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setIsMobileMenuOpen(true)}
-                className="sm:hidden p-2 text-gray-400 hover:text-white"
-              >
-                <Menu className="w-6 h-6" />
-              </button>
-              <h1 className="text-xl font-semibold tracking-wide">
-                {currentView.toUpperCase()}
-              </h1>
-            </div>
-            {/* 未読がある場合のアラートアイコン */}
-            {hasUnread && (
-              <div className="flex items-center justify-center animate-bounce">
-                <Bell className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />
-              </div>
-            )}
-            {/* 時計 */}
-            <div className="relative">
-              <button
-                onClick={() => setIsQuickAlarmOpen(!isQuickAlarmOpen)}
-                className="group flex flex-col items-end transition-all active:scale-95"
-              >
-                <div className="text-lg text-white font-bold font-mono tracking-widest group-hover:text-neon transition-colors">
-                  {currentTime?.toLocaleTimeString('ja-JP', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  }) || '--:--'}
-                </div>
-                {/* アラームがある場合ドットで表示 */}
-                <div className="h-1 mt-0.5">
-                  {appSettings.alarmTime && (
-                    <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
-                  )}
-                </div>
-              </button>
+          <HeaderView
+            currentTime={currentTime}
+            hasUnread={unreadCount > 0}
+            setIsMobileMenuOpen={setIsMobileMenuOpen}
+            isQuickAlarmOpen={isQuickAlarmOpen}
+            setIsQuickAlarmOpen={setIsQuickAlarmOpen}
+            setIsActionPanelOpen={setIsActionPanelOpen}
+            appSettings={appSettings}
+          />
 
-              {/* クイックアラームモーダル */}
-              <QuickAlarmModal
-                isOpen={isQuickAlarmOpen}
-                onClose={() => setIsQuickAlarmOpen(false)}
-                appSettings={appSettings}
-                setAppSettings={setAppSettings}
-              />
-            </div>
-          </header>
           {currentView === 'home' && (
             <HomeView
               tasks={tasks}
               completedTasks={completedTasks}
-              onOpenTaskModal={openCreateTaskModal}
+              onOpenTaskModal={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
               onOpenStats={() => handleOpenStats(new Date())}
             />
@@ -571,9 +499,9 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onOpenTaskModal={openCreateTaskModal}
+              onCreateTask={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
-              onOpenStats={(date: Date) => handleOpenStats(date)}
+              onOpenStats={handleOpenStats}
             />
           )}
           {currentView === 'kanban' && (
@@ -581,7 +509,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onOpenTaskModal={openCreateTaskModal}
+              onOpenTaskModal={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
             />
           )}
@@ -590,15 +518,19 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onOpenTaskModal={openCreateTaskModal}
+              onOpenTaskModal={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
             />
           )}
           {currentView === 'review' && (
-            <ReviewView initialYearMonth={yyyymm()} />
+            <ReviewView initialYearMonth={getCurrentYearMonth()} />
           )}
           {currentView === 'notifications' && (
-            <NotificationsView onRead={handleMarkAsRead} />
+            <NotificationsView
+              notifications={notifications}
+              onMarkAsRead={handleMarkAsRead}
+              onCreateTask={(text) => openCreateTaskModal(text)}
+            />
           )}
           {currentView === 'settings' && (
             <SettingsView
@@ -606,6 +538,14 @@ export default function Home() {
               setAppSettings={setAppSettings}
             />
           )}
+
+          {/* --- Contextual Modals --- */}
+          <QuickAlarmModal
+            isOpen={isQuickAlarmOpen}
+            onClose={() => setIsQuickAlarmOpen(false)}
+            appSettings={appSettings}
+            setAppSettings={setAppSettings}
+          />
           <StatsModal
             isOpen={isStatsOpen}
             completedTasks={completedTasks}
@@ -617,8 +557,17 @@ export default function Home() {
             isOpen={taskModalConfig.isOpen}
             mode={taskModalConfig.mode}
             task={taskModalConfig.task}
+            initialTitle={taskModalConfig.initialTitle}
             onClose={closeTaskModal}
             onSuccess={() => fetchTasks(true)}
+          />
+          <ActionPanel
+            isOpen={isActionPanelOpen}
+            onClose={() => setIsActionPanelOpen(false)}
+            isWakeLockActive={isWakeLockActive}
+            onNavigateToNotifications={() => handleViewChange('notifications')}
+            notifications={notifications}
+            onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
           />
         </main>
       </div>

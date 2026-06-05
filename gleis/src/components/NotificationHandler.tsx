@@ -1,15 +1,16 @@
+// src/components/NotificationHandler.tsx
 'use client';
 import { useEffect, useCallback } from 'react';
 
 interface Props {
   appSettings: any;
-  onUnreadChange: (hasUnread: boolean) => void;
+  onUpdateNotifications: (notifications: any[]) => void;
   onTaskUpdate: () => void;
 }
 
 export default function NotificationHandler({
   appSettings,
-  onUnreadChange,
+  onUpdateNotifications,
   onTaskUpdate,
 }: Props) {
   const fetchNotifications = useCallback(async () => {
@@ -34,9 +35,8 @@ export default function NotificationHandler({
         return;
       }
 
-      // 1. 未読があるかチェック
-      const unreadExists = data.notifications.some((n: any) => !n.is_read);
-      onUnreadChange(unreadExists);
+      // 1. 取得したデータをそのまま親（page.tsx）へ渡す
+      onUpdateNotifications(data.notifications);
 
       // 2. タスク更新フラグがあればタスク再取得
       const hasTaskUpdate = data.notifications.some(
@@ -45,18 +45,16 @@ export default function NotificationHandler({
       if (hasTaskUpdate) onTaskUpdate();
     } catch (e) {
       console.warn('Error fetching notifications:', e);
-      // addToast('Failed to fetch notifications', { type: 'error' });
     }
-  }, [onUnreadChange, onTaskUpdate]);
+  }, [onUpdateNotifications, onTaskUpdate]);
 
-  // 設定された秒数（notificationInterval）ごとにポーリング
   useEffect(() => {
-    const sec = appSettings.notificationInterval || 30;
+    const sec = appSettings?.notificationInterval || 30;
     if (sec <= 0) return;
     const timer = setInterval(fetchNotifications, sec * 1000);
     fetchNotifications(); // 初回
     return () => clearInterval(timer);
-  }, [fetchNotifications, appSettings.notificationInterval]);
+  }, [fetchNotifications, appSettings?.notificationInterval]);
 
   return null;
 }

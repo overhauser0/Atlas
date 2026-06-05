@@ -1,104 +1,91 @@
 // src/components/NotificationsView.tsx
 'use client';
-import { useEffect, useState } from 'react';
-import { Bell, Clock, Info, AlertTriangle } from 'lucide-react';
+import { Bell, Clock, Info, AlertTriangle, Check, Plus } from 'lucide-react';
 
 interface Props {
-  onRead: () => void;
+  notifications: any[];
+  onMarkAsRead: (id: string) => void;
+  onCreateTask: (initialTitle?: string) => void;
 }
 
-export default function NotificationsView({ onRead }: Props) {
-  const [notifications, setNotifications] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  // カテゴリに応じたアイコンを返す関数
+export default function NotificationsView({
+  notifications,
+  onMarkAsRead,
+  onCreateTask,
+}: Props) {
   const getIcon = (category: string) => {
     if (category === 'ALERT')
       return <AlertTriangle className="w-4 h-4 text-red-400" />;
-    return <Info className="w-4 h-4 text-neon" />;
+    return <Info className="w-4 h-4 text-emerald-400" />;
   };
 
-  useEffect(() => {
-    const init = async () => {
-      setLoading(true); // 取得開始
-      try {
-        // 1. 通知リスト取得
-        const res = await fetch('/api/v1/notifications', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-          },
-        });
-
-        if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
-
-        const data = await res.json();
-        setNotifications(data.notifications);
-
-        // 2. 既読にするAPIを叩く
-        await fetch('/api/v1/notifications/read', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-          },
-        });
-        onRead(); // 親の hasUnread を false にする
-      } catch (e) {
-        console.error('Failed to fetch notifications:', e);
-      } finally {
-        setLoading(false); // 取得終了
-      }
-    };
-    init();
-  }, [onRead]);
-
   return (
-    <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-6 overflow-y-auto noir-scrollbar">
-      {/* max-w-2xl */}
-      <section className="flex flex-col gap-4">
-        <h2 className="noir-label px-1 flex items-center gap-2">
-          <Bell className="w-3.5 h-3.5" />
-          Notification History
-        </h2>
+    <>
+      <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-6 overflow-y-auto noir-scrollbar">
+        <section className="flex flex-col gap-4">
+          <h2 className="text-xs font-bold text-zinc-500 uppercase tracking-widest px-1 flex items-center gap-2 mt-4">
+            <Bell className="w-3.5 h-3.5" />
+            Notification History
+          </h2>
 
-        <div className="space-y-3">
-          {loading ? (
-            /* ローディング中の表示（スケルトン風） */
-            <div className="text-center py-10 text-gray-500 animate-pulse text-sm">
-              Loading history...
-            </div>
-          ) : notifications.length === 0 ? (
-            /* 通知が空の場合 */
-            <div className="noir-glass p-10 rounded-2xl text-center text-gray-500 text-sm">
-              No notifications yet.
-            </div>
-          ) : (
-            /* 通知リストの表示 */
-            notifications.map((n) => (
-              <div
-                key={n.id}
-                className="noir-glass p-4 rounded-2xl flex gap-4 items-start border-t-white/5"
-              >
-                <div className="mt-1">{getIcon(n.category)}</div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-200">
-                    {n.title}
+          <div className="space-y-3">
+            {notifications.length === 0 ? (
+              <div className="bg-white/5 border border-white/5 p-10 rounded-3xl text-center text-zinc-500 text-sm font-medium">
+                No notifications yet.
+              </div>
+            ) : (
+              notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`relative p-5 rounded-3xl flex gap-4 items-start transition-all duration-300 ${
+                    n.is_read
+                      ? 'bg-white/5 border border-white/5 opacity-70'
+                      : 'bg-white/10 border border-white/10 shadow-lg'
+                  }`}
+                >
+                  {!n.is_read && (
+                    <div className="absolute top-5 left-2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                  )}
+
+                  <div className="mt-0.5 ml-2">{getIcon(n.category)}</div>
+
+                  <div className="flex-1 min-w-0">
+                    <div
+                      className={`text-sm font-bold truncate pr-4 ${n.is_read ? 'text-zinc-400' : 'text-zinc-100'}`}
+                    >
+                      {n.title}
+                    </div>
+                    <div className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
+                      {n.content}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-600 mt-3">
+                      <Clock className="w-3 h-3" />
+                      {new Date(n.created_at).toLocaleString('ja-JP')}
+                    </div>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    {n.content}
-                  </div>
-                  <div className="flex items-center gap-1 text-[10px] text-gray-600 mt-3">
-                    <Clock className="w-3 h-3" />
-                    {new Date(n.created_at).toLocaleString('ja-JP')}
+
+                  <div className="flex items-center gap-2 shrink-0 ml-2">
+                    {!n.is_read && (
+                      <button
+                        onClick={() => onMarkAsRead(n.id)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 border border-white/5 transition-colors"
+                      >
+                        <Check className="w-4 h-4" />
+                      </button>
+                    )}
+                    <button
+                      onClick={() => onCreateTask(n.title)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400 border border-white/5 transition-colors"
+                    >
+                      <Plus className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-    </div>
+              ))
+            )}
+          </div>
+        </section>
+      </div>
+    </>
   );
 }

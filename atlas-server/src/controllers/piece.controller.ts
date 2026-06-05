@@ -46,6 +46,21 @@ export const updatePiece = async (c: Context) => {
   }
 };
 
+export const getPieceBlocks = async (c: Context) => {
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ message: 'Piece ID is required' }, 400);
+  }
+
+  try {
+    const pieceBlocks = await pieceService.getPieceBlocks(id);
+    return c.json({ blocks: pieceBlocks });
+  } catch (error: any) {
+    console.error('Piece Blocks Error:', error);
+    return c.json({ message: error.message }, 500);
+  }
+};
+
 export const createNewPiece = async (c: Context) => {
   const body = await c.req.json();
   try {

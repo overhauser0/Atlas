@@ -52,3 +52,7 @@ export const updatePiece = async (id: string, payload: any) => {
     return await pgRepo.updateLocalPiece(id, updates);
   }
 };
+
+export const getPieceBlocks = async (id: string) => {
+  return await notionRepo.getPageBlocks(id);
+};

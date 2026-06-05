@@ -128,7 +128,7 @@ export const upsertNotionPieceCache = async (
   lastEditedTime: Date,
   rawData: any,
 ) => {
-  const values = {
+  const values: any = {
     id: piece.id!,
     title: piece.title || 'No Title',
     note: piece.note || '',

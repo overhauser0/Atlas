@@ -26,9 +26,11 @@ export default function QuickAlarmModal({
     }));
 
     // 時刻がセットされたら、少し余韻を残して閉じる
+    /*
     if (time) {
       setTimeout(onClose, 500);
     }
+    */
   };
 
   const handleClear = () => {

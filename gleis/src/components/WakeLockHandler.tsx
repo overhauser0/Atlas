@@ -1,12 +1,12 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
-// PropsでON/OFFのフラグを受け取る
 interface Props {
   isEnabled: boolean;
+  onStatusChange?: (isActive: boolean) => void;
 }
 
-export default function WakeLockHandler({ isEnabled }: Props) {
+export default function WakeLockHandler({ isEnabled, onStatusChange }: Props) {
   const wakeLock = useRef<any>(null);
 
   const requestWakeLock = async () => {
@@ -15,17 +15,20 @@ export default function WakeLockHandler({ isEnabled }: Props) {
 
     try {
       wakeLock.current = await (navigator as any).wakeLock.request('screen');
+
+      // ★取得成功時にステータスを更新
+      onStatusChange?.(true);
+      console.log('☀️ Wake Lock is active');
+
       wakeLock.current.addEventListener('release', () => {
         wakeLock.current = null;
+        onStatusChange?.(false);
         console.log('🌙 Wake Lock released');
       });
-      console.log('☀️ Wake Lock is active');
     } catch (err: any) {
-      // ユーザー操作がないことによる NotAllowedError はエラー表示しない
       if (err.name === 'NotAllowedError') {
         console.log('⏳ Wake Lock awaiting user interaction...');
       } else {
-        // それ以外の予期せぬエラーは warn (警告) に留める
         console.warn(`WakeLock Warning: ${err.name}, ${err.message}`);
       }
     }
@@ -36,20 +39,20 @@ export default function WakeLockHandler({ isEnabled }: Props) {
       wakeLock.current.release();
       wakeLock.current = null;
     }
+    onStatusChange?.(false);
   };
 
   useEffect(() => {
-    // isEnabled が false になったら即座にロックを解除して終了
     if (!isEnabled) {
       releaseWakeLock();
       return;
     }
 
-    // ONの場合のリスナー登録処理
+    requestWakeLock();
+
     const handleUserInteraction = () => {
+      if (wakeLock.current) return;
       requestWakeLock();
-      document.removeEventListener('click', handleUserInteraction);
-      document.removeEventListener('touchstart', handleUserInteraction);
     };
 
     document.addEventListener('click', handleUserInteraction);
@@ -57,19 +60,19 @@ export default function WakeLockHandler({ isEnabled }: Props) {
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isEnabled) {
-        requestWakeLock();
+        // OS復帰時は少し遅延させると成功しやすい
+        setTimeout(requestWakeLock, 200);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    // クリーンアップ
     return () => {
       document.removeEventListener('click', handleUserInteraction);
       document.removeEventListener('touchstart', handleUserInteraction);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       releaseWakeLock();
     };
-  }, [isEnabled]); // isEnabled の変更を監視して再実行
+  }, [isEnabled]);
 
   return null;
 }

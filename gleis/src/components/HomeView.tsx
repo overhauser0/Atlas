@@ -81,10 +81,7 @@ export default function HomeView({
       task.date && task.date.startsWith(todayString) && task.status === 'Done',
   );
 
-  return (
-    <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
-      {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
-      <header className="shrink-0 mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+  /*
         <div className="flex items-center gap-4">
           <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-neon shadow-[0_0_15px_rgba(0,112,243,0.2)]">
             <CalendarDays className="w-6 h-6" />
@@ -93,7 +90,11 @@ export default function HomeView({
             {displayDate}
           </h1>
         </div>
-
+  */
+  return (
+    <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
+      {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}
+      <header className="shrink-0 mb-8 pb-6 border-b border-white/10 flex flex-col md:flex-row md:items-end justify-between gap-6">
         {/* 右側：1年の進捗バー */}
         <div className="w-full md:w-64 flex flex-col gap-2">
           <div className="flex justify-between items-center text-[10px] font-bold tracking-widest text-gray-500 uppercase">
