@@ -46,10 +46,10 @@ export const getOrCreateMonthlyReview = async (yearMonth: string) => {
   const firstDayOfMonth = `${year}-${month.toString().padStart(2, '0')}-01`;
 
   // 2. Monthlyデータの取得・生成（Repositoryに依頼）
-  let monthlyPage = await notionRepo.findMonthlyPage(yearMonth);
+  let monthlyPage = await notionRepo.getMonthlyPage(yearMonth);
   if (!monthlyPage) {
     console.log(`Creating new Monthly page for ${yearMonth}...`);
-    monthlyPage = await notionRepo.createMonthlyPage(
+    monthlyPage = await notionRepo.insertMonthlyPage(
       yearMonth,
       firstDayOfMonth,
     );
@@ -58,10 +58,10 @@ export const getOrCreateMonthlyReview = async (yearMonth: string) => {
   // 3. Weeklyデータの取得・生成（Repositoryに依頼）
   const targetWeeks = getWeeksInMonth(year, month);
   const weeklyPromises = targetWeeks.map(async (week) => {
-    let weeklyPage = await notionRepo.findWeeklyPage(week.name);
+    let weeklyPage = await notionRepo.getWeeklyPage(week.name);
     if (!weeklyPage) {
       console.log(`Creating new Weekly page for ${week.name}...`);
-      weeklyPage = await notionRepo.createWeeklyPage(week.name, week.startDate);
+      weeklyPage = await notionRepo.insertWeeklyPage(week.name, week.startDate);
     }
     return weeklyPage;
   });

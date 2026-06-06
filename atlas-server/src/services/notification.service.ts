@@ -7,20 +7,16 @@ import * as pieceService from './piece.service';
  * 外部（n8n等）からのプッシュイベントを処理する
  */
 export const handleExternalPush = async (data: PushNotification) => {
-  // 時刻込みのフルタイムスタンプ（DBの更新日時用）
-  const todayIso = new Date().toISOString();
-
   // JSTでの正しい「今日」の日付（YYYY-MM-DD形式）※スウェーデンを使ったハック
   const todayDate = new Date().toLocaleDateString('sv-SE');
 
-  // 1. 通知履歴としてアーカイブ
-  const archived = await pgRepo.archiveNotification(data);
+  // 1. 通知履歴としてDBに保存
+  const archived = await pgRepo.insertNotification(data);
 
   let pieceResult = null;
   // 2. Notionへのタスク化ロジック
   if (data.storageTarget === 'NOTION') {
     const pieceData: Piece = {
-      // id: data.id || crypto.randomUUID(),
       title: data.title,
       note: data.note,
       status: 'INBOX',
@@ -32,8 +28,6 @@ export const handleExternalPush = async (data: PushNotification) => {
       flags: data.metadata?.flags || [],
       date: todayDate,
       url: null,
-      // last_edited_time: todayIso,
-      // synced_at: todayIso,
     };
     pieceResult = await pieceService.createNewPiece(pieceData);
   }

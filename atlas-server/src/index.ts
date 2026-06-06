@@ -53,7 +53,7 @@ app.onError(async (err, c) => {
 
   // エラーを通知履歴に保存する
   try {
-    await pgRepo.archiveNotification({
+    await pgRepo.insertNotification({
       title: '🚫 System Internal Error',
       note: `A server-side error occurred: ${err.message}`,
       category: 'ALERT',

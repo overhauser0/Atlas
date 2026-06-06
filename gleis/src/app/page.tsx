@@ -509,7 +509,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onOpenTaskModal={() => openCreateTaskModal()}
+              onCreateTask={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
             />
           )}

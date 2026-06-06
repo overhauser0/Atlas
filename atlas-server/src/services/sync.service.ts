@@ -22,7 +22,7 @@ export const syncNotionToLocal = async () => {
   }
 
   // 1. Notionリポジトリから全ページ（Rawデータ）を取得
-  const notionPages = await notionRepo.fetchAllPages();
+  const notionPages = await notionRepo.getPiecePages();
 
   const activeIds = notionPages.map((p) => p.id);
 

@@ -3,7 +3,9 @@ import { Pool } from 'pg';
 import { Piece } from '../schemas/piece.schema';
 import { PushNotificationInput } from '../schemas/push.schema';
 
-// --- 1. テーブル定義 (Interfaces) ---
+// ==========================================
+// 1. テーブル定義 (Interfaces)
+// ==========================================
 
 export interface LocalPiecesTable {
   id: Generated<string>;
@@ -46,6 +48,7 @@ export interface NotificationsTable {
   created_at: Generated<Date>;
   is_read: Generated<boolean>;
 }
+
 export interface AppMetadataTable {
   key: string;
   value: string;
@@ -59,7 +62,9 @@ export interface Database {
   app_metadata: AppMetadataTable;
 }
 
-// --- 2. 接続設定 (Existing logic) ---
+// ==========================================
+// 2. 接続設定
+// ==========================================
 
 const dialect = new PostgresDialect({
   pool: new Pool({
@@ -70,58 +75,98 @@ const dialect = new PostgresDialect({
 
 export const db = new Kysely<Database>({ dialect });
 
-// --- 3. データ操作 (Repository Functions) ---
+// ==========================================
+// 3. データ操作 (Repository Functions)
+// ==========================================
+
+// ------------------------------------------
+// Pieces (Notion & Local 統合)
+// ------------------------------------------
 
 /**
- * 外部からの通知イベントを保存する
+ * [Read] フィルタ条件に合致するPiece一覧を取得する (Notion + Local結合)
+ * @param filters フィルタ条件
+ * @returns 日付順にソートされたPieceの配列
  */
-export const archiveNotification = async (data: PushNotificationInput) => {
-  return await db
-    .insertInto('notifications')
-    .values({
-      title: data.title,
-      note: data.note,
-      category: data.category || 'INFO',
-      metadata: JSON.stringify(data.metadata || {}),
-      is_read: false,
-    })
-    .returningAll()
-    .executeTakeFirst();
+export const getPieces = async (filters: {
+  area?: string;
+  type?: string;
+  status?: string;
+  flags?: string[];
+  topics?: string[];
+  excludeStatus?: string[];
+}) => {
+  // 共通のフィルタを適用するヘルパー
+  const applyCommonFilters = (qb: any) => {
+    let q = qb;
+    if (filters.area) q = q.where('area', '=', filters.area);
+    if (filters.type) q = q.where('type', '=', filters.type);
+    if (filters.status) q = q.where('status', '=', filters.status);
+    if (filters.flags && filters.flags.length > 0) {
+      q = q.where('flags', 'in', filters.flags);
+    }
+    if (filters.topics && filters.topics.length > 0) {
+      q = q.where('topics', 'in', filters.topics);
+    }
+    if (filters.excludeStatus && filters.excludeStatus.length > 0) {
+      q = q.where('status', 'not in', filters.excludeStatus);
+    }
+    return q;
+  };
+
+  // 1. Notionキャッシュから取得
+  const notionPieces = await applyCommonFilters(
+    db.selectFrom('notion_pieces_cache').selectAll(),
+  ).execute();
+
+  // 2. ローカルタスクから取得
+  const localPieces = await applyCommonFilters(
+    db.selectFrom('local_pieces').selectAll(),
+  ).execute();
+
+  const mapPiece = (p: any, source: 'NOTION' | 'LOCAL') => ({
+    ...p,
+    source,
+  });
+
+  // 3. 結合して source を付与
+  const combined = [
+    ...notionPieces.map((p: any) => mapPiece(p, 'NOTION')),
+    ...localPieces.map((p: any) => mapPiece(p, 'LOCAL')),
+  ];
+
+  const pickDate = (piece: any) => {
+    return new Date(
+      piece.date || piece.created_at || piece.last_edited_time,
+    ).getTime();
+  };
+
+  // 4. 全体を日付順でソート
+  return combined.sort((a, b) => pickDate(b) - pickDate(a));
 };
 
+// ------------------------------------------
+// Notion Pieces Cache
+// ------------------------------------------
+
 /**
- * 通知履歴を取得する
+ * [Read] キャッシュされたNotionのPiece一覧を取得する ※不要？
  */
-export const getNotifications = async (limit = 50) => {
+/*
+export const getNotionPiecesCache = async () => {
   return await db
-    .selectFrom('notifications')
+    .selectFrom('notion_pieces_cache')
     .selectAll()
-    .orderBy('created_at', 'desc')
-    .limit(limit)
+    .orderBy('last_edited_time', 'desc')
     .execute();
 };
-
-export const markAllAsRead = async () => {
-  return await db
-    .updateTable('notifications')
-    .set({ is_read: true })
-    .where('is_read', '=', false)
-    .execute();
-};
-/**
- * 特定の通知を既読にする
- */
-export const markAsRead = async (id: string) => {
-  return await db
-    .updateTable('notifications')
-    .set({ is_read: true })
-    .where('id', '=', id)
-    .returningAll()
-    .executeTakeFirst();
-};
+*/
 
 /**
- * Notionのデータをキャッシュテーブルに保存・更新する (Upsert)
+ * [Upsert] Notionのデータをキャッシュテーブルに保存・更新する
+ * @param piece NotionのPieceデータ
+ * @param lastEditedTime 最終更新日時
+ * @param rawData Notion APIの生レスポンス
  */
 export const upsertNotionPieceCache = async (
   piece: Piece,
@@ -158,8 +203,9 @@ export const upsertNotionPieceCache = async (
 };
 
 /**
- * ユーザー操作による部分更新 (Notionキャッシュ)
- * upsertと違い、変更があったフィールドのみを更新する
+ * [Update] ユーザー操作によるNotionキャッシュの部分更新
+ * @param id Notion Page ID
+ * @param updates 更新内容
  */
 export const updateNotionPieceCache = async (
   id: string,
@@ -179,91 +225,36 @@ export const updateNotionPieceCache = async (
       fkw: updates.fkw,
       prefs: updates.prefs,
       date: updates.date ? new Date(updates.date) : null,
-      last_edited_time: new Date(), // 最終編集時刻のみ更新
+      last_edited_time: new Date(),
     })
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
 
-  if (updatedPiece) (updatedPiece as any).source = 'NOTION'; // 返却するオブジェクトに source を追加
+  if (updatedPiece) (updatedPiece as any).source = 'NOTION';
 
   return updatedPiece;
 };
 
 /**
- * キャッシュされたピース一覧を取得する
+ * [Delete] Notionの最新リストに含まれないキャッシュデータを削除する
+ * @param activeIds 現在Notionに存在するアクティブなPage IDの配列
  */
-export const fetchCachedPieces = async () => {
+export const deleteStaleNotionCache = async (activeIds: string[]) => {
+  if (activeIds.length === 0) return;
   return await db
-    .selectFrom('notion_pieces_cache')
-    .selectAll()
-    .orderBy('last_edited_time', 'desc')
+    .deleteFrom('notion_pieces_cache')
+    .where('id', 'not in', activeIds)
     .execute();
 };
 
-export const getPieces = async (filters: {
-  area?: string;
-  type?: string;
-  status?: string;
-  flags?: string[];
-  topics?: string[];
-  excludeStatus?: string[];
-}) => {
-  // 💡 共通のフィルタを適用するヘルパー
-  const applyCommonFilters = (qb: any) => {
-    let q = qb;
-    if (filters.area) q = q.where('area', '=', filters.area);
-    if (filters.type) q = q.where('type', '=', filters.type);
-    if (filters.status) q = q.where('status', '=', filters.status);
-    if (filters.flags && filters.flags.length > 0) {
-      q = q.where('flags', 'in', filters.flags);
-    }
-    if (filters.topics && filters.topics.length > 0) {
-      q = q.where('topics', 'in', filters.topics);
-    }
-    if (filters.excludeStatus && filters.excludeStatus.length > 0) {
-      q = q.where('status', 'not in', filters.excludeStatus);
-    }
-    return q;
-  };
-
-  // 1. Notionキャッシュから取得
-  const notionPieces = await applyCommonFilters(
-    db.selectFrom('notion_pieces_cache').selectAll(),
-  )
-    //.orderBy('last_edited_time', 'desc')
-    .execute();
-
-  // 2. ローカルタスクから取得
-  const localPieces = await applyCommonFilters(
-    db.selectFrom('local_pieces').selectAll(),
-  )
-    //.orderBy('created_at', 'desc')
-    .execute();
-
-  const mapPiece = (p: any, source: 'NOTION' | 'LOCAL') => ({
-    ...p,
-    source,
-  });
-
-  // 3. 結合して source を付与
-  const combined = [
-    ...notionPieces.map((p: any) => mapPiece(p, 'NOTION')),
-    ...localPieces.map((p: any) => mapPiece(p, 'LOCAL')),
-  ];
-
-  const pickDate = (piece: any) => {
-    return new Date(
-      piece.date || piece.created_at || piece.last_edited_time,
-    ).getTime();
-  };
-
-  // 4. 全体を日付順でソート
-  return combined.sort((a, b) => pickDate(b) - pickDate(a));
-};
+// ------------------------------------------
+// Local Pieces
+// ------------------------------------------
 
 /**
- * ローカルタスクを保存する
+ * [Create] ローカルタスクを保存する
+ * @param piece ローカルのPieceデータ
  */
 export const insertLocalPiece = async (piece: Piece) => {
   const insertedPiece = await db
@@ -288,7 +279,9 @@ export const insertLocalPiece = async (piece: Piece) => {
 };
 
 /**
- * ローカルPieceを更新する
+ * [Update] ローカルPieceを部分更新する
+ * @param id ローカルタスクID
+ * @param updates 更新内容
  */
 export const updateLocalPiece = async (id: string, updates: Partial<Piece>) => {
   const updatedPiece = await db
@@ -304,10 +297,9 @@ export const updateLocalPiece = async (id: string, updates: Partial<Piece>) => {
 };
 
 /**
- * 60日以上前に「Done」になったローカルタスクをDBから物理削除する
+ * [Delete] 60日以上前に「Done」になったローカルタスクを物理削除する
  */
-export const cleanupOldDoneLocalPieces = async () => {
-  // 現在から60日前の日時を計算
+export const deleteOldDoneLocalPieces = async () => {
   const thresholdDate = new Date();
   thresholdDate.setDate(thresholdDate.getDate() - 60);
 
@@ -320,7 +312,6 @@ export const cleanupOldDoneLocalPieces = async () => {
     .format(thresholdDate)
     .replace(/\//g, '-');
 
-  // ステータスが 'Done' かつ、更新日時が60日より前のものを削除
   return await db
     .deleteFrom('local_pieces')
     .where('status', '=', 'Done')
@@ -329,19 +320,71 @@ export const cleanupOldDoneLocalPieces = async () => {
     .execute();
 };
 
+// ------------------------------------------
+// Notifications
+// ------------------------------------------
+
 /**
- * Notionの最新リストに含まれないキャッシュデータを削除する
+ * [Create] 外部からの通知イベントを保存する
+ * @param data プッシュ通知データ
  */
-export const deleteStaleNotionCache = async (activeIds: string[]) => {
-  if (activeIds.length === 0) return; // 空配列でin句を使うとエラーになる対策
+export const insertNotification = async (data: PushNotificationInput) => {
   return await db
-    .deleteFrom('notion_pieces_cache')
-    .where('id', 'not in', activeIds)
+    .insertInto('notifications')
+    .values({
+      title: data.title,
+      note: data.note || '',
+      category: data.category || 'INFO',
+      metadata: JSON.stringify(data.metadata || {}),
+      is_read: false,
+    })
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/**
+ * [Read] 通知履歴を取得する
+ * @param limit 取得件数 (デフォルト: 50)
+ */
+export const getNotifications = async (limit = 50) => {
+  return await db
+    .selectFrom('notifications')
+    .selectAll()
+    .orderBy('created_at', 'desc')
+    .limit(limit)
     .execute();
 };
 
 /**
- * 最終同期時刻を取得する
+ * [Update] 特定の通知を既読にする
+ * @param id 通知ID
+ */
+export const markAsRead = async (id: string) => {
+  return await db
+    .updateTable('notifications')
+    .set({ is_read: true })
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/**
+ * [Update] 未読の通知をすべて既読にする
+ */
+export const markAllAsRead = async () => {
+  return await db
+    .updateTable('notifications')
+    .set({ is_read: true })
+    .where('is_read', '=', false)
+    .execute();
+};
+
+// ------------------------------------------
+// App Metadata (Sync Info)
+// ------------------------------------------
+
+/**
+ * [Read] 最終同期時刻を取得する
  */
 export const getLastNotionSyncTime = async (): Promise<string> => {
   const record = await db
@@ -354,7 +397,8 @@ export const getLastNotionSyncTime = async (): Promise<string> => {
 };
 
 /**
- * 最終同期時刻を更新する (Upsert)
+ * [Upsert] 最終同期時刻を更新する
+ * @param nowISO 現在時刻のISO文字列
  */
 export const updateLastNotionSyncTime = async (nowISO: string) => {
   await db

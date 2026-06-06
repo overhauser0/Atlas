@@ -1,16 +1,48 @@
 import { Client } from '@notionhq/client';
 import { Piece } from '../schemas/piece.schema';
 
+// ==========================================
+// 1. 接続・環境設定
+// ==========================================
+
 const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
 const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
 const NOTION_MONTHLY_DB_ID = process.env.NOTION_MONTHLY_DB_ID!;
 const NOTION_WEEKLY_DB_ID = process.env.NOTION_WEEKLY_DB_ID!;
 
-// ---- Piece(Piece)関連のNotion操作 ----
+// ==========================================
+// 2. Piece (Task/LifeLog) 関連の操作
+// ==========================================
+
 /**
- * Notionに新しいページを作成する
+ * [Read] NotionのPieceデータベースから全件取得する（同期用）
  */
-export const createPage = async (piece: Piece) => {
+export const getPiecePages = async () => {
+  let allPages: any[] = [];
+  let hasMore = true;
+  let cursor: string | undefined = undefined;
+
+  while (hasMore) {
+    const response: Awaited<ReturnType<typeof notionClient.databases.query>> =
+      await notionClient.databases.query({
+        database_id: DATABASE_ID,
+        start_cursor: cursor, // 次のページの開始位置を指定
+        page_size: 100,
+      });
+
+    allPages = [...allPages, ...response.results];
+    hasMore = response.has_more;
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return allPages;
+};
+
+/**
+ * [Create] NotionのPieceデータベースに新しいページを作成する
+ * @param piece 作成するPieceのデータ
+ */
+export const insertPiecePage = async (piece: Piece) => {
   const properties: any = {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },
@@ -18,6 +50,7 @@ export const createPage = async (piece: Piece) => {
     _Type: { select: { name: piece.type || 'Task' } },
     Date: piece.date ? { date: { start: piece.date } } : undefined,
   };
+
   if (Array.isArray(piece?.topics)) {
     properties._Topics = {
       multi_select: piece.topics.map((t) => ({ name: t })),
@@ -32,6 +65,7 @@ export const createPage = async (piece: Piece) => {
   if (piece.url) {
     properties.URL = { url: piece.url };
   }
+
   return await notionClient.pages.create({
     parent: { database_id: DATABASE_ID },
     properties,
@@ -39,23 +73,33 @@ export const createPage = async (piece: Piece) => {
 };
 
 /**
- * Notionの既存ページを更新する
+ * [Update] Notionの既存Pieceページを更新する
+ * @param pageId Notion Page ID
+ * @param piece 更新するPieceのデータ(差分)
  */
-export const updatePage = async (pageId: string, piece: Partial<Piece>) => {
+export const updatePiecePage = async (
+  pageId: string,
+  piece: Partial<Piece>,
+) => {
   const properties: any = {};
+
   if (piece.title)
     properties.Name = { title: [{ text: { content: piece.title } }] };
   if (piece.status) properties.State = { status: { name: piece.status } };
   if (piece.area) properties._Area = { select: { name: piece.area } };
   if (piece.type) properties._Type = { select: { name: piece.type } };
-  if (piece.topics)
+
+  if (piece.topics) {
     properties._Topics = {
       multi_select: piece.topics.map((t) => ({ name: t })),
     };
-  if (piece.flags)
+  }
+  if (piece.flags) {
     properties._Flags = { multi_select: piece.flags.map((f) => ({ name: f })) };
-  if (piece.note)
+  }
+  if (piece.note) {
     properties.Note = { rich_text: [{ text: { content: piece.note } }] };
+  }
   if (piece.date !== undefined) {
     properties.Date = { date: piece.date ? { start: piece.date } : null };
   }
@@ -69,32 +113,13 @@ export const updatePage = async (pageId: string, piece: Partial<Piece>) => {
   });
 };
 
-/**
- * Notionから全データを取得する（同期用）
- */
-export const fetchAllPages = async () => {
-  let allPages: any[] = [];
-  let hasMore = true;
-  let cursor: string | undefined = undefined;
-
-  while (hasMore) {
-    const response: Awaited<ReturnType<typeof notionClient.databases.query>> =
-      await notionClient.databases.query({
-        database_id: process.env.NOTION_DATABASE_ID!,
-        start_cursor: cursor, // 次のページの開始位置を指定
-        page_size: 100,
-      });
-
-    allPages = [...allPages, ...response.results];
-    hasMore = response.has_more;
-    cursor = response.next_cursor ?? undefined;
-  }
-
-  return allPages;
-};
+// ==========================================
+// 3. Blocks (ページ本文) 関連の操作
+// ==========================================
 
 /**
- * ページIDを指定して本文（ブロック）を取得する
+ * [Read] ページIDを指定して本文（ブロック）を取得する
+ * @param pageId Notion Page ID
  */
 export const getPageBlocks = async (pageId: string) => {
   let allBlocks: any[] = [];
@@ -120,11 +145,15 @@ export const getPageBlocks = async (pageId: string) => {
   return allBlocks;
 };
 
-// ---- レビュー関連のNotion操作 ----
+// ==========================================
+// 4. Review (Monthly / Weekly) 関連の操作
+// ==========================================
+
 /**
- * Monthlyページを名前（例: "202605"）で検索する
+ * [Read] Monthlyページを名前（例: "202605"）で検索・取得する
+ * @param yearMonth 検索対象の年月文字列
  */
-export const findMonthlyPage = async (yearMonth: string) => {
+export const getMonthlyPage = async (yearMonth: string) => {
   const res = await notionClient.databases.query({
     database_id: NOTION_MONTHLY_DB_ID,
     filter: { property: 'Name', title: { equals: yearMonth } },
@@ -133,9 +162,11 @@ export const findMonthlyPage = async (yearMonth: string) => {
 };
 
 /**
- * Monthlyページを新規作成する
+ * [Create] Monthlyページを新規作成する
+ * @param yearMonth 作成する年月文字列（タイトル）
+ * @param startDate 対象月の開始日
  */
-export const createMonthlyPage = async (
+export const insertMonthlyPage = async (
   yearMonth: string,
   startDate: string,
 ) => {
@@ -149,9 +180,10 @@ export const createMonthlyPage = async (
 };
 
 /**
- * Weeklyページを名前（例: "2026-CW18"）で検索する
+ * [Read] Weeklyページを名前（例: "2026-CW18"）で検索・取得する
+ * @param weekName 検索対象の週文字列
  */
-export const findWeeklyPage = async (weekName: string) => {
+export const getWeeklyPage = async (weekName: string) => {
   const res = await notionClient.databases.query({
     database_id: NOTION_WEEKLY_DB_ID,
     filter: { property: 'Name', title: { equals: weekName } },
@@ -160,9 +192,11 @@ export const findWeeklyPage = async (weekName: string) => {
 };
 
 /**
- * Weeklyページを新規作成する
+ * [Create] Weeklyページを新規作成する
+ * @param weekName 作成する週文字列（タイトル）
+ * @param startDate 対象週の開始日
  */
-export const createWeeklyPage = async (weekName: string, startDate: string) => {
+export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   return await notionClient.pages.create({
     parent: { database_id: NOTION_WEEKLY_DB_ID },
     properties: {
@@ -173,7 +207,10 @@ export const createWeeklyPage = async (weekName: string, startDate: string) => {
 };
 
 /**
- * ページの特定のテキストプロパティ（Business, Life, Summaryなど）を更新する
+ * [Update] ページの特定のテキストプロパティ（Business, Life, Summaryなど）を更新する
+ * @param pageId Notion Page ID
+ * @param propertyName 更新対象のプロパティ名
+ * @param text 更新するテキスト内容
  */
 export const updatePageTextProperty = async (
   pageId: string,

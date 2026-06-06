@@ -8,9 +8,9 @@ import * as pgRepo from '../repositories/postgres.repository';
 export const createNewPiece = async (piece: Piece) => {
   if (piece.source === 'NOTION') {
     // 1. Notionに作成
-    const page = await notionRepo.createPage(piece);
+    const page = await notionRepo.insertPiecePage(piece);
     // 2. 作成されたデータをローカルキャッシュに同期
-    piece.id = page.id; // NotionのIDをタスクにセット
+    piece.id = page.id;
 
     return await pgRepo.upsertNotionPieceCache(piece, new Date(), page);
   } else {
@@ -28,7 +28,7 @@ export const getPiecesFromCache = async (filters: {
   excludeStatus?: string[];
 }) => {
   // 古いローカルタスクは削除する
-  await pgRepo.cleanupOldDoneLocalPieces();
+  await pgRepo.deleteOldDoneLocalPieces();
 
   return await pgRepo.getPieces(filters);
 };
@@ -43,7 +43,7 @@ export const updatePiece = async (id: string, payload: any) => {
 
   if (source === 'NOTION') {
     // 1. Notion 側を更新
-    await notionRepo.updatePage(id, updates);
+    await notionRepo.updatePiecePage(id, updates);
 
     // 2. Postgres のキャッシュを更新
     return await pgRepo.updateNotionPieceCache(id, updates);
