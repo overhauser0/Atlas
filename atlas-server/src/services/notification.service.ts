@@ -1,20 +1,21 @@
+// src/services/notification.service.ts
 import { PushNotification } from '../schemas/push.schema';
 import { Piece } from '../schemas/piece.schema';
-import * as pgRepo from '../repositories/postgres.repository';
+import * as postgresRepo from '../repositories/postgres.repository';
 import * as pieceService from './piece.service';
 
-/**
- * 外部（n8n等）からのプッシュイベントを処理する
- */
-export const handleExternalPush = async (data: PushNotification) => {
-  // JSTでの正しい「今日」の日付（YYYY-MM-DD形式）※スウェーデンを使ったハック
-  const todayDate = new Date().toLocaleDateString('sv-SE');
+// 💡 追加: 検索パラメータの型定義
+export interface GetNotificationHistoryParams {
+  limit: number;
+  offset: number;
+  isRead?: boolean;
+}
 
-  // 1. 通知履歴としてDBに保存
-  const archived = await pgRepo.insertNotification(data);
+export const handleExternalPush = async (data: PushNotification) => {
+  const todayDate = new Date().toLocaleDateString('sv-SE');
+  const archived = await postgresRepo.insertNotification(data);
 
   let pieceResult = null;
-  // 2. Notionへのタスク化ロジック
   if (data.storageTarget === 'NOTION') {
     const pieceData: Piece = {
       title: data.title,
@@ -35,13 +36,29 @@ export const handleExternalPush = async (data: PushNotification) => {
   return { archived, pieceResult };
 };
 
-export const getNotificationHistory = async (c: any) => {
-  return await pgRepo.getNotifications();
+export const getNotificationHistory = async (
+  params: GetNotificationHistoryParams,
+) => {
+  const { limit, offset, isRead } = params;
+
+  // db取得ロジック（以下は Kysely の場合の例です。既存のpostgresRepoの呼び出しに合わせて調整してください）
+  let query = postgresRepo.db.selectFrom('notifications').selectAll();
+
+  if (isRead !== undefined) {
+    query = query.where('is_read', '=', isRead);
+  }
+
+  return await query
+    .orderBy('created_at', 'desc')
+    .limit(limit)
+    .offset(offset)
+    .execute();
 };
 
 export const markNotificationAsRead = async (id: string) => {
-  return await pgRepo.markAsRead(id);
+  return await postgresRepo.markNotificationAsRead(id);
 };
+
 export const markAllNotificationsAsRead = async () => {
-  return await pgRepo.markAllAsRead();
+  return await postgresRepo.markAllNotificationsAsRead();
 };

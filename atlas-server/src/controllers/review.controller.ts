@@ -7,23 +7,25 @@ import * as reviewService from '../services/review.service';
  */
 export const getReviews = async (c: Context) => {
   try {
-    // Honoでのクエリパラメータの取得
     const month = c.req.query('month');
 
     if (!month || typeof month !== 'string' || month.length !== 6) {
       return c.json(
-        { error: 'Invalid month format. Use YYYYMM (e.g., 202605)' },
+        { message: 'Invalid month format. Use YYYYMM (e.g., 202605)' },
         400,
       );
     }
 
+    // Serviceは純粋な文字列(month)だけを受け取るため、Honoに依存していない
     const data = await reviewService.getOrCreateMonthlyReview(month);
-    return c.json(data);
-  } catch (error) {
-    console.error('Error fetching/creating reviews:', error);
-    // index.tsのグローバルエラーハンドラーに任せるために throw しても良いですが、
-    // ここでは安全に500エラーを返します
-    return c.json({ error: 'Failed to fetch reviews' }, 500);
+
+    return c.json(data, 200);
+  } catch (error: any) {
+    console.error('❌ Get Reviews Error:', error);
+    return c.json(
+      { message: error.message || 'Failed to fetch/create reviews' },
+      500,
+    );
   }
 };
 
@@ -37,7 +39,7 @@ export const updateReview = async (c: Context) => {
     const pageId = c.req.param('pageId');
 
     if (!pageId) {
-      return c.json({ error: 'Page ID is required' }, 400);
+      return c.json({ message: 'Page ID is required' }, 400);
     }
 
     // HonoでのJSONボディの取得

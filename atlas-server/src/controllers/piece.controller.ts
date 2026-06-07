@@ -2,106 +2,128 @@ import { Context } from 'hono';
 import * as pieceService from '../services/piece.service';
 import * as syncService from '../services/sync.service';
 
+// ==========================================
+// 1. CRUD Operations
+// ==========================================
+
 export const getPieces = async (c: Context) => {
-  // URLクエリから条件を取得
-  const area = c.req.query('area');
-  const type = c.req.query('type');
-  const status = c.req.query('status');
-  const excludeStatus = c.req.query('excludeStatus');
+  try {
+    // URLクエリから条件を取得
+    const area = c.req.query('area');
+    const type = c.req.query('type');
+    const status = c.req.query('status');
+    const excludeStatus = c.req.query('excludeStatus');
 
-  const pieces = await pieceService.getPiecesFromCache({
-    area,
-    type,
-    status,
-    excludeStatus: excludeStatus ? excludeStatus.split(',') : undefined,
-  });
+    const pieces = await pieceService.getPiecesFromCache({
+      area,
+      type,
+      status,
+      excludeStatus: excludeStatus ? excludeStatus.split(',') : undefined,
+    });
 
-  return c.json({ pieces: pieces || [] });
+    return c.json({ pieces: pieces || [] }, 200);
+  } catch (error: any) {
+    console.error('❌ Get Pieces Error:', error);
+    return c.json({ message: error.message || 'Failed to fetch pieces' }, 500);
+  }
 };
 
-export const syncPieces = async (c: Context) => {
+export const createPiece = async (c: Context) => {
   try {
-    const result = await syncService.syncNotionToLocal();
-    return c.json({ ok: 'SYNC_SUCCESS', ...result });
+    const body = await c.req.json();
+    const newPiece = await pieceService.createNewPiece(body);
+    return c.json({ piece: newPiece }, 201); // 作成成功時は201を返すのがベターです
   } catch (error: any) {
-    console.error('❌ Sync Piece Error:', error.message || error);
-    return c.json({ message: error.message || 'Unknown error' }, 500);
+    console.error('❌ Create Piece Error:', error);
+    return c.json({ message: error.message || 'Failed to create piece' }, 500);
   }
 };
 
 export const updatePiece = async (c: Context) => {
-  const id = c.req.param('id');
-  const body = await c.req.json();
-
-  if (!id) {
-    return c.json({ message: 'Piece ID is required' }, 400);
-  }
-
   try {
+    const id = c.req.param('id');
+    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+
+    const body = await c.req.json();
     const updatedPiece = await pieceService.updatePiece(id, body);
-    return c.json({ task: updatedPiece });
-  } catch (error: any) {
-    console.error('Piece Update Error:', error);
-    return c.json({ message: error.message }, 500);
-  }
-};
 
-export const getPieceBlocks = async (c: Context) => {
-  const id = c.req.param('id');
-  if (!id) {
-    return c.json({ message: 'Piece ID is required' }, 400);
-  }
-
-  try {
-    const pieceBlocks = await pieceService.getPieceBlocks(id);
-    return c.json({ blocks: pieceBlocks });
+    // 💡 修正: task ではなく piece に統一
+    return c.json({ piece: updatedPiece }, 200);
   } catch (error: any) {
-    console.error('Piece Blocks Error:', error);
-    return c.json({ message: error.message }, 500);
-  }
-};
-
-export const createNewPiece = async (c: Context) => {
-  const body = await c.req.json();
-  try {
-    const newPiece = await pieceService.createNewPiece(body);
-    return c.json({ piece: newPiece });
-  } catch (error: any) {
-    console.error('Piece Creation Error:', error);
-    return c.json({ message: error.message }, 500);
+    console.error(`❌ Update Piece Error (${c.req.param('id')}):`, error);
+    return c.json({ message: error.message || 'Failed to update piece' }, 500);
   }
 };
 
 export const deletePiece = async (c: Context) => {
-  const id = c.req.param('id');
-  if (!id) {
-    return c.json({ message: 'ID is required' }, 400);
-  }
   try {
+    const id = c.req.param('id');
+    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+
     const result = await pieceService.deletePiece(id);
-    return c.json(result);
+    return c.json(result, 200);
   } catch (error: any) {
-    console.error(`Piece Delete Error ${c.req.param('id')}:`, error);
+    console.error(`❌ Delete Piece Error (${c.req.param('id')}):`, error);
     return c.json({ message: error.message || 'Failed to delete piece' }, 500);
   }
 };
 
-export const getLastSyncTime = async (c: Context) => {
+// ==========================================
+// 2. Specific Operations (Blocks, Reschedule)
+// ==========================================
+
+export const getPieceBlocks = async (c: Context) => {
   try {
-    const lastSyncTime = await syncService.getLastSyncTime();
-    return c.json({ lastSyncTime });
+    const id = c.req.param('id');
+    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+
+    const pieceBlocks = await pieceService.getPieceBlocks(id);
+    return c.json({ blocks: pieceBlocks }, 200);
   } catch (error: any) {
-    console.warn('Error fetching last sync time:', error);
-    return c.json({ message: error.message }, 500);
+    console.error(`❌ Get Piece Blocks Error (${c.req.param('id')}):`, error);
+    return c.json(
+      { message: error.message || 'Failed to get piece blocks' },
+      500,
+    );
   }
 };
 
 export const rescheduleOverduePiecesToToday = async (c: Context) => {
   try {
     const updatedPieces = await pieceService.rescheduleOverduePiecesToToday();
-    return c.json({ pieces: updatedPieces });
+    return c.json({ pieces: updatedPieces }, 200);
   } catch (error: any) {
-    console.error('Error rescheduling overdue pieces:', error);
-    return c.json({ message: error.message }, 500);
+    console.error('❌ Reschedule Overdue Pieces Error:', error);
+    return c.json(
+      { message: error.message || 'Failed to reschedule pieces' },
+      500,
+    );
+  }
+};
+
+// ==========================================
+// 3. Sync Operations
+// ==========================================
+
+export const syncPieces = async (c: Context) => {
+  try {
+    const result = await syncService.syncNotionToLocal();
+    return c.json({ ok: 'SYNC_SUCCESS', ...result }, 200);
+  } catch (error: any) {
+    console.error('❌ Sync Piece Error:', error);
+    return c.json({ message: error.message || 'Failed to sync pieces' }, 500);
+  }
+};
+
+export const getLastSyncTime = async (c: Context) => {
+  try {
+    const lastSyncTime = await syncService.getLastSyncTime();
+    return c.json({ lastSyncTime }, 200);
+  } catch (error: any) {
+    console.error('❌ Get Last Sync Time Error:', error);
+    return c.json(
+      { message: error.message || 'Failed to get last sync time' },
+      500,
+    );
   }
 };

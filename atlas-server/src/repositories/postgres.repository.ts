@@ -409,7 +409,7 @@ export const getNotifications = async (limit = 50) => {
  * [Update] 特定の通知を既読にする
  * @param id 通知ID
  */
-export const markAsRead = async (id: string) => {
+export const markNotificationAsRead = async (id: string) => {
   return await db
     .updateTable('notifications')
     .set({ is_read: true })
