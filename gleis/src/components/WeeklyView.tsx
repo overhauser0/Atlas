@@ -3,13 +3,15 @@ import { useState, useMemo } from 'react';
 import { Plus, ExternalLink, HardDrive } from 'lucide-react';
 import { Task } from '@/types';
 import {
-  COLUMNS,
-  getStatusColor,
   mergeNewDateWithOriginalTime,
-  sortTasksByStatus,
   isOverdue,
   getThisWeekMonday,
 } from '@/utils/dateUtils';
+import {
+  COLUMNS,
+  getStatusColor,
+  sortTasksByStatus,
+} from '@/utils/defineUtils';
 
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };

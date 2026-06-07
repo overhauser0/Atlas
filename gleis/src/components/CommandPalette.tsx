@@ -230,10 +230,10 @@ export default function CommandPalette({
 
                       {/* 右側: 期限 と 状態バッジ（色なし） */}
                       <div className="flex items-center gap-3 shrink-0">
-                        {task.dueDate && (
+                        {task.date && (
                           <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
                             <Calendar className="w-3 h-3 text-gray-600" />
-                            {task.dueDate.split('T')[0].substring(5)}{' '}
+                            {task.date.split('T')[0].substring(5)}{' '}
                             {/* MM-DD 形式でスマートに表示 */}
                           </span>
                         )}

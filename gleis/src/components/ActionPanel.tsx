@@ -27,6 +27,9 @@ interface Props {
   lastSyncTime: number | null | undefined;
   overdueTasks?: any[];
   onRescheduleOverdue?: () => Promise<void>;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
+  onNotionSync: () => void;
 }
 
 export default function ActionPanel({
@@ -39,6 +42,9 @@ export default function ActionPanel({
   lastSyncTime,
   overdueTasks = [],
   onRescheduleOverdue,
+  onSyncStart,
+  onSyncEnd,
+  onNotionSync,
 }: Props) {
   const [isRendered, setIsRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -81,6 +87,7 @@ export default function ActionPanel({
   const handleRescheduleClick = async () => {
     if (!onRescheduleOverdue) return;
 
+    onSyncStart();
     onClose();
 
     try {
@@ -92,7 +99,14 @@ export default function ActionPanel({
     } catch (error) {
       console.error('Failed to reschedule:', error);
       addToast('タスクの移動に失敗しました', 'info');
+    } finally {
+      onSyncEnd();
     }
+  };
+
+  const handleNotionSync = async () => {
+    onNotionSync();
+    onClose();
   };
 
   // 最終同期日時のフォーマット関数
@@ -116,7 +130,7 @@ export default function ActionPanel({
     <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
       {/* バックドロップ */}
       <div
-        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 pointer-events-auto ${
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-400 pointer-events-auto ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
         onClick={onClose}
@@ -124,7 +138,7 @@ export default function ActionPanel({
 
       {/* パネル本体（ダークガラス） */}
       <div
-        className={`absolute top-0 right-0 h-full w-full max-w-sm bg-zinc-950/90 backdrop-blur-2xl shadow-2xl border-l border-white/10 flex flex-col transition-transform duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto ${
+        className={`absolute top-0 right-0 h-full w-full max-w-sm bg-zinc-950/90 backdrop-blur-2xl shadow-2xl border-l border-white/10 flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
@@ -198,11 +212,14 @@ export default function ActionPanel({
             <div className="flex flex-col gap-3">
               {/* 同期ステータス＆期限切れタスクのカード */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden">
-                <div className="flex items-center justify-between">
+                <div
+                  onClick={handleNotionSync}
+                  className="flex items-center justify-between"
+                >
                   <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-zinc-400" />
+                    <RefreshCw className="w-4 h-4 text-zinc-400" />
                     <span className="text-sm font-bold text-zinc-300">
-                      Last Synced
+                      Notion Sync
                     </span>
                   </div>
                   <span className="text-xs font-bold text-zinc-500">

@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Menu, Bell } from 'lucide-react';
+import { Menu, Zap, Loader2 } from 'lucide-react';
 
 interface HeaderViewProps {
   currentTime: Date | null;
@@ -10,6 +10,7 @@ interface HeaderViewProps {
   isQuickAlarmOpen: boolean;
   setIsQuickAlarmOpen: (isOpen: boolean) => void;
   setIsActionPanelOpen: (isOpen: boolean) => void;
+  isSyncing: boolean;
 }
 
 export default function HeaderView({
@@ -20,6 +21,7 @@ export default function HeaderView({
   isQuickAlarmOpen,
   setIsQuickAlarmOpen,
   setIsActionPanelOpen,
+  isSyncing,
 }: HeaderViewProps) {
   const today = new Date();
   const longDate = today.toLocaleDateString('en-US', {
@@ -76,7 +78,11 @@ export default function HeaderView({
           className={`relative w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full ${hasNotifications ? 'text-yellow-400' : 'text-zinc-300'} transition-all active:scale-95 border border-white/5`}
           aria-label="Open Control Center"
         >
-          <Bell className="w-5 h-5" />
+          {isSyncing ? (
+            <Loader2 className="w-6 h-6 animate-spin text-yellow-400" />
+          ) : (
+            <Zap className="w-6 h-6" />
+          )}
         </button>
       </div>
     </header>

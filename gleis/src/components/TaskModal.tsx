@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Task } from '@/types';
-import { getStatusColor } from '@/utils/dateUtils';
+import { getStatusColor } from '@/utils/defineUtils';
 import { useToast } from '@/components/Toast';
 
 interface TaskModalProps {
@@ -20,6 +20,8 @@ interface TaskModalProps {
   initialTitle?: string;
   onClose: () => void;
   onSuccess: () => void;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
 }
 
 export default function TaskModal({
@@ -29,6 +31,8 @@ export default function TaskModal({
   initialTitle = '',
   onClose,
   onSuccess,
+  onSyncStart,
+  onSyncEnd,
 }: TaskModalProps) {
   const { addToast } = useToast();
 
@@ -112,6 +116,7 @@ export default function TaskModal({
 
     // 1. 通信を待たずに、即座にモーダルを閉じる（UX向上）
     onClose();
+    onSyncStart();
 
     // 2. バックグラウンドで非同期通信を実行
     fetch(url, {
@@ -137,6 +142,9 @@ export default function TaskModal({
         console.warn(e);
         // エラー時のToast表示
         addToast('タスクの保存に失敗しました', 'alert');
+      })
+      .finally(() => {
+        onSyncEnd();
       });
   };
 
@@ -150,6 +158,7 @@ export default function TaskModal({
 
     // 1. 待たずにすぐモーダルを閉じる
     onClose();
+    onSyncStart();
 
     // 2. バックグラウンドで削除APIを叩く
     fetch(`/api/v1/pieces/${task.id}`, {
@@ -168,6 +177,9 @@ export default function TaskModal({
       .catch((e) => {
         console.warn(e);
         addToast('タスクの削除に失敗しました', 'alert');
+      })
+      .finally(() => {
+        onSyncEnd();
       });
   };
 

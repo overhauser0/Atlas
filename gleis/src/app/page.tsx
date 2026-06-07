@@ -5,7 +5,6 @@ import {
   Columns2,
   Settings,
   Lock,
-  RefreshCw,
   Bell,
   Kanban,
   CalendarDays,
@@ -33,9 +32,10 @@ import CommandPalette from '@/components/CommandPalette';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
-import { isPastDate } from '@/utils/dateUtils';
+import { getCurrentYearMonth } from '@/utils/dateUtils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
+import { useTaskSync } from '@/hooks/useTaskSync';
 
 export default function Home() {
   // ============================================================================
@@ -60,13 +60,11 @@ export default function Home() {
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
 
   // Data (タスク・通知データ)
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
-  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
-  const [isTasksLoading, setIsTasksLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const [activeRequests, setActiveRequests] = useState(0);
+  const incrementRequest = () => setActiveRequests((prev) => prev + 1);
+  const decrementRequest = () =>
+    setActiveRequests((prev) => Math.max(0, prev - 1));
 
   // Modals & Panels (各種ポップアップの開閉状態)
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
@@ -82,126 +80,25 @@ export default function Home() {
     initialTitle?: string;
   }>({ isOpen: false, mode: 'create', task: null });
 
-  // ============================================================================
-  // 2. Data Fetching & Sync (データ通信関連)
-  // ============================================================================
-
-  const fetchTasks = useCallback(
-    async (isSilent = false) => {
-      if (!isAuthenticated) return;
-      if (!isSilent) setIsTasksLoading(true);
-
-      const statuses = ['INBOX', 'Waiting', 'Going'];
-
-      try {
-        await fetchLastSyncTime();
-
-        const res = await fetch(
-          '/api/v1/pieces?area=Work&excludeStatus=Canceled',
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-            },
-          },
-        );
-
-        if (!res.ok) {
-          console.warn(`Failed to fetch tasks: ${res.statusText}`);
-          return;
-        }
-
-        const data = await res.json();
-
-        setTasks(
-          data.pieces.filter((task: Task) => {
-            if (task.source === 'LOCAL') return task.status != 'Done';
-            return task.area === 'Work' && statuses.includes(task.status || '');
-          }),
-        );
-
-        const completed = data.pieces.filter(
-          (task: Task) => task.status === 'Done',
-        );
-        setCompletedTasks(completed);
-
-        const overdue = data.pieces.filter(
-          (task: Task) =>
-            isPastDate(task.date) &&
-            task.status !== 'Done' &&
-            task.status !== 'Canceled',
-        );
-
-        setOverdueTasks(overdue);
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        setIsTasksLoading(false);
-      }
-    },
-    [isAuthenticated],
-  );
-
-  const fetchLastSyncTime = useCallback(async () => {
-    let lastSyncTime = null;
-    try {
-      const res = await fetch('/api/v1/pieces/sync', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-      });
-
-      if (!res.ok) {
-        console.warn(`Failed to fetch last sync time: ${res.statusText}`);
-        return;
-      }
-
-      const syncInfo = await res.json();
-      lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
-      setLastSyncTime(lastSyncTime);
-    } catch (e) {
-      console.warn(e);
-    }
-    return lastSyncTime;
-  }, []);
-
-  const handleNotionSync = useCallback(
-    async (force = false) => {
-      setIsSyncing(true);
-      try {
-        // 最終同期時刻を取得
-        const lastSyncTime = (await fetchLastSyncTime()) || 0;
-
-        const now = new Date().getTime();
-        const intervalMs = appSettings.syncInterval * 60 * 1000;
-
-        if (force || now - lastSyncTime >= intervalMs) {
-          await fetch('/api/v1/pieces/sync', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-            },
-          });
-        } else {
-          console.log('Auto sync skipped (already synced by another device)');
-        }
-
-        await fetchTasks(true);
-      } catch (e) {
-        console.warn(e);
-      } finally {
-        setIsSyncing(false);
-      }
-    },
-    [fetchTasks, appSettings.syncInterval],
+  const {
+    tasks,
+    setTasks,
+    completedTasks,
+    overdueTasks,
+    isTasksLoading,
+    lastSyncTime,
+    fetchTasks,
+    handleNotionSync,
+    handleRescheduleOverdue,
+  } = useTaskSync(
+    isAuthenticated,
+    incrementRequest,
+    decrementRequest,
+    appSettings.syncInterval,
   );
 
   // ============================================================================
-  // 3. Handlers (イベント・UI操作関連)
+  // 2. Handlers (イベント・UI操作関連)
   // ============================================================================
 
   // View Navigation
@@ -254,35 +151,14 @@ export default function Home() {
     }
   };
 
-  const handleRescheduleOverdue = async () => {
-    try {
-      await fetch('/api/v1/pieces/reschedule-overdue', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-      });
-      await fetchTasks(true);
-    } catch (e) {
-      console.warn(e);
-      throw e;
-    }
-  };
-
   // ============================================================================
-  // 4. Helpers (計算・フォーマット)
+  // 3. Helpers (計算・フォーマット)
   // ============================================================================
-
-  const getCurrentYearMonth = () => {
-    const now = new Date();
-    return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
-  };
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   // ============================================================================
-  // 5. Effects (ライフサイクル・イベント監視)
+  // 4. Effects (ライフサイクル・イベント監視)
   // ============================================================================
 
   // Auth Init
@@ -337,7 +213,7 @@ export default function Home() {
   });
 
   // ============================================================================
-  // 6. Render (UI描画)
+  // 5. Render (UI描画)
   // ============================================================================
 
   if (isAuthChecking) return <div className="h-screen bg-black" />;
@@ -380,7 +256,6 @@ export default function Home() {
           onLock={handleLogout}
         />
 
-        {/* --- Sidebar Navigation --- */}
         {isMobileMenuOpen && (
           <div
             className="fixed inset-0 bg-black/60 z-30 sm:hidden backdrop-blur-sm"
@@ -389,10 +264,10 @@ export default function Home() {
         )}
 
         <aside
-          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-[120%]'} sm:relative sm:translate-x-0 group w-64 sm:w-18 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
+          className={`fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-[-120%]'} sm:relative sm:translate-x-0 group w-64 sm:w-18 md:w-64 sm:hover:w-64 noir-glass flex flex-col m-2 md:m-4 rounded-2xl p-3 md:p-4 shrink-0 overflow-hidden`}
         >
           <div className="flex items-center gap-4 mb-8 px-2 mt-2">
-            <div className="w-8 h-8 bg-[#0070f3] rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
+            <div className="w-8 h-8 bg-neon rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
               G
             </div>
             <div className="text-xl font-bold text-white whitespace-nowrap sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity duration-300">
@@ -424,18 +299,6 @@ export default function Home() {
 
           <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
             <button
-              onClick={() => handleNotionSync(true)}
-              disabled={isSyncing}
-              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon"
-            >
-              <RefreshCw
-                className={`w-5 h-5 shrink-0 ${isSyncing ? 'animate-spin text-neon' : ''}`}
-              />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
-                SyncNotion
-              </span>
-            </button>
-            <button
               onClick={handleLogout}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400"
             >
@@ -457,6 +320,7 @@ export default function Home() {
             setIsQuickAlarmOpen={setIsQuickAlarmOpen}
             setIsActionPanelOpen={setIsActionPanelOpen}
             appSettings={appSettings}
+            isSyncing={activeRequests > 0}
           />
 
           {currentView === 'home' && (
@@ -535,17 +399,22 @@ export default function Home() {
             initialTitle={taskModalConfig.initialTitle}
             onClose={closeTaskModal}
             onSuccess={() => fetchTasks(true)}
+            onSyncStart={incrementRequest}
+            onSyncEnd={decrementRequest}
           />
           <ActionPanel
             isOpen={isActionPanelOpen}
-            onClose={() => setIsActionPanelOpen(false)}
             isWakeLockActive={isWakeLockActive}
-            onNavigateToNotifications={() => handleViewChange('notifications')}
             notifications={notifications}
-            onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
             lastSyncTime={lastSyncTime}
             overdueTasks={overdueTasks}
+            onClose={() => setIsActionPanelOpen(false)}
+            onNavigateToNotifications={() => handleViewChange('notifications')}
+            onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
             onRescheduleOverdue={handleRescheduleOverdue}
+            onSyncStart={incrementRequest}
+            onSyncEnd={decrementRequest}
+            onNotionSync={() => handleNotionSync(true)}
           />
         </main>
       </div>

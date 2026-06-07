@@ -9,7 +9,7 @@ import {
   HardDrive,
   Award,
 } from 'lucide-react';
-import { getStatusColor, sortTasksByStatus } from '@/utils/dateUtils';
+import { getStatusColor, sortTasksByStatus } from '@/utils/defineUtils';
 
 interface HomeViewProps {
   tasks: Task[];
