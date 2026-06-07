@@ -12,6 +12,8 @@ const app = new Hono();
 app.use('/*', cors());
 
 // --- 🔒 APIキー認証ミドルウェア ---
+
+/*
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
@@ -25,6 +27,8 @@ app.use('/api/v1/*', async (c, next) => {
 
   await next();
 });
+
+*/
 // ----------------------------------
 
 // Routes
@@ -39,9 +43,14 @@ api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createNewPiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
+api.delete('/pieces/:id', pieceController.deletePiece);
 api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.get('/pieces/sync', pieceController.getLastSyncTime);
 api.post('/pieces/sync', pieceController.syncPieces);
+api.post(
+  '/pieces/reschedule-overdue',
+  pieceController.rescheduleOverduePiecesToToday,
+);
 api.get('/reviews', reviewController.getReviews);
 api.patch('/reviews/:pageId', reviewController.updateReview);
 

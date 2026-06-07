@@ -13,7 +13,9 @@ import {
   Zap,
   AlertTriangle,
   Clock,
+  CalendarDays,
 } from 'lucide-react';
+import { useToast } from '@/components/Toast';
 
 interface Props {
   isOpen: boolean;
@@ -22,6 +24,9 @@ interface Props {
   onNavigateToNotifications: () => void;
   notifications: any[];
   onOpenVoiceCapture: () => void;
+  lastSyncTime: number | null | undefined;
+  overdueTasks?: any[];
+  onRescheduleOverdue?: () => Promise<void>;
 }
 
 export default function ActionPanel({
@@ -31,9 +36,13 @@ export default function ActionPanel({
   onNavigateToNotifications,
   notifications = [],
   onOpenVoiceCapture,
+  lastSyncTime,
+  overdueTasks = [],
+  onRescheduleOverdue,
 }: Props) {
   const [isRendered, setIsRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const { addToast } = useToast();
 
   // 未読の通知を新しい順にソートし、最大2件まで抽出
   const recentUnreadNotifications = useMemo(() => {
@@ -56,6 +65,50 @@ export default function ActionPanel({
       return () => clearTimeout(timer);
     }
   }, [isOpen]);
+
+  // Escキーでモーダルを閉じる関数
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // 期限切れタスクを一括更新するハンドラー
+  const handleRescheduleClick = async () => {
+    if (!onRescheduleOverdue) return;
+
+    onClose();
+
+    try {
+      await onRescheduleOverdue();
+      addToast(
+        `${overdueTasks.length} Overdue tasks have been moved to today.`,
+        'info',
+      );
+    } catch (error) {
+      console.error('Failed to reschedule:', error);
+      addToast('タスクの移動に失敗しました', 'info');
+    }
+  };
+
+  // 最終同期日時のフォーマット関数
+  const formatSyncTime = (dateStr?: number | null | undefined) => {
+    if (!dateStr) return 'Never synced';
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return 'Unknown';
+    return d.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: 'Asia/Tokyo',
+    });
+  };
 
   if (!isRendered) return null;
 
@@ -135,7 +188,6 @@ export default function ActionPanel({
             </div>
           </div>
 
-          {/* 最新の通知 */}
           <section>
             <div className="flex items-center justify-between mb-3 px-1">
               <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
@@ -143,81 +195,120 @@ export default function ActionPanel({
               </h3>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col gap-4">
-              {/* 通知リストの描画 */}
-              {recentUnreadNotifications.length > 0 ? (
-                <div className="flex flex-col gap-5">
-                  {recentUnreadNotifications.map((n, index) => {
-                    const isAlert = n.category === 'ALERT';
+            <div className="flex flex-col gap-3">
+              {/* 同期ステータス＆期限切れタスクのカード */}
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-zinc-400" />
+                    <span className="text-sm font-bold text-zinc-300">
+                      Last Synced
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-zinc-500">
+                    {formatSyncTime(lastSyncTime)}
+                  </span>
+                </div>
 
-                    return (
-                      <div
-                        key={n.id}
-                        className="relative flex gap-4 items-start group"
+                {/* 期限切れタスクがある場合のみ表示されるセクション */}
+                {overdueTasks.length > 0 && (
+                  <>
+                    <div className="h-px w-full bg-white/10" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-amber-400">
+                        <AlertTriangle className="w-4 h-4" />
+                        <span className="text-sm font-bold">
+                          {overdueTasks.length} Overdue Tasks
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleRescheduleClick}
+                        className="bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 active:scale-95"
                       >
-                        {/* 左側のアクセントライン（最初のアイテムのみ強調などでもOKですが、今回は個別に付与） */}
-                        <div
-                          className={`absolute -left-5 top-0 w-1 h-full rounded-r-md ${isAlert ? 'bg-red-500' : 'bg-blue-500'}`}
-                        />
+                        <CalendarDays className="w-3 h-3" />
+                        <span>Move to Today</span>
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
 
+              {/* 通知リストのカード */}
+              <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col gap-4">
+                {recentUnreadNotifications.length > 0 ? (
+                  <div className="flex flex-col gap-5">
+                    {recentUnreadNotifications.map((n) => {
+                      const isAlert = n.category === 'ALERT';
+
+                      return (
                         <div
-                          className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
-                            isAlert
-                              ? 'bg-red-500/20 text-red-400'
-                              : 'bg-blue-500/20 text-blue-400'
-                          }`}
+                          key={n.id}
+                          className="relative flex gap-4 items-start group"
                         >
-                          {isAlert ? (
-                            <AlertTriangle className="w-5 h-5" />
-                          ) : (
-                            <Bell className="w-5 h-5" />
-                          )}
-                        </div>
+                          {/* 左側のアクセントライン */}
+                          <div
+                            className={`absolute -left-5 top-0 w-1 h-full rounded-r-md ${isAlert ? 'bg-red-500' : 'bg-blue-500'}`}
+                          />
 
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-sm font-bold text-zinc-100 mb-1 truncate">
-                            {n.title}
-                          </h4>
-                          <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
-                            {n.content}
-                          </p>
-                          <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-600 mt-2">
-                            <Clock className="w-3 h-3" />
-                            {new Date(n.created_at).toLocaleString('ja-JP', {
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
+                          <div
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+                              isAlert
+                                ? 'bg-red-500/20 text-red-400'
+                                : 'bg-blue-500/20 text-blue-400'
+                            }`}
+                          >
+                            {isAlert ? (
+                              <AlertTriangle className="w-5 h-5" />
+                            ) : (
+                              <Bell className="w-5 h-5" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm font-bold text-zinc-100 mb-1 truncate">
+                              {n.title}
+                            </h4>
+                            <p className="text-xs text-zinc-400 leading-relaxed line-clamp-2">
+                              {n.content}
+                            </p>
+                            <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-600 mt-2">
+                              <Clock className="w-3 h-3" />
+                              {new Date(n.created_at).toLocaleString('ja-JP', {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                /* 未読通知がない場合の表示 */
-                <div className="py-6 flex flex-col items-center justify-center text-zinc-500">
-                  <Bell className="w-6 h-6 mb-2 opacity-20" />
-                  <p className="text-xs font-bold">You're all caught up!</p>
-                </div>
-              )}
+                      );
+                    })}
+                  </div>
+                ) : (
+                  /* 未読通知がない場合の表示 */
+                  <div className="py-4 flex flex-col items-center justify-center text-zinc-500">
+                    <Bell className="w-6 h-6 mb-2 opacity-20" />
+                    <p className="text-xs font-bold">You're all caught up!</p>
+                  </div>
+                )}
 
-              {/* 区切り線 */}
-              {recentUnreadNotifications.length > 0 && (
-                <div className="h-px w-full bg-white/5" />
-              )}
+                {/* 区切り線 */}
+                {recentUnreadNotifications.length > 0 && (
+                  <div className="h-px w-full bg-white/5" />
+                )}
 
-              {/* 全画面表示への遷移ボタン */}
-              <button
-                onClick={() => {
-                  onClose();
-                  onNavigateToNotifications();
-                }}
-                className="w-full py-3 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors active:scale-95"
-              >
-                View all notifications <ChevronRight className="w-3 h-3" />
-              </button>
+                {/* 全画面表示への遷移ボタン */}
+                <button
+                  onClick={() => {
+                    onClose();
+                    onNavigateToNotifications();
+                  }}
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors active:scale-95"
+                >
+                  View all notifications <ChevronRight className="w-3 h-3" />
+                </button>
+              </div>
             </div>
           </section>
 

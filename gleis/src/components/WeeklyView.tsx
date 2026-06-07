@@ -244,7 +244,6 @@ export default function WeeklyView({
                       </div>
                     </div>
                   ))}
-                  {/*opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity  */}
                 </div>
               </div>
             );

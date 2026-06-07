@@ -2,6 +2,7 @@ export interface Task {
   id: string;
   title: string;
   status: string;
+  note: string;
   date: string | null;
   source: 'NOTION' | 'LOCAL';
   area: string | null;

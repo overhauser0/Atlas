@@ -33,6 +33,9 @@ import CommandPalette from '@/components/CommandPalette';
 import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
+import { isPastDate } from '@/utils/dateUtils';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 
 export default function Home() {
   // ============================================================================
@@ -59,8 +62,10 @@ export default function Home() {
   // Data (タスク・通知データ)
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [notifications, setNotifications] = useState<any[]>([]);
 
   // Modals & Panels (各種ポップアップの開閉状態)
@@ -89,6 +94,8 @@ export default function Home() {
       const statuses = ['INBOX', 'Waiting', 'Going'];
 
       try {
+        await fetchLastSyncTime();
+
         const res = await fetch(
           '/api/v1/pieces?area=Work&excludeStatus=Canceled',
           {
@@ -118,6 +125,15 @@ export default function Home() {
           (task: Task) => task.status === 'Done',
         );
         setCompletedTasks(completed);
+
+        const overdue = data.pieces.filter(
+          (task: Task) =>
+            isPastDate(task.date) &&
+            task.status !== 'Done' &&
+            task.status !== 'Canceled',
+        );
+
+        setOverdueTasks(overdue);
       } catch (e) {
         console.warn(e);
       } finally {
@@ -127,23 +143,38 @@ export default function Home() {
     [isAuthenticated],
   );
 
+  const fetchLastSyncTime = useCallback(async () => {
+    let lastSyncTime = null;
+    try {
+      const res = await fetch('/api/v1/pieces/sync', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+      });
+
+      if (!res.ok) {
+        console.warn(`Failed to fetch last sync time: ${res.statusText}`);
+        return;
+      }
+
+      const syncInfo = await res.json();
+      lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
+      setLastSyncTime(lastSyncTime);
+    } catch (e) {
+      console.warn(e);
+    }
+    return lastSyncTime;
+  }, []);
+
   const handleNotionSync = useCallback(
     async (force = false) => {
       setIsSyncing(true);
       try {
-        const res = await fetch('/api/v1/pieces/sync', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-          },
-        });
+        // 最終同期時刻を取得
+        const lastSyncTime = (await fetchLastSyncTime()) || 0;
 
-        if (!res.ok)
-          throw new Error(`Failed to check sync status: ${res.statusText}`);
-
-        const syncInfo = await res.json();
-        const lastSyncTime = new Date(syncInfo.lastSyncTime).getTime();
         const now = new Date().getTime();
         const intervalMs = appSettings.syncInterval * 60 * 1000;
 
@@ -223,6 +254,22 @@ export default function Home() {
     }
   };
 
+  const handleRescheduleOverdue = async () => {
+    try {
+      await fetch('/api/v1/pieces/reschedule-overdue', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+      });
+      await fetchTasks(true);
+    } catch (e) {
+      console.warn(e);
+      throw e;
+    }
+  };
+
   // ============================================================================
   // 4. Helpers (計算・フォーマット)
   // ============================================================================
@@ -277,89 +324,17 @@ export default function Home() {
   }, [isAuthenticated, appSettings.syncInterval, handleNotionSync]);
 
   // iOS Keyboard Fix
-  useEffect(() => {
-    const handleTouchStart = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        target.tagName !== 'INPUT' &&
-        target.tagName !== 'TEXTAREA' &&
-        target.tagName !== 'SELECT' &&
-        !target.isContentEditable
-      ) {
-        if (document.activeElement instanceof HTMLElement)
-          document.activeElement.blur();
-      }
-    };
-    document.addEventListener('touchstart', handleTouchStart, {
-      passive: true,
-      capture: true,
-    });
-    return () =>
-      document.removeEventListener('touchstart', handleTouchStart, {
-        capture: true,
-      });
-  }, []);
+  useIosKeyboardFix();
 
-  // Keyboard Shortcuts (Cmd/Ctrl)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const active = document.activeElement as HTMLElement;
-      const isInput =
-        active?.tagName === 'INPUT' ||
-        active?.tagName === 'TEXTAREA' ||
-        active?.isContentEditable;
-      if (isInput) return;
-
-      const isMod = e.metaKey || e.ctrlKey;
-      if (!isMod) return;
-
-      switch (e.key) {
-        case 'k':
-          e.preventDefault();
-          setIsCommandPaletteOpen((p) => !p);
-          break;
-        case 's':
-          e.preventDefault();
-          handleNotionSync(true);
-          break;
-        case 'l':
-          e.preventDefault();
-          handleLogout();
-          break;
-        case 't':
-          e.preventDefault();
-          openCreateTaskModal();
-          break;
-      }
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [handleNotionSync, openCreateTaskModal]);
-
-  // Keyboard Shortcuts (Numbers for Views)
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const active = document.activeElement as HTMLElement;
-      const isInput =
-        active?.tagName === 'INPUT' ||
-        active?.tagName === 'TEXTAREA' ||
-        active?.isContentEditable;
-      if (isInput || e.ctrlKey || e.altKey || e.metaKey) return;
-
-      const keyMap: Record<string, ViewType> = {
-        '0': 'home',
-        '1': 'weekly',
-        '2': 'kanban',
-        '3': 'calendar',
-        '4': 'review',
-        '5': 'notifications',
-      };
-
-      if (keyMap[e.key]) handleViewChange(keyMap[e.key]);
-    };
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  // Keyboard Shortcuts
+  useKeyboardShortcuts({
+    onOpenCommandPalette: () => setIsCommandPaletteOpen((p) => !p),
+    onSync: () => handleNotionSync(true),
+    onLogout: handleLogout,
+    onCreateTask: () => openCreateTaskModal(),
+    onOpenActionPanel: () => setIsActionPanelOpen((p) => !p),
+    onNavigate: (view) => handleViewChange(view),
+  });
 
   // ============================================================================
   // 6. Render (UI描画)
@@ -476,7 +451,7 @@ export default function Home() {
         <main className="flex-1 flex flex-col m-2 md:m-4 md:ml-0 min-w-0">
           <HeaderView
             currentTime={currentTime}
-            hasUnread={unreadCount > 0}
+            hasNotifications={unreadCount > 0 || overdueTasks.length > 0}
             setIsMobileMenuOpen={setIsMobileMenuOpen}
             isQuickAlarmOpen={isQuickAlarmOpen}
             setIsQuickAlarmOpen={setIsQuickAlarmOpen}
@@ -568,6 +543,9 @@ export default function Home() {
             onNavigateToNotifications={() => handleViewChange('notifications')}
             notifications={notifications}
             onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
+            lastSyncTime={lastSyncTime}
+            overdueTasks={overdueTasks}
+            onRescheduleOverdue={handleRescheduleOverdue}
           />
         </main>
       </div>

@@ -1,6 +1,7 @@
 import { Piece } from '../schemas/piece.schema';
 import * as notionRepo from '../repositories/notion.repository';
-import * as pgRepo from '../repositories/postgres.repository';
+import * as postgresRepo from '../repositories/postgres.repository';
+import { syncNotionToLocal } from './sync.service';
 
 /**
  * Pieceを作成し、適切に振り分ける
@@ -12,10 +13,10 @@ export const createNewPiece = async (piece: Piece) => {
     // 2. 作成されたデータをローカルキャッシュに同期
     piece.id = page.id;
 
-    return await pgRepo.upsertNotionPieceCache(piece, new Date(), page);
+    return await postgresRepo.upsertNotionPieceCache(piece, new Date(), page);
   } else {
     // ローカル専用タスクとして保存
-    return await pgRepo.insertLocalPiece(piece);
+    return await postgresRepo.insertLocalPiece(piece);
   }
 };
 
@@ -28,9 +29,9 @@ export const getPiecesFromCache = async (filters: {
   excludeStatus?: string[];
 }) => {
   // 古いローカルタスクは削除する
-  await pgRepo.deleteOldDoneLocalPieces();
+  await postgresRepo.deleteOldDoneLocalPieces();
 
-  return await pgRepo.getPieces(filters);
+  return await postgresRepo.getPieces(filters);
 };
 
 export const updatePiece = async (id: string, payload: any) => {
@@ -46,13 +47,67 @@ export const updatePiece = async (id: string, payload: any) => {
     await notionRepo.updatePiecePage(id, updates);
 
     // 2. Postgres のキャッシュを更新
-    return await pgRepo.updateNotionPieceCache(id, updates);
+    return await postgresRepo.updateNotionPieceCache(id, updates);
   } else {
     // ローカルPieceのみ更新
-    return await pgRepo.updateLocalPiece(id, updates);
+    return await postgresRepo.updateLocalPiece(id, updates);
   }
 };
 
 export const getPieceBlocks = async (id: string) => {
   return await notionRepo.getPageBlocks(id);
+};
+
+export const deletePiece = async (id: string) => {
+  // 1. タスクがどちらのSourceか特定する
+  const piece = await postgresRepo.getPieceById(id);
+
+  if (!piece) {
+    throw new Error(`Piece with id ${id} not found`);
+  }
+
+  // 2. Sourceに応じて削除処理を分岐
+  if (piece.source === 'NOTION') {
+    // Notion側をアーカイブ
+    await notionRepo.archivePiecePage(id);
+    // ローカルキャッシュを削除
+    await postgresRepo.deleteNotionPieceCache(id);
+  } else if (piece.source === 'LOCAL') {
+    // ローカルテーブルから削除
+    await postgresRepo.deleteLocalPiece(id);
+  }
+
+  return { success: true, id, source: piece.source };
+};
+
+export const rescheduleOverduePiecesToToday = async () => {
+  await syncNotionToLocal();
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const overduePieces = await postgresRepo.getPieces({
+    area: 'Work',
+    excludeStatus: ['Done', 'Canceled'],
+    beforeDate: todayStr,
+  });
+
+  const updatedPieces = [];
+  for (const piece of overduePieces) {
+    try {
+      if (piece.source === 'NOTION') {
+        await notionRepo.updatePiecePage(piece.id, { date: todayStr });
+        const updated = await postgresRepo.updateNotionPieceCache(piece.id, {
+          date: todayStr,
+        });
+        if (updated) updatedPieces.push(updated);
+      } else if (piece.source === 'LOCAL') {
+        const updated = await postgresRepo.updateLocalPiece(piece.id, {
+          date: todayStr,
+        });
+        if (updated) updatedPieces.push(updated);
+      }
+    } catch (error) {
+      console.error(`Error updating piece ${piece.id}:`, error);
+    }
+  }
+  return updatedPieces;
 };

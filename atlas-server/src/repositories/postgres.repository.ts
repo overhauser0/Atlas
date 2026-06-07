@@ -95,6 +95,7 @@ export const getPieces = async (filters: {
   flags?: string[];
   topics?: string[];
   excludeStatus?: string[];
+  beforeDate?: string;
 }) => {
   // 共通のフィルタを適用するヘルパー
   const applyCommonFilters = (qb: any) => {
@@ -110,6 +111,9 @@ export const getPieces = async (filters: {
     }
     if (filters.excludeStatus && filters.excludeStatus.length > 0) {
       q = q.where('status', 'not in', filters.excludeStatus);
+    }
+    if (filters.beforeDate) {
+      q = q.where('date', '<', filters.beforeDate);
     }
     return q;
   };
@@ -143,6 +147,30 @@ export const getPieces = async (filters: {
 
   // 4. 全体を日付順でソート
   return combined.sort((a, b) => pickDate(b) - pickDate(a));
+};
+
+/**
+ * [Read] IDからタスクを取得し、Sourceを特定する
+ * @param id タスクID
+ */
+export const getPieceById = async (id: string) => {
+  // まずローカルを検索
+  const local = await db
+    .selectFrom('local_pieces')
+    .selectAll()
+    .where('id', '=', id)
+    .executeTakeFirst();
+  if (local) return { ...local, source: 'LOCAL' };
+
+  // なければNotionキャッシュを検索
+  const notion = await db
+    .selectFrom('notion_pieces_cache')
+    .selectAll()
+    .where('id', '=', id)
+    .executeTakeFirst();
+  if (notion) return { ...notion, source: 'NOTION' };
+
+  return null;
 };
 
 // ------------------------------------------
@@ -248,6 +276,17 @@ export const deleteStaleNotionCache = async (activeIds: string[]) => {
     .execute();
 };
 
+/**
+ * [Delete] Notionキャッシュを削除する
+ * @param id Notion Page ID
+ */
+export const deleteNotionPieceCache = async (id: string) => {
+  return await db
+    .deleteFrom('notion_pieces_cache')
+    .where('id', '=', id)
+    .executeTakeFirst();
+};
+
 // ------------------------------------------
 // Local Pieces
 // ------------------------------------------
@@ -294,6 +333,17 @@ export const updateLocalPiece = async (id: string, updates: Partial<Piece>) => {
   if (updatedPiece) (updatedPiece as any).source = 'LOCAL';
 
   return updatedPiece;
+};
+
+/**
+ * [Delete] ローカルタスクを削除する
+ * @param id ローカルタスクID
+ */
+export const deleteLocalPiece = async (id: string) => {
+  return await db
+    .deleteFrom('local_pieces')
+    .where('id', '=', id)
+    .executeTakeFirst();
 };
 
 /**

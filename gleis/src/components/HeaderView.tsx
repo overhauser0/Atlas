@@ -4,7 +4,7 @@ import { Menu, Bell } from 'lucide-react';
 
 interface HeaderViewProps {
   currentTime: Date | null;
-  hasUnread: boolean;
+  hasNotifications: boolean;
   appSettings: any;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
   isQuickAlarmOpen: boolean;
@@ -14,7 +14,7 @@ interface HeaderViewProps {
 
 export default function HeaderView({
   currentTime,
-  hasUnread,
+  hasNotifications,
   appSettings,
   setIsMobileMenuOpen,
   isQuickAlarmOpen,
@@ -73,7 +73,7 @@ export default function HeaderView({
         </button>
         <button
           onClick={() => setIsActionPanelOpen(true)}
-          className={`relative w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full ${hasUnread ? 'text-yellow-400' : 'text-zinc-300'} transition-all active:scale-95 border border-white/5`}
+          className={`relative w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full ${hasNotifications ? 'text-yellow-400' : 'text-zinc-300'} transition-all active:scale-95 border border-white/5`}
           aria-label="Open Control Center"
         >
           <Bell className="w-5 h-5" />

@@ -89,16 +89,21 @@ export const updatePiecePage = async (
   if (piece.area) properties._Area = { select: { name: piece.area } };
   if (piece.type) properties._Type = { select: { name: piece.type } };
 
-  if (piece.topics) {
+  if (piece.topics !== undefined) {
     properties._Topics = {
       multi_select: piece.topics.map((t) => ({ name: t })),
     };
   }
-  if (piece.flags) {
-    properties._Flags = { multi_select: piece.flags.map((f) => ({ name: f })) };
+
+  if (piece.flags !== undefined) {
+    properties._Flags = {
+      multi_select: piece.flags.map((f) => ({ name: f })),
+    };
   }
-  if (piece.note) {
-    properties.Note = { rich_text: [{ text: { content: piece.note } }] };
+  if (piece.note !== undefined) {
+    properties.Note = {
+      rich_text: piece.note ? [{ text: { content: piece.note } }] : [],
+    };
   }
   if (piece.date !== undefined) {
     properties.Date = { date: piece.date ? { start: piece.date } : null };
@@ -110,6 +115,17 @@ export const updatePiecePage = async (
   return await notionClient.pages.update({
     page_id: pageId,
     properties,
+  });
+};
+
+/**
+ * [Delete] Notionのページをアーカイブ（論理削除）する
+ * @param pageId Notion Page ID
+ */
+export const archivePiecePage = async (pageId: string) => {
+  return await notionClient.pages.update({
+    page_id: pageId,
+    archived: true, // これをtrueにすることでNotionのゴミ箱に入ります
   });
 };
 

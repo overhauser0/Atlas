@@ -114,10 +114,7 @@ export default function StatsModal({
               Performance
             </h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-gray-500 hover:text-white bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
-          >
+          <button onClick={onClose} className="noir-icon-btn">
             <X className="w-5 h-5" />
           </button>
         </div>

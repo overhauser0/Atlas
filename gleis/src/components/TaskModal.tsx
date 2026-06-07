@@ -1,6 +1,14 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { X, ExternalLink, LinkIcon, Text, Calendar } from 'lucide-react';
+import {
+  X,
+  ExternalLink,
+  LinkIcon,
+  Text,
+  Calendar,
+  MessageSquare,
+  Trash2,
+} from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/dateUtils';
 import { useToast } from '@/components/Toast';
@@ -26,6 +34,7 @@ export default function TaskModal({
 
   const [editForm, setEditForm] = useState({
     title: '',
+    note: '',
     status: 'INBOX',
     date: '',
     source: 'LOCAL',
@@ -35,41 +44,39 @@ export default function TaskModal({
   const [isSaving, setIsSaving] = useState(false);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const focusTitleInput = () => {
+    setTimeout(() => {
+      titleInputRef.current?.focus();
+    }, 100);
+  };
 
   useEffect(() => {
     if (isOpen) {
       if (mode === 'edit' && task) {
         setEditForm({
           title: task.title || '',
+          note: task.note || '',
           status: task.status || 'INBOX',
           date: task.date ? task.date.split('T')[0] : '',
           source: task.source || 'LOCAL',
           id: task.id || '',
           url: task.url || '',
         });
+        if ((task.title || '') === '') focusTitleInput();
       } else {
         setEditForm({
           title: initialTitle || '',
+          note: '',
           status: 'INBOX',
           date: new Date().toISOString().split('T')[0],
           source: 'LOCAL',
           id: '',
           url: '',
         });
+        if ((initialTitle || '') === '') focusTitleInput();
       }
     }
   }, [isOpen, mode, task]);
-
-  // モーダルが開いた時にタイトルが空欄なら（＝新規追加なら）フォーカスを当てる
-  useEffect(() => {
-    if (isOpen) {
-      // モーダルのDOMが描画されるのを少し待ってからフォーカスする
-      const timer = setTimeout(() => {
-        titleInputRef.current?.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen]);
 
   // Escキーでモーダルを閉じる関数
   useEffect(() => {
@@ -94,6 +101,7 @@ export default function TaskModal({
 
     const payload = {
       title: editForm.title,
+      note: editForm.note,
       status: editForm.status,
       date: payloadDate,
       source: isEdit ? task.source : editForm.source,
@@ -132,6 +140,37 @@ export default function TaskModal({
       });
   };
 
+  const handleDelete = () => {
+    if (!task?.id) return;
+
+    // ブラウザ標準の確認ダイアログを表示
+    if (!window.confirm('本当にこのタスクを削除しますか？')) {
+      return;
+    }
+
+    // 1. 待たずにすぐモーダルを閉じる
+    onClose();
+
+    // 2. バックグラウンドで削除APIを叩く
+    fetch(`/api/v1/pieces/${task.id}`, {
+      method: 'DELETE',
+      headers: {
+        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+      },
+    })
+      .then(async (response) => {
+        if (!response.ok)
+          throw new Error(`Server Error: ${response.statusText}`);
+        // 3. 成功したら一覧を再取得し、Toastを表示
+        onSuccess();
+        addToast('タスクを削除しました', 'info');
+      })
+      .catch((e) => {
+        console.warn(e);
+        addToast('タスクの削除に失敗しました', 'alert');
+      });
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -141,26 +180,33 @@ export default function TaskModal({
         }
       }}
     >
-      <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-2xl">
+      <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-[0_0_60px_-15px_rgba(0,112,243,0.15)]">
         <div className="flex items-center gap-2">
           <h2 className="text-lg font-bold text-white flex-1">
             {mode === 'create' ? 'New Task' : 'Edit Task'}
           </h2>
+          {mode === 'edit' && task?.id && (
+            <button
+              onClick={handleDelete}
+              type="button"
+              className="noir-icon-btn hover:text-red-400"
+              title="タスクを削除"
+            >
+              <Trash2 className="w-5 h-5" />
+            </button>
+          )}
           {editForm.source === 'NOTION' && task?.id && (
             <a
               href={`https://notion.so/${task.id.replace(/-/g, '')}`}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
+              className="noir-icon-btn"
             >
-              <ExternalLink className="w-4 h-4" />
+              <ExternalLink className="w-5 h-5" />
             </a>
           )}
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-white shrink-0"
-          >
+          <button onClick={onClose} className="noir-icon-btn">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -224,6 +270,20 @@ export default function TaskModal({
                 <span className="text-xs">{s}</span>
               </button>
             ))}
+          </div>
+          <div className="relative flex-1">
+            <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
+              <MessageSquare className="h-4 w-4 text-gray-500" />
+            </div>
+            <textarea
+              value={editForm.note}
+              onChange={(e) =>
+                setEditForm({ ...editForm, note: e.target.value })
+              }
+              rows={2}
+              className="w-full bg-black/50 border border-white/10 rounded-xl p-3 pl-9 text-white text-sm focus:border-neon focus:outline-none resize-none"
+              placeholder="Note... (optional)"
+            />
           </div>
           <div className="flex items-center gap-2">
             <div className="relative flex-1">

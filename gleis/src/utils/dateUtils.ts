@@ -47,6 +47,15 @@ export const isOverdue = (dueDateStr: string | null): boolean => {
   return taskDate < thisMonday;
 };
 
+export const isPastDate = (dateStr: string | null): boolean => {
+  if (!dateStr) return false;
+  const date = new Date(dateStr);
+  date.setHours(0, 0, 0, 0);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+};
+
 export const mergeNewDateWithOriginalTime = (
   originalDateStr: string | null,
   newDateStr: string,

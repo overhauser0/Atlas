@@ -72,12 +72,36 @@ export const createNewPiece = async (c: Context) => {
   }
 };
 
+export const deletePiece = async (c: Context) => {
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ message: 'ID is required' }, 400);
+  }
+  try {
+    const result = await pieceService.deletePiece(id);
+    return c.json(result);
+  } catch (error: any) {
+    console.error(`Piece Delete Error ${c.req.param('id')}:`, error);
+    return c.json({ message: error.message || 'Failed to delete piece' }, 500);
+  }
+};
+
 export const getLastSyncTime = async (c: Context) => {
   try {
     const lastSyncTime = await syncService.getLastSyncTime();
     return c.json({ lastSyncTime });
   } catch (error: any) {
     console.warn('Error fetching last sync time:', error);
+    return c.json({ message: error.message }, 500);
+  }
+};
+
+export const rescheduleOverduePiecesToToday = async (c: Context) => {
+  try {
+    const updatedPieces = await pieceService.rescheduleOverduePiecesToToday();
+    return c.json({ pieces: updatedPieces });
+  } catch (error: any) {
+    console.error('Error rescheduling overdue pieces:', error);
     return c.json({ message: error.message }, 500);
   }
 };
