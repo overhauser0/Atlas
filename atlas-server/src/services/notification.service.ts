@@ -39,7 +39,6 @@ export const getNotificationHistory = async (
 ) => {
   const { limit, offset, isRead } = params;
 
-  // db取得ロジック（以下は Kysely の場合の例です。既存のpostgresRepoの呼び出しに合わせて調整してください）
   let query = postgresRepo.db.selectFrom('notifications').selectAll();
 
   if (isRead !== undefined) {

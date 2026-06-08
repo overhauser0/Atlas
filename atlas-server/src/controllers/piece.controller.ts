@@ -52,7 +52,6 @@ export const updatePiece = async (c: Context) => {
     const body = await c.req.json();
     const updatedPiece = await pieceService.updatePiece(id, body);
 
-    // 💡 修正: task ではなく piece に統一
     return c.json({ piece: updatedPiece }, 200);
   } catch (error: any) {
     console.error(`❌ Update Piece Error (${c.req.param('id')}):`, error);

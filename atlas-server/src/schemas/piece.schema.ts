@@ -59,4 +59,7 @@ export const PieceSchema = z.object({
     .transform((v) => v ?? ''),
 });
 
+export const DbPieceSchema = PieceSchema.omit({ source: true });
+
 export type Piece = z.infer<typeof PieceSchema>;
+export type DbPiece = z.infer<typeof DbPieceSchema>;

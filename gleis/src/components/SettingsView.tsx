@@ -166,7 +166,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                 type="time"
                 value={appSettings.alarmTime || ''}
                 onChange={(e) => updateAlarm(e.target.value)}
-                className="bg-black/50 border border-white/10 rounded-lg py-2 pl-8 pr-3 text-white text-sm focus:border-neon focus:outline-none [color-scheme:dark]"
+                className="bg-black/50 border border-white/10 rounded-lg py-2 pl-8 pr-3 text-white text-sm focus:border-neon focus:outline-none scheme-dark"
               />
             </div>
             {appSettings.alarmTime && (
