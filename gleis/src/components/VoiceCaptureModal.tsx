@@ -44,7 +44,7 @@ export default function VoiceCaptureModal({
 
   return (
     // z-[60] で ActionPanel(z-50) よりもさらに前面に出す
-    <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center p-8 bg-zinc-950/95 backdrop-blur-3xl animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-60 flex flex-col items-center justify-center p-8 bg-zinc-950/95 backdrop-blur-3xl animate-in fade-in duration-300">
       {/* パルスアニメーションするマイク */}
       <div className="w-24 h-24 bg-red-500/20 rounded-full flex items-center justify-center animate-pulse mb-8 border border-red-500/30 shadow-[0_0_30px_rgba(239,68,68,0.2)]">
         <Mic className="w-10 h-10 text-red-500" />
@@ -55,7 +55,7 @@ export default function VoiceCaptureModal({
       </p>
 
       {/* リアルタイムで文字が表示されるエリア */}
-      <div className="text-zinc-100 text-xl font-bold text-center min-h-[100px] max-h-48 overflow-y-auto w-full leading-relaxed no-scrollbar">
+      <div className="text-zinc-100 text-xl font-bold text-center min-h-25 max-h-48 overflow-y-auto w-full leading-relaxed no-scrollbar">
         {transcript || (
           <span className="text-zinc-600">話しかけてください...</span>
         )}

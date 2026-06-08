@@ -32,7 +32,7 @@ export const createPiece = async (c: Context) => {
   try {
     const body = await c.req.json();
     const newPiece = await pieceService.createNewPiece(body);
-    return c.json({ piece: newPiece }, 201); // 作成成功時は201を返すのがベターです
+    return c.json({ piece: newPiece }, 201);
   } catch (error: any) {
     console.error('❌ Create Piece Error:', error);
     return c.json({ message: error.message || 'Failed to create piece' }, 500);

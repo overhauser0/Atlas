@@ -213,7 +213,7 @@ export default function ReviewView({
 
             {/* 2. Weekly Notebook */}
             <section className="noir-glass rounded-2xl border border-white/10 overflow-hidden">
-              <div className="px-6 py-4 border-b border-white/10 bg-white/[0.02]">
+              <div className="px-6 py-4 border-b border-white/10 bg-white/2">
                 <h3 className="text-xs font-bold text-gray-500 uppercase">
                   Weekly Log
                 </h3>
@@ -226,8 +226,8 @@ export default function ReviewView({
                       key={week.id}
                       className={`p-6 flex gap-4 transition-all group ${
                         current
-                          ? 'bg-neon/[0.04] border-l-2 border-l-neon'
-                          : 'hover:bg-white/[0.02]'
+                          ? 'bg-neon/4 border-l-2 border-l-neon'
+                          : 'hover:bg-white/2'
                       }`}
                     >
                       <div className="flex-1 space-y-1">

@@ -421,7 +421,7 @@ export const markNotificationAsRead = async (id: string) => {
 /**
  * [Update] 未読の通知をすべて既読にする
  */
-export const markAllAsRead = async () => {
+export const markAllNotificationsAsRead = async () => {
   return await db
     .updateTable('notifications')
     .set({ is_read: true })

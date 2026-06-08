@@ -207,7 +207,7 @@ export default function CommandPalette({
               {filteredTasks.length > 0 && (
                 <div className="mt-2">
                   {/* セクションヘッダー */}
-                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-white/[0.02] border-y border-white/5 mb-1">
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-white/2 border-y border-white/5 mb-1">
                     Matching Tasks
                   </div>
 
@@ -238,7 +238,7 @@ export default function CommandPalette({
                           </span>
                         )}
                         {/* 状態バッジ（色なしのモノトーン・ミニマル仕様） */}
-                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded border border-white/5 text-gray-400 bg-white/[0.02] group-hover:border-white/10 group-hover:text-gray-300 transition-colors uppercase tracking-wider">
+                        <span className="text-[10px] font-semibold px-2 py-0.5 rounded border border-white/5 text-gray-400 bg-white/2 group-hover:border-white/10 group-hover:text-gray-300 transition-colors uppercase tracking-wider">
                           {task.status}
                         </span>
                       </div>

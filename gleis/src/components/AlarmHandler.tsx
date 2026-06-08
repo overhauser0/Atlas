@@ -52,11 +52,11 @@ export default function AlarmHandler({ appSettings, setAppSettings }: Props) {
 
   return (
     <div
-      className="fixed inset-0 cursor-pointer z-[60] animate-pulse pointer-events-auto"
+      className="fixed inset-0 cursor-pointer z-60 animate-pulse pointer-events-auto"
       onClick={() => setIsAlerting(false)}
     >
       {/* 画面の縁の赤いグロウ */}
-      <div className="absolute inset-0 border-[4px] border-red-500/30 rounded-none md:rounded-[2rem] m-0 md:m-4" />
+      <div className="absolute inset-0 border-4 border-red-500/30 rounded-none md:rounded-4xl m-0 md:m-4" />
       {/* 画面全体への薄いオーバーレイ */}
       <div className="absolute inset-0 bg-red-500/5" />
 

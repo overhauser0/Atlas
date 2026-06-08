@@ -33,7 +33,7 @@ export default function AuthView({ onLogin }: AuthViewProps) {
 
       <div className="noir-glass p-8 rounded-3xl border border-white/10 w-full max-w-sm flex flex-col items-center z-10 relative">
         {/* ロゴデザイン */}
-        <div className="w-16 h-16 bg-[#0070f3] rounded-2xl flex items-center justify-center text-white font-bold text-4xl mb-6 shadow-[0_0_30px_rgba(0,112,243,0.6)]">
+        <div className="w-16 h-16 bg-neon rounded-2xl flex items-center justify-center text-white font-bold text-4xl mb-6 shadow-[0_0_30px_rgba(0,112,243,0.6)]">
           G
         </div>
 

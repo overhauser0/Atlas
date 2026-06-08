@@ -17,7 +17,6 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
 
   return (
     <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-10 overflow-y-auto noir-scrollbar ">
-      {/* max-w-2xl */}
       {/* --- Section: View Settings --- */}
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 px-1 noir-label">
@@ -27,7 +26,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
 
         <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 divide-y divide-white/5 overflow-hidden">
           {/* 項目1: Shrink empty past days */}
-          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+          <div className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Shrink empty past days
@@ -53,7 +52,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
 
           {/* 項目2: Keep Screen On (WakeLock) */}
-          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+          <div className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Keep Screen On
@@ -87,7 +86,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
 
         <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 divide-y divide-white/5 overflow-hidden">
           {/* タスク同期設定（分） */}
-          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+          <div className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Task Sync Interval
@@ -115,7 +114,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
 
           {/* 通知ポーリング設定（秒） */}
-          <div className="flex items-center justify-between p-5 hover:bg-white/[0.02] transition-colors">
+          <div className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
             <div className="pr-4">
               <div className="text-sm font-medium text-gray-200">
                 Notification Poll Interval
@@ -137,7 +136,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                     notificationInterval: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-16 noir-input !p-2 text-center"
+                className="w-16 noir-input p-2! text-center"
               />
               <span className="text-xs text-gray-500 font-medium">sec</span>
             </div>

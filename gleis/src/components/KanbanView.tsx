@@ -122,7 +122,7 @@ export default function KanbanView({
                         {/*opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity */}
                         {task.source === 'LOCAL' && (
                           <span
-                            className="rounded-lg text-gray-500 shrink-0 p-1.5 shrink-0"
+                            className="rounded-lg text-gray-500 p-1.5 shrink-0"
                             title="Local Task"
                           >
                             <HardDrive className="w-4 h-4" />

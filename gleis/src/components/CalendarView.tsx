@@ -121,7 +121,7 @@ export default function CalendarView({
             {Array.from({ length: startingDayOfWeek }).map((_, i) => (
               <div
                 key={`empty-${i}`}
-                className="p-2 rounded-xl border border-transparent bg-white/[0.02] opacity-50"
+                className="p-2 rounded-xl border border-transparent bg-white/2 opacity-50"
               />
             ))}
 
