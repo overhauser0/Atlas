@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import { Plus, ExternalLink, HardDrive, Calendar } from 'lucide-react';
 import { Task } from '@/types';
-import { getStatusColor } from '@/utils/dateUtils';
+import { getStatusColor } from '@/utils/miscellaneousUtils';
 
 // カンバンで表示するステータス
 const KANBAN_COLUMNS = ['INBOX', 'Waiting', 'Going'];
@@ -98,7 +98,7 @@ export default function KanbanView({
                         {/* ドット (shrink-0で縮まないようにする) */}
                         <div className="flex items-center justify-center shrink-0">
                           <span
-                            className={`w-2 h-2 rounded-full ${getStatusColor(task.status)}`}
+                            className={`noir-dot ${getStatusColor(task.status)}`}
                           />
                         </div>
                         {/* タイトル (flex-1 min-w-0 と truncate で省略させる) */}

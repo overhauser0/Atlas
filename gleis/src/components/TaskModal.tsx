@@ -10,7 +10,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { Task } from '@/types';
-import { getStatusColor } from '@/utils/defineUtils';
+import { getStatusColor } from '@/utils/miscellaneousUtils';
 import { useToast } from '@/components/Toast';
 
 interface TaskModalProps {

@@ -1,15 +1,8 @@
 'use client';
 import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '@/types';
-import {
-  CalendarDays,
-  Plus,
-  ArrowRight,
-  ExternalLink,
-  HardDrive,
-  Award,
-} from 'lucide-react';
-import { getStatusColor, sortTasksByStatus } from '@/utils/defineUtils';
+import { Plus, ArrowRight, ExternalLink, HardDrive, Award } from 'lucide-react';
+import { getStatusColor, sortTasksByStatus } from '@/utils/miscellaneousUtils';
 
 interface HomeViewProps {
   tasks: Task[];
@@ -173,9 +166,7 @@ export default function HomeView({
                 className="group flex items-center justify-between p-4 rounded-xl noir-glass border border-white/5 hover:border-white/20 cursor-pointer transition-all"
               >
                 <div className="flex items-center gap-4">
-                  <div
-                    className={`w-3 h-3 rounded-full ${getStatusColor(task.status)} shadow-[0_0_8px_currentColor] opacity-70`}
-                  />
+                  <div className={`noir-dot ${getStatusColor(task.status)}`} />
                   <div className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">
                     {task.title}
                     {task.source === 'LOCAL' && (

@@ -37,15 +37,13 @@ export default function NotificationsView({
               notifications.map((n) => (
                 <div
                   key={n.id}
-                  className={`relative p-5 rounded-3xl flex gap-4 items-start transition-all duration-300 ${
+                  className={`relative p-5 rounded-3xl flex gap-4 items-center transition-all duration-300 ${
                     n.is_read
                       ? 'bg-white/5 border border-white/5 opacity-70'
                       : 'bg-white/10 border border-white/10 shadow-lg'
                   }`}
                 >
-                  {!n.is_read && (
-                    <div className="absolute top-5 left-2 w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
-                  )}
+                  {!n.is_read && <div className="noir-dot" />}
 
                   <div className="mt-0.5 ml-2">{getIcon(n.category)}</div>
 

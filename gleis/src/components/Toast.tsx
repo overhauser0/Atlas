@@ -1,22 +1,16 @@
-"use client";
-import {
-  useState,
-  useEffect,
-  useCallback,
-  createContext,
-  useContext,
-} from "react";
-import { X } from "lucide-react";
+'use client';
+import { useState, useCallback, createContext, useContext } from 'react';
+import { X } from 'lucide-react';
 
 interface Toast {
   id: string;
   message: string;
-  type: "info" | "alert";
+  type: 'info' | 'alert';
   url?: string;
 }
 
 const ToastContext = createContext<{
-  addToast: (msg: string, type?: "info" | "alert") => void;
+  addToast: (msg: string, type?: 'info' | 'alert') => void;
 }>({ addToast: () => {} });
 
 export const useToast = () => useContext(ToastContext);
@@ -25,7 +19,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const addToast = useCallback(
-    (message: string, type: "info" | "alert" = "info") => {
+    (message: string, type: 'info' | 'alert' = 'info') => {
       const id = Math.random().toString(36).substring(7);
       setToasts((prev) => [...prev, { id, message, type }]);
       setTimeout(() => {
@@ -42,13 +36,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            onClick={() => t.url && window.open(t.url, "_blank")} // 💡 クリックでURLを開く
+            onClick={() => t.url && window.open(t.url, '_blank')} // 💡 クリックでURLを開く
             className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 ${
-              t.url ? "cursor-pointer hover:border-white/30" : ""
+              t.url ? 'cursor-pointer hover:border-white/30' : ''
             } ${
-              t.type === "alert"
-                ? "border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
-                : "border-white/10"
+              t.type === 'alert'
+                ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]'
+                : 'border-white/10'
             }`}
           >
             <span className="text-sm font-medium text-white">{t.message}</span>

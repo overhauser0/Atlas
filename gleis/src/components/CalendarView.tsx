@@ -2,10 +2,8 @@
 import { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
-import {
-  getStatusColor,
-  mergeNewDateWithOriginalTime,
-} from '@/utils/dateUtils';
+import { mergeNewDateWithOriginalTime } from '@/utils/dateUtils';
+import { getStatusColor } from '@/utils/miscellaneousUtils';
 
 interface Props {
   tasks: Task[];
@@ -159,28 +157,16 @@ export default function CalendarView({
                         className={`text-[10px] leading-tight p-1 rounded hover:bg-white/10 cursor-pointer transition-all truncate flex items-center justify-between gap-1 group ${draggingTaskId === task.id ? 'opacity-30' : ''}`}
                         style={{
                           borderLeftColor: `var(--${task.status.toLowerCase()}-color, #888)`,
-                        }} // fallback用 //card-old-className text-[10px] leading-tight p-1.5 rounded bg-white/5 hover:bg-white/10 cursor-pointer border-l-2 border-transparent transition-all truncate flex items-center justify-between gap-1 group
+                        }}
                       >
                         <div className="flex items-center gap-1 flex-1 min-w-0">
                           <div
-                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${getStatusColor(task.status)}`}
+                            className={`noir-dot ${getStatusColor(task.status)}`}
                           />
                           <span className="truncate text-gray-200 overflow-hidden">
                             {task.title}
                           </span>
                         </div>
-
-                        {/* task.source === 'NOTION' && (
-                          <a
-                            href={`https://notion.so/${task.id.replace(/-/g, '')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity p-1.5 hover:bg-white/10 rounded-lg text-gray-400 shrink-0 hover:text-white"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )*/}
                       </div>
                     ))}
                   </div>

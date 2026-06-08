@@ -212,19 +212,25 @@ export default function ActionPanel({
             <div className="flex flex-col gap-3">
               {/* 同期ステータス＆期限切れタスクのカード */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden">
-                <div
-                  onClick={handleNotionSync}
-                  className="flex items-center justify-between"
-                >
-                  <div className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 text-zinc-400" />
-                    <span className="text-sm font-bold text-zinc-300">
-                      Notion Sync
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <RefreshCw className="w-4 h-4 text-zinc-400" />
+                      <span className="text-sm font-bold text-zinc-300">
+                        Notion Sync
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-medium pl-6">
+                      Last: {formatSyncTime(lastSyncTime)}
+                    </p>
                   </div>
-                  <span className="text-xs font-bold text-zinc-500">
-                    {formatSyncTime(lastSyncTime)}
-                  </span>
+                  <button
+                    onClick={handleNotionSync}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 active:scale-95"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Sync Now</span>
+                  </button>
                 </div>
 
                 {/* 期限切れタスクがある場合のみ表示されるセクション */}
@@ -260,7 +266,7 @@ export default function ActionPanel({
                       return (
                         <div
                           key={n.id}
-                          className="relative flex gap-4 items-start group"
+                          className="relative flex gap-4 items-center group"
                         >
                           {/* 左側のアクセントライン */}
                           <div

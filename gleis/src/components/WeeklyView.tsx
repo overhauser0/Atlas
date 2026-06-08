@@ -11,7 +11,7 @@ import {
   COLUMNS,
   getStatusColor,
   sortTasksByStatus,
-} from '@/utils/defineUtils';
+} from '@/utils/miscellaneousUtils';
 
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
@@ -197,7 +197,7 @@ export default function WeeklyView({
                       <div className="flex items-center gap-2.5">
                         <div className="flex items-center justify-center shrink-0">
                           <span
-                            className={`w-2 h-2 rounded-full ${getStatusColor(task.status)}`}
+                            className={`noir-dot ${getStatusColor(task.status)}`}
                           />
                         </div>
                         <div className="flex-1 min-w-0">
@@ -216,10 +216,9 @@ export default function WeeklyView({
                             <ExternalLink className="w-4 h-4" />
                           </a>
                         )}
-                        {/* opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity */}
                         {task.source === 'LOCAL' && (
                           <span
-                            className="rounded-lg text-gray-500 shrink-0 p-1.5 shrink-0"
+                            className="rounded-lg text-gray-500 p-1.5 shrink-0"
                             title="Local Task"
                           >
                             <HardDrive className="w-4 h-4" />
