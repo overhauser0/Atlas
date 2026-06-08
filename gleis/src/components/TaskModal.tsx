@@ -8,6 +8,7 @@ import {
   Calendar,
   MessageSquare,
   Trash2,
+  SquareArrowUp,
 } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
@@ -183,6 +184,44 @@ export default function TaskModal({
       });
   };
 
+  const handlePromote = async () => {
+    if (!task?.id) return;
+
+    if (!window.confirm('このタスクをNotionに昇格させますか？')) {
+      return;
+    }
+
+    onClose();
+    onSyncStart();
+
+    try {
+      const response = await fetch(`/api/v1/pieces/${task.id}/promote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json', // 💡 これを忘れずに
+          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
+        },
+      });
+
+      if (!response.ok) {
+        // エラー詳細を表示するためにレスポンスの中身を取得
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server Error Detail:', errorData);
+        throw new Error(
+          errorData.message || `Server Error: ${response.status}`,
+        );
+      }
+
+      addToast('タスクを昇格させました', 'info');
+      onSuccess(); // 成功時にタスクリストをリフレッシュ
+    } catch (e) {
+      console.warn(e);
+      addToast('タスクの昇格に失敗しました', 'alert');
+    } finally {
+      onSyncEnd();
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -205,6 +244,16 @@ export default function TaskModal({
               title="タスクを削除"
             >
               <Trash2 className="w-5 h-5" />
+            </button>
+          )}
+          {editForm.source === 'LOCAL' && mode === 'edit' && task?.id && (
+            <button
+              onClick={handlePromote}
+              type="button"
+              className="noir-icon-btn hover:text-green-400"
+              title="Notionに昇格"
+            >
+              <SquareArrowUp className="w-5 h-5" />
             </button>
           )}
           {editForm.source === 'NOTION' && task?.id && (

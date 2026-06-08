@@ -1,4 +1,4 @@
-import { Piece } from '../schemas/piece.schema';
+import { Piece, PieceSchema } from '../schemas/piece.schema';
 import * as notionRepo from '../repositories/notion.repository';
 import * as postgresRepo from '../repositories/postgres.repository';
 import { syncNotionToLocal } from './sync.service';
@@ -7,16 +7,21 @@ import { syncNotionToLocal } from './sync.service';
  * Pieceを作成し、適切に振り分ける
  */
 export const createNewPiece = async (piece: Piece) => {
-  if (piece.source === 'NOTION') {
+  const validatedPiece = PieceSchema.parse(piece);
+  if (validatedPiece.source === 'NOTION') {
     // 1. Notionに作成
-    const page = await notionRepo.insertPiecePage(piece);
+    const page = await notionRepo.insertPiecePage(validatedPiece);
     // 2. 作成されたデータをローカルキャッシュに同期
-    piece.id = page.id;
+    validatedPiece.id = page.id;
 
-    return await postgresRepo.upsertNotionPieceCache(piece, new Date(), page);
+    return await postgresRepo.upsertNotionPieceCache(
+      validatedPiece,
+      new Date(),
+      page,
+    );
   } else {
     // ローカル専用タスクとして保存
-    return await postgresRepo.insertLocalPiece(piece);
+    return await postgresRepo.insertLocalPiece(validatedPiece);
   }
 };
 
@@ -27,9 +32,11 @@ export const getPiecesFromCache = async (filters: {
   flags?: string[];
   topics?: string[];
   excludeStatus?: string[];
+  beforeDate?: string;
+  afterDate?: string;
 }) => {
-  // 古いローカルタスクは削除する
-  await postgresRepo.deleteOldDoneLocalPieces();
+  // 古いローカルタスクは削除する 廃止検討中
+  // await postgresRepo.deleteOldDoneLocalPieces();
 
   return await postgresRepo.getPieces(filters);
 };
@@ -78,6 +85,10 @@ export const deletePiece = async (id: string) => {
   }
 
   return { success: true, id, source: piece.source };
+};
+
+export const getPieceById = async (id: string) => {
+  return await postgresRepo.getPieceById(id);
 };
 
 export const rescheduleOverduePiecesToToday = async () => {

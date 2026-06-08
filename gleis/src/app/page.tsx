@@ -197,7 +197,7 @@ export default function Home() {
       appSettings.syncInterval * 60 * 1000,
     );
     return () => clearInterval(interval);
-  }, [isAuthenticated, appSettings.syncInterval, handleNotionSync]);
+  }, [isAuthenticated, appSettings.syncInterval]);
 
   // iOS Keyboard Fix
   useIosKeyboardFix();

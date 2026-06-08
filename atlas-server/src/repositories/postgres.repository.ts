@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect, Generated, JSONColumnType } from 'kysely';
 import { Pool } from 'pg';
-import { Piece } from '../schemas/piece.schema';
+import { Piece, PieceSchema } from '../schemas/piece.schema';
 import { PushNotificationInput } from '../schemas/push.schema';
 
 // ==========================================
@@ -96,6 +96,7 @@ export const getPieces = async (filters: {
   topics?: string[];
   excludeStatus?: string[];
   beforeDate?: string;
+  afterDate?: string;
 }) => {
   // 共通のフィルタを適用するヘルパー
   const applyCommonFilters = (qb: any) => {
@@ -114,6 +115,9 @@ export const getPieces = async (filters: {
     }
     if (filters.beforeDate) {
       q = q.where('date', '<', filters.beforeDate);
+    }
+    if (filters.afterDate) {
+      q = q.where('date', '>', filters.afterDate);
     }
     return q;
   };
@@ -178,19 +182,6 @@ export const getPieceById = async (id: string) => {
 // ------------------------------------------
 
 /**
- * [Read] キャッシュされたNotionのPiece一覧を取得する ※不要？
- */
-/*
-export const getNotionPiecesCache = async () => {
-  return await db
-    .selectFrom('notion_pieces_cache')
-    .selectAll()
-    .orderBy('last_edited_time', 'desc')
-    .execute();
-};
-*/
-
-/**
  * [Upsert] Notionのデータをキャッシュテーブルに保存・更新する
  * @param piece NotionのPieceデータ
  * @param lastEditedTime 最終更新日時
@@ -201,27 +192,16 @@ export const upsertNotionPieceCache = async (
   lastEditedTime: Date,
   rawData: any,
 ) => {
-  const values: any = {
-    id: piece.id!,
-    title: piece.title || 'No Title',
-    note: piece.note || '',
-    status: piece.status || 'INBOX',
-    area: piece.area || 'Work',
-    type: piece.type || 'Task',
-    topics: piece.topics || [],
-    flags: piece.flags || [],
-    date: piece.date || null,
-    url: piece.url || null,
-    fkw: piece.fkw || [],
-    prefs: piece.prefs || [],
+  const values = {
+    ...piece,
     last_edited_time: lastEditedTime,
     raw_data: JSON.stringify(rawData),
   };
 
   const upsertedPiece = await db
     .insertInto('notion_pieces_cache')
-    .values(values)
-    .onConflict((oc) => oc.column('id').doUpdateSet(values))
+    .values(values as any)
+    .onConflict((oc) => oc.column('id').doUpdateSet(values as any))
     .returningAll()
     .executeTakeFirst();
 
@@ -239,22 +219,14 @@ export const updateNotionPieceCache = async (
   id: string,
   updates: Partial<Piece>,
 ) => {
+  const dbUpdates = {
+    ...updates,
+    last_edited_time: new Date(), // タイムスタンプだけ強制セット
+  };
+
   const updatedPiece = await db
     .updateTable('notion_pieces_cache')
-    .set({
-      title: updates.title,
-      status: updates.status,
-      area: updates.area,
-      type: updates.type,
-      topics: updates.topics,
-      flags: updates.flags,
-      url: updates.url,
-      note: updates.note,
-      fkw: updates.fkw,
-      prefs: updates.prefs,
-      date: updates.date ? new Date(updates.date) : null,
-      last_edited_time: new Date(),
-    })
+    .set(dbUpdates as any)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
@@ -295,20 +267,11 @@ export const deleteNotionPieceCache = async (id: string) => {
  * [Create] ローカルタスクを保存する
  * @param piece ローカルのPieceデータ
  */
-export const insertLocalPiece = async (piece: Piece) => {
+export const insertLocalPiece = async (rawPiece: Piece) => {
+  const validatedPiece = PieceSchema.parse(rawPiece);
   const insertedPiece = await db
     .insertInto('local_pieces')
-    .values({
-      title: piece.title,
-      note: piece.note,
-      status: piece.status || 'INBOX',
-      area: piece.area || 'Work',
-      type: piece.type || 'Task',
-      topics: piece.topics || [],
-      flags: piece.flags || [],
-      date: piece.date || null,
-      url: piece.url || null,
-    })
+    .values(validatedPiece)
     .returningAll()
     .executeTakeFirst();
 
@@ -347,7 +310,7 @@ export const deleteLocalPiece = async (id: string) => {
 };
 
 /**
- * [Delete] 60日以上前に「Done」になったローカルタスクを物理削除する
+ * [Delete] 60日以上前に「Done」になったローカルタスクを物理削除する ※停止中
  */
 export const deleteOldDoneLocalPieces = async () => {
   const thresholdDate = new Date();

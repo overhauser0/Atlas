@@ -1,6 +1,6 @@
 // src/services/notification.service.ts
 import { PushNotification } from '../schemas/push.schema';
-import { Piece } from '../schemas/piece.schema';
+import { Piece, PieceSchema } from '../schemas/piece.schema';
 import * as postgresRepo from '../repositories/postgres.repository';
 import * as pieceService from './piece.service';
 
@@ -17,19 +17,17 @@ export const handleExternalPush = async (data: PushNotification) => {
 
   let pieceResult = null;
   if (data.storageTarget === 'NOTION') {
-    const pieceData: Piece = {
+    const pieceData: Piece = PieceSchema.parse({
       title: data.title,
       note: data.note,
       status: 'INBOX',
       source: 'NOTION',
       area: 'Work',
       type: 'Task',
-      fkw: [],
       topics: data.metadata?.topics || [],
       flags: data.metadata?.flags || [],
       date: todayDate,
-      url: null,
-    };
+    });
     pieceResult = await pieceService.createNewPiece(pieceData);
   }
 

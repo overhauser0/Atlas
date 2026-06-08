@@ -40,7 +40,7 @@ export const useTaskSync = (
       if (!isAuthenticated) return;
       if (!isSilent) setIsTasksLoading(true);
 
-      onSyncStart();
+      // onSyncStart();
 
       try {
         await fetchLastSyncTime();
@@ -75,7 +75,7 @@ export const useTaskSync = (
         );
       } finally {
         setIsTasksLoading(false);
-        onSyncEnd();
+        // onSyncEnd();
       }
     },
     [isAuthenticated, fetchLastSyncTime],

@@ -42,6 +42,7 @@ api.post('/notifications/read', pushController.markAllAsRead);
 api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createPiece);
+api.post('/pieces/:id/promote', pieceController.promotePiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
 api.delete('/pieces/:id', pieceController.deletePiece);
 api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);

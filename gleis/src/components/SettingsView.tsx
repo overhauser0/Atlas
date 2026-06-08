@@ -107,7 +107,7 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
                     syncInterval: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-16 noir-input !p-2 text-center"
+                className="w-16 noir-input p-2! text-center"
               />
               <span className="text-xs text-gray-500 font-medium">min</span>
             </div>
