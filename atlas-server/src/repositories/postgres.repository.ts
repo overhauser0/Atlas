@@ -1,6 +1,6 @@
 import { Kysely, PostgresDialect, Generated, JSONColumnType } from 'kysely';
 import { Pool } from 'pg';
-import { Piece, PieceSchema } from '../schemas/piece.schema';
+import { DbPiece } from '../schemas/piece.schema';
 import { PushNotificationInput } from '../schemas/push.schema';
 
 // ==========================================
@@ -8,21 +8,23 @@ import { PushNotificationInput } from '../schemas/push.schema';
 // ==========================================
 
 export interface LocalPiecesTable {
-  id: Generated<string>;
+  id: Generated<string>; // 👈 DBが作るからGenerated
   title: string;
   note: string;
-  status: string;
+  status: string; // 👈 Zodが必ず 'INBOX' などを入れるからGenerated不要
   area: string;
   type: string;
   topics: string[];
   flags: string[];
+  fkw: string[];
+  prefs: string[];
   url: string | null;
   date: string | null;
-  created_at: Generated<Date>;
+  created_at: Generated<Date>; // 👈 DBが作るからGenerated
 }
 
 export interface NotionPiecesCacheTable {
-  id: string; // Notion Page ID (UUID)
+  id: string; // 👈 NotionのIDをアプリが指定して入れるからGenerated不要
   title: string;
   note: string;
   status: string;
@@ -35,8 +37,8 @@ export interface NotionPiecesCacheTable {
   date: Date | null;
   url: string | null;
   last_edited_time: Date;
-  synced_at: Generated<Date>;
-  raw_data: JSONColumnType<any>; // Notion APIからの生のレスポンス
+  synced_at: Generated<Date>; // 👈 DBが作るからGenerated
+  raw_data: JSONColumnType<any>;
 }
 
 export interface NotificationsTable {
@@ -188,7 +190,7 @@ export const getPieceById = async (id: string) => {
  * @param rawData Notion APIの生レスポンス
  */
 export const upsertNotionPieceCache = async (
-  piece: Piece,
+  piece: DbPiece,
   lastEditedTime: Date,
   rawData: any,
 ) => {
@@ -217,7 +219,7 @@ export const upsertNotionPieceCache = async (
  */
 export const updateNotionPieceCache = async (
   id: string,
-  updates: Partial<Piece>,
+  updates: Partial<DbPiece>,
 ) => {
   const dbUpdates = {
     ...updates,
@@ -267,11 +269,10 @@ export const deleteNotionPieceCache = async (id: string) => {
  * [Create] ローカルタスクを保存する
  * @param piece ローカルのPieceデータ
  */
-export const insertLocalPiece = async (rawPiece: Piece) => {
-  const validatedPiece = PieceSchema.parse(rawPiece);
+export const insertLocalPiece = async (dbPiece: DbPiece) => {
   const insertedPiece = await db
     .insertInto('local_pieces')
-    .values(validatedPiece)
+    .values(dbPiece as any)
     .returningAll()
     .executeTakeFirst();
 
@@ -285,10 +286,13 @@ export const insertLocalPiece = async (rawPiece: Piece) => {
  * @param id ローカルタスクID
  * @param updates 更新内容
  */
-export const updateLocalPiece = async (id: string, updates: Partial<Piece>) => {
+export const updateLocalPiece = async (
+  id: string,
+  updates: Partial<DbPiece>,
+) => {
   const updatedPiece = await db
     .updateTable('local_pieces')
-    .set(updates)
+    .set(updates as any)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();

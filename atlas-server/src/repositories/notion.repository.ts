@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client';
-import { Piece } from '../schemas/piece.schema';
+import { DbPiece } from '../schemas/piece.schema';
 
 // ==========================================
 // 1. 接続・環境設定
@@ -42,7 +42,7 @@ export const getPiecePages = async () => {
  * [Create] NotionのPieceデータベースに新しいページを作成する
  * @param piece 作成するPieceのデータ
  */
-export const insertPiecePage = async (piece: Piece) => {
+export const insertPiecePage = async (piece: DbPiece) => {
   const properties: any = {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },
@@ -79,7 +79,7 @@ export const insertPiecePage = async (piece: Piece) => {
  */
 export const updatePiecePage = async (
   pageId: string,
-  piece: Partial<Piece>,
+  piece: Partial<DbPiece>,
 ) => {
   const properties: any = {};
 

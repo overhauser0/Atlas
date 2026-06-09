@@ -83,19 +83,6 @@ export default function TaskModal({
     }
   }, [isOpen, mode, task]);
 
-  // Escキーでモーダルを閉じる関数
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
-
-  if (!isOpen) return null;
-
   const handleSave = () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
 
@@ -113,13 +100,9 @@ export default function TaskModal({
       url: editForm.url || null,
     };
 
-    console.log('Saving task with payload:', payload);
-
-    // 1. 通信を待たずに、即座にモーダルを閉じる（UX向上）
     onClose();
     onSyncStart();
 
-    // 2. バックグラウンドで非同期通信を実行
     fetch(url, {
       method,
       headers: {
@@ -131,17 +114,11 @@ export default function TaskModal({
       .then(async (response) => {
         if (!response.ok)
           throw new Error(`Server Error: ${response.statusText}`);
-        console.log('Task saved successfully', await response.json());
-
-        // 3. 通信完了後、親コンポーネント（タスク一覧）を再取得して更新
         onSuccess();
-
-        // 4. Toastコンポーネントを呼び出す
         addToast('タスクを保存しました', 'info');
       })
       .catch((e) => {
         console.warn(e);
-        // エラー時のToast表示
         addToast('タスクの保存に失敗しました', 'alert');
       })
       .finally(() => {
@@ -152,16 +129,13 @@ export default function TaskModal({
   const handleDelete = () => {
     if (!task?.id) return;
 
-    // ブラウザ標準の確認ダイアログを表示
     if (!window.confirm('本当にこのタスクを削除しますか？')) {
       return;
     }
 
-    // 1. 待たずにすぐモーダルを閉じる
     onClose();
     onSyncStart();
 
-    // 2. バックグラウンドで削除APIを叩く
     fetch(`/api/v1/pieces/${task.id}`, {
       method: 'DELETE',
       headers: {
@@ -171,7 +145,6 @@ export default function TaskModal({
       .then(async (response) => {
         if (!response.ok)
           throw new Error(`Server Error: ${response.statusText}`);
-        // 3. 成功したら一覧を再取得し、Toastを表示
         onSuccess();
         addToast('タスクを削除しました', 'info');
       })
@@ -198,22 +171,20 @@ export default function TaskModal({
       const response = await fetch(`/api/v1/pieces/${task.id}/promote`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json', // 💡 これを忘れずに
+          'Content-Type': 'application/json',
           'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
         },
       });
 
       if (!response.ok) {
-        // エラー詳細を表示するためにレスポンスの中身を取得
         const errorData = await response.json().catch(() => ({}));
-        console.error('Server Error Detail:', errorData);
         throw new Error(
           errorData.message || `Server Error: ${response.status}`,
         );
       }
 
       addToast('タスクを昇格させました', 'info');
-      onSuccess(); // 成功時にタスクリストをリフレッシュ
+      onSuccess();
     } catch (e) {
       console.warn(e);
       addToast('タスクの昇格に失敗しました', 'alert');
@@ -221,6 +192,66 @@ export default function TaskModal({
       onSyncEnd();
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      // 1. Esc: モーダルを閉じる
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      // 2. Ctrl/Cmd + Enter: 保存
+      if (cmdOrCtrl && e.key === 'Enter') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+
+      // 3. Ctrl/Cmd + P: Promote (Notion昇格)
+      if (cmdOrCtrl && e.key.toLowerCase() === 'p') {
+        e.preventDefault();
+        if (editForm.source === 'LOCAL' && mode === 'edit' && task?.id) {
+          handlePromote();
+        }
+        return;
+      }
+
+      // 4. Delete: 削除
+      if (e.key === 'Delete') {
+        const activeEl = document.activeElement;
+        const isInputActive =
+          activeEl &&
+          (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+        if (!isInputActive && mode === 'edit' && task?.id) {
+          e.preventDefault();
+          handleDelete();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [
+    isOpen,
+    mode,
+    task,
+    editForm,
+    onClose,
+    handleSave,
+    handlePromote,
+    handleDelete,
+  ]);
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -241,7 +272,7 @@ export default function TaskModal({
               onClick={handleDelete}
               type="button"
               className="noir-icon-btn hover:text-red-400"
-              title="タスクを削除"
+              title="タスクを削除 (Delete)" // 💡 ホバー時のツールチップにショートカットを追加
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -251,7 +282,7 @@ export default function TaskModal({
               onClick={handlePromote}
               type="button"
               className="noir-icon-btn hover:text-green-400"
-              title="Notionに昇格"
+              title="Notionに昇格 (Ctrl+P)" // 💡 ホバー時のツールチップにショートカットを追加
             >
               <SquareArrowUp className="w-5 h-5" />
             </button>
@@ -267,7 +298,11 @@ export default function TaskModal({
               <ExternalLink className="w-5 h-5" />
             </a>
           )}
-          <button onClick={onClose} className="noir-icon-btn">
+          <button
+            onClick={onClose}
+            className="noir-icon-btn"
+            title="閉じる (Esc)"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -323,7 +358,11 @@ export default function TaskModal({
               <button
                 key={s}
                 onClick={() => setEditForm({ ...editForm, status: s })}
-                className={`p-2.5 rounded-xl border flex items-center gap-2 ${editForm.status === s ? 'bg-white/10 border-white/30 text-white' : 'border-white/5 text-gray-400'}`}
+                className={`p-2.5 rounded-xl border flex items-center gap-2 ${
+                  editForm.status === s
+                    ? 'bg-white/10 border-white/30 text-white'
+                    : 'border-white/5 text-gray-400'
+                }`}
               >
                 <div
                   className={`w-2.5 h-2.5 rounded-full ${getStatusColor(s)}`}
@@ -377,7 +416,7 @@ export default function TaskModal({
         <button
           onClick={handleSave}
           disabled={isSaving}
-          className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50"
+          className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isSaving ? 'Saving...' : 'Save Task'}
         </button>

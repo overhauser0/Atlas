@@ -218,12 +218,16 @@ export default function Home() {
 
   if (isAuthChecking) return <div className="h-screen bg-black" />;
   if (!isAuthenticated)
-    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
+    return (
+      <AuthView
+        currentTime={currentTime}
+        onLogin={() => setIsAuthenticated(true)}
+      />
+    );
 
   return (
     <ToastProvider>
       <div className="flex h-screen overflow-hidden text-gray-200 relative bg-black">
-        {/* --- Background Handlers & Global Modals --- */}
         <WakeLockHandler
           isEnabled={appSettings.wakeLockEnabled ?? true}
           onStatusChange={setIsWakeLockActive}

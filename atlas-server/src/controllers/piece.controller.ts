@@ -35,9 +35,26 @@ export const getPieces = async (c: Context) => {
 
 export const createPiece = async (c: Context) => {
   try {
-    const body = await c.req.json();
-    const newPiece = await pieceService.createNewPiece(body);
-    return c.json({ piece: newPiece }, 201);
+    const rawData = await c.req.json();
+
+    const validation = PieceSchema.safeParse(rawData);
+    if (!validation.success) {
+      console.warn(
+        'piece.controller: createPiece safeParse Error',
+        validation.error.format(),
+      );
+      return c.json(
+        {
+          message: 'Invalid input data',
+          errors: validation.error.format(),
+        },
+        400,
+      );
+    }
+
+    const piece = validation.data;
+    const createdPiece = await pieceService.createNewPiece(piece);
+    return c.json({ piece: createdPiece }, 201);
   } catch (error: any) {
     console.error('❌ Create Piece Error:', error);
     return c.json({ message: error.message || 'Failed to create piece' }, 500);
@@ -49,8 +66,27 @@ export const updatePiece = async (c: Context) => {
     const id = c.req.param('id');
     if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-    const body = await c.req.json();
-    const updatedPiece = await pieceService.updatePiece(id, body);
+    const rawData = await c.req.json();
+
+    const validation = PieceSchema.omit({ id: true })
+      .partial()
+      .safeParse(rawData);
+
+    if (!validation.success) {
+      console.warn(
+        `⚠️ Validation failed for updatePiece (${id}):`,
+        validation.error.format(),
+      );
+      return c.json(
+        {
+          message: 'Invalid input data',
+          errors: validation.error.format(),
+        },
+        400,
+      );
+    }
+
+    const updatedPiece = await pieceService.updatePiece(id, validation.data);
 
     return c.json({ piece: updatedPiece }, 200);
   } catch (error: any) {
@@ -88,7 +124,7 @@ export const promotePiece = async (c: Context) => {
       return c.json(
         {
           message: 'Data validation failed',
-          details: validation.error.format(),
+          errors: validation.error.format(),
         },
         400,
       );

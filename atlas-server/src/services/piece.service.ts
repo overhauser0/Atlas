@@ -1,4 +1,4 @@
-import { Piece, PieceSchema } from '../schemas/piece.schema';
+import { Piece, PieceSchema, DbPieceSchema } from '../schemas/piece.schema';
 import * as notionRepo from '../repositories/notion.repository';
 import * as postgresRepo from '../repositories/postgres.repository';
 import { syncNotionToLocal } from './sync.service';
@@ -7,8 +7,10 @@ import { syncNotionToLocal } from './sync.service';
  * Pieceを作成し、適切に振り分ける
  */
 export const createNewPiece = async (piece: Piece) => {
-  const validatedPiece = PieceSchema.parse(piece);
-  if (validatedPiece.source === 'NOTION') {
+  const targetSource = piece.source;
+
+  const validatedPiece = DbPieceSchema.parse(piece);
+  if (targetSource === 'NOTION') {
     // 1. Notionに作成
     const page = await notionRepo.insertPiecePage(validatedPiece);
     // 2. 作成されたデータをローカルキャッシュに同期
@@ -41,23 +43,19 @@ export const getPiecesFromCache = async (filters: {
   return await postgresRepo.getPieces(filters);
 };
 
-export const updatePiece = async (id: string, payload: any) => {
-  const { source, ...rest } = payload;
+export const updatePiece = async (id: string, payload: Partial<Piece>) => {
+  const targetSource = payload.source;
 
-  // DB用のオブジェクトに変換
-  const updates: any = {
-    ...rest,
-  };
+  const dbUpdates = DbPieceSchema.partial().parse(payload);
 
-  if (source === 'NOTION') {
-    // 1. Notion 側を更新
-    await notionRepo.updatePiecePage(id, updates);
+  if (targetSource === 'NOTION') {
+    await notionRepo.updatePiecePage(id, dbUpdates);
 
-    // 2. Postgres のキャッシュを更新
-    return await postgresRepo.updateNotionPieceCache(id, updates);
+    return await postgresRepo.updateNotionPieceCache(id, dbUpdates);
+  } else if (targetSource === 'LOCAL') {
+    return await postgresRepo.updateLocalPiece(id, dbUpdates);
   } else {
-    // ローカルPieceのみ更新
-    return await postgresRepo.updateLocalPiece(id, updates);
+    throw new Error('Source (NOTION or LOCAL) is required to update a piece');
   }
 };
 
@@ -66,21 +64,19 @@ export const getPieceBlocks = async (id: string) => {
 };
 
 export const deletePiece = async (id: string) => {
-  // 1. タスクがどちらのSourceか特定する
+  // sourceの判定
   const piece = await postgresRepo.getPieceById(id);
 
   if (!piece) {
     throw new Error(`Piece with id ${id} not found`);
   }
 
-  // 2. Sourceに応じて削除処理を分岐
+  // sourceによって処理の分岐
   if (piece.source === 'NOTION') {
-    // Notion側をアーカイブ
     await notionRepo.archivePiecePage(id);
-    // ローカルキャッシュを削除
+
     await postgresRepo.deleteNotionPieceCache(id);
   } else if (piece.source === 'LOCAL') {
-    // ローカルテーブルから削除
     await postgresRepo.deleteLocalPiece(id);
   }
 
@@ -93,7 +89,15 @@ export const getPieceById = async (id: string) => {
 
 export const rescheduleOverduePiecesToToday = async () => {
   await syncNotionToLocal();
-  const todayStr = new Date().toISOString().split('T')[0];
+
+  const todayStr = new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  })
+    .format(new Date())
+    .replace(/\//g, '-');
 
   const overduePieces = await postgresRepo.getPieces({
     area: 'Work',

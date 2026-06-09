@@ -1,6 +1,6 @@
 import * as notionRepo from '../repositories/notion.repository';
 import * as pgRepo from '../repositories/postgres.repository';
-import { Piece } from '../schemas/piece.schema';
+import { DbPiece } from '../schemas/piece.schema';
 
 // 最終同期時刻を取得する関数
 export const getLastSyncTime = async () => {
@@ -32,7 +32,7 @@ export const syncNotionToLocal = async () => {
 
       // 2. Notionの型を内部のPieceスキーマにマッピング
       // notion.repository.ts で定義したプロパティ名（_Area等）に準拠
-      const pieceData: Piece = {
+      const pieceData: DbPiece = {
         id: page.id,
         title: props.Name?.title[0]?.plain_text || 'No Title',
         note: props.Note?.rich_text[0]?.plain_text || '',
@@ -45,7 +45,6 @@ export const syncNotionToLocal = async () => {
         prefs: props.prefs?.multi_select.map((p: any) => p.name) || [],
         url: props.URL?.url || null,
         date: props.Date?.date?.start || null,
-        source: 'NOTION',
       };
 
       // 3. PostgresリポジトリのUpsert関数を呼び出し、キャッシュを更新

@@ -26,10 +26,12 @@ export const PieceSchema = z.object({
   area: z
     .enum(['Work', 'Life'])
     .nullable()
+    .optional()
     .transform((v) => v ?? 'Work'),
   type: z
     .enum(['Task', 'Note', 'Event'])
     .nullable()
+    .optional()
     .transform((v) => v ?? 'Task'),
   topics: z
     .array(z.string())
@@ -53,10 +55,11 @@ export const PieceSchema = z.object({
     .transform((v) => v ?? []),
   url: z
     .string()
-    .url()
+    .url('正しいURL形式で入力してください')
     .nullable()
     .optional()
-    .transform((v) => v ?? ''),
+    .or(z.literal(''))
+    .transform((v) => v || null),
 });
 
 export const DbPieceSchema = PieceSchema.omit({ source: true });

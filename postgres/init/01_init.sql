@@ -8,11 +8,11 @@ CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     title TEXT NOT NULL,
     note TEXT,
     status TEXT NOT NULL DEFAULT 'INBOX',
-    area TEXT NOT NULL DEFAULT 'Work', -- Work, Education, Private等
-    type TEXT NOT NULL DEFAULT 'Task', -- Task, Routine, Event等
-    topics TEXT[] DEFAULT '{}',        -- Postgresの配列型
-    flags TEXT[] DEFAULT '{}',         -- Postgresの配列型
-    fkw TEXT[] DEFAULT '{}',           -- Free Key Wordsの配列
+    area TEXT NOT NULL DEFAULT 'Work',
+    type TEXT NOT NULL DEFAULT 'Task',
+    topics TEXT[] DEFAULT '{}',
+    flags TEXT[] DEFAULT '{}',
+    fkw TEXT[] DEFAULT '{}',
     prefs TEXT[] DEFAULT '{}',
     date TEXT,
     url TEXT,
@@ -30,6 +30,10 @@ CREATE TABLE IF NOT EXISTS local_pieces (
     status TEXT DEFAULT 'INBOX',
     area TEXT DEFAULT 'Work',
     type TEXT DEFAULT 'Task',
+    topics TEXT[] DEFAULT '{}',
+    flags TEXT[] DEFAULT '{}',
+    fkw TEXT[] DEFAULT '{}',
+    prefs TEXT[] DEFAULT '{}',
     date TEXT,
     url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
