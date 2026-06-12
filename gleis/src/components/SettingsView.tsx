@@ -1,12 +1,38 @@
 'use client';
-import { Monitor, Zap, Bell, Clock, RefreshCw, Keyboard } from 'lucide-react';
+import {
+  Monitor,
+  Zap,
+  Bell,
+  Clock,
+  RefreshCw,
+  Keyboard,
+  Activity,
+  Laptop,
+  Smartphone,
+  ServerCrash,
+} from 'lucide-react';
+
+export interface DeviceInfo {
+  deviceId: string;
+  deviceName: string;
+  clientType: 'extension' | 'gleis' | string;
+}
 
 interface Props {
   appSettings: any;
   setAppSettings: (s: any) => void;
+  wsStatus?: 'connected' | 'connecting' | 'disconnected';
+  connectedDevices?: DeviceInfo[];
+  ownDeviceId?: string;
 }
 
-export default function SettingsView({ appSettings, setAppSettings }: Props) {
+export default function SettingsView({
+  appSettings,
+  setAppSettings,
+  wsStatus = 'connecting',
+  connectedDevices = [],
+  ownDeviceId = '',
+}: Props) {
   // アラーム設定
   const updateAlarm = (time: string) => {
     setAppSettings((s: any) => ({
@@ -180,6 +206,105 @@ export default function SettingsView({ appSettings, setAppSettings }: Props) {
           </div>
         </div>
       </section>
+
+      {/* --- Section: Web Socket --- */}
+      <section className="flex flex-col gap-4">
+        <h2 className="flex items-center gap-2 px-1 noir-label">
+          <Activity className="w-3.5 h-3.5" />
+          Remote Sync
+        </h2>
+
+        <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 divide-y divide-white/5 overflow-hidden">
+          {/* Own Status */}
+          <div className="flex items-center justify-between p-5 bg-white/5">
+            <div className="flex items-center gap-3">
+              <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-black/50 border border-white/10">
+                {wsStatus === 'connected' && (
+                  <Activity className="w-4 h-4 text-green-400" />
+                )}
+                {wsStatus === 'connecting' && (
+                  <RefreshCw className="w-4 h-4 text-yellow-400 animate-spin" />
+                )}
+                {wsStatus === 'disconnected' && (
+                  <ServerCrash className="w-4 h-4 text-red-400" />
+                )}
+              </div>
+              <div>
+                <div className="text-sm font-bold text-white">
+                  Connection Status
+                </div>
+                <div className="text-xs text-gray-500 mt-0.5">
+                  {wsStatus === 'connected' && (
+                    <span className="text-green-400">
+                      🟢 Connected to Atlas
+                    </span>
+                  )}
+                  {wsStatus === 'connecting' && (
+                    <span className="text-yellow-400">🟡 Connecting...</span>
+                  )}
+                  {wsStatus === 'disconnected' && (
+                    <span className="text-red-400">🔴 Disconnected</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Connected Devices List */}
+          <div className="p-5">
+            <div className="text-xs font-medium text-gray-500 mb-4 uppercase tracking-wider">
+              Active Devices ({connectedDevices.length})
+            </div>
+            {connectedDevices.length === 0 ? (
+              <div className="text-sm text-gray-600 text-center py-4">
+                No other devices found.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {connectedDevices.map((device) => {
+                  const isMe = device.deviceId === ownDeviceId;
+                  const isExtension = device.clientType === 'extension';
+
+                  return (
+                    <div
+                      key={device.deviceId}
+                      className={`flex items-center justify-between p-3 rounded-xl border ${
+                        isMe
+                          ? 'bg-white/10 border-white/20'
+                          : 'bg-black/40 border-white/5'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        {isExtension ? (
+                          <Laptop className="w-4 h-4 text-green-400" />
+                        ) : (
+                          <Smartphone className="w-4 h-4 text-blue-400" />
+                        )}
+                        <div className="flex flex-col">
+                          <span
+                            className={`text-sm font-medium ${isMe ? 'text-white' : 'text-gray-300'}`}
+                          >
+                            {device.deviceName} {isMe && '(This Device)'}
+                          </span>
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wide">
+                            {device.clientType}
+                          </span>
+                        </div>
+                      </div>
+                      {isExtension && !isMe && (
+                        <div className="text-[10px] font-bold text-green-400 bg-green-400/10 px-2 py-1 rounded-md border border-green-400/20">
+                          READY
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
       {/* --- Section: Keyboard Shortcuts --- */}
       <section className="flex flex-col gap-4">
         <h2 className="flex items-center gap-2 px-1 noir-label">

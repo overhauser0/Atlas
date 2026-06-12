@@ -9,9 +9,11 @@ import {
   MessageSquare,
   Trash2,
   SquareArrowUp,
+  MonitorUp,
 } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/Toast';
 
 interface TaskModalProps {
@@ -23,6 +25,7 @@ interface TaskModalProps {
   onSuccess: () => void;
   onSyncStart: () => void;
   onSyncEnd: () => void;
+  onSendToPC?: (url: string) => void;
 }
 
 export default function TaskModal({
@@ -34,6 +37,7 @@ export default function TaskModal({
   onSuccess,
   onSyncStart,
   onSyncEnd,
+  onSendToPC,
 }: TaskModalProps) {
   const { addToast } = useToast();
 
@@ -83,12 +87,12 @@ export default function TaskModal({
     }
   }, [isOpen, mode, task]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
 
     const isEdit = mode === 'edit' && task;
     const payloadDate = editForm.date || null;
-    const url = isEdit ? `/api/v1/pieces/${task.id}` : '/api/v1/pieces';
+    const url = isEdit ? `/pieces/${task.id}` : '/pieces';
     const method = isEdit ? 'PATCH' : 'POST';
 
     const payload = {
@@ -102,28 +106,20 @@ export default function TaskModal({
 
     onClose();
     onSyncStart();
-
-    fetch(url, {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(async (response) => {
-        if (!response.ok)
-          throw new Error(`Server Error: ${response.statusText}`);
-        onSuccess();
-        addToast('タスクを保存しました', 'info');
-      })
-      .catch((e) => {
-        console.warn(e);
-        addToast('タスクの保存に失敗しました', 'alert');
-      })
-      .finally(() => {
-        onSyncEnd();
+    try {
+      const response = await atlasFetch(url, {
+        method,
+        body: JSON.stringify(payload),
       });
+      if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
+      onSuccess();
+      addToast('タスクを保存しました', 'info');
+    } catch (e) {
+      console.warn(e);
+      addToast('タスクの保存に失敗しました', 'alert');
+    } finally {
+      onSyncEnd();
+    }
   };
 
   const handleDelete = () => {
@@ -136,11 +132,8 @@ export default function TaskModal({
     onClose();
     onSyncStart();
 
-    fetch(`/api/v1/pieces/${task.id}`, {
+    atlasFetch(`/pieces/${task.id}`, {
       method: 'DELETE',
-      headers: {
-        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-      },
     })
       .then(async (response) => {
         if (!response.ok)
@@ -168,12 +161,8 @@ export default function TaskModal({
     onSyncStart();
 
     try {
-      const response = await fetch(`/api/v1/pieces/${task.id}/promote`, {
+      const response = await atlasFetch(`/pieces/${task.id}/promote`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
       });
 
       if (!response.ok) {
@@ -272,7 +261,7 @@ export default function TaskModal({
               onClick={handleDelete}
               type="button"
               className="noir-icon-btn hover:text-red-400"
-              title="タスクを削除 (Delete)" // 💡 ホバー時のツールチップにショートカットを追加
+              title="タスクを削除 (Delete)"
             >
               <Trash2 className="w-5 h-5" />
             </button>
@@ -282,7 +271,7 @@ export default function TaskModal({
               onClick={handlePromote}
               type="button"
               className="noir-icon-btn hover:text-green-400"
-              title="Notionに昇格 (Ctrl+P)" // 💡 ホバー時のツールチップにショートカットを追加
+              title="Notionに昇格 (Ctrl+P)"
             >
               <SquareArrowUp className="w-5 h-5" />
             </button>
@@ -294,9 +283,23 @@ export default function TaskModal({
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="noir-icon-btn"
+              title="Notionで開く"
             >
               <ExternalLink className="w-5 h-5" />
             </a>
+          )}
+          {onSendToPC && editForm.source === 'NOTION' && task?.id && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                onSendToPC(`https://notion.so/${task.id.replace(/-/g, '')}`);
+                onClose();
+              }}
+              className="noir-icon-btn"
+              title="PCで開く"
+            >
+              <MonitorUp className="w-5 h-5" />
+            </button>
           )}
           <button
             onClick={onClose}

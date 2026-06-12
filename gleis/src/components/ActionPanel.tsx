@@ -14,6 +14,8 @@ import {
   AlertTriangle,
   Clock,
   CalendarDays,
+  Activity,
+  ServerCrash,
 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 
@@ -30,6 +32,9 @@ interface Props {
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onNotionSync: () => void;
+  // 🌟 追加：WebSocketステータス用のProps
+  wsStatus?: 'connected' | 'connecting' | 'disconnected';
+  connectedDevicesCount?: number;
 }
 
 export default function ActionPanel({
@@ -45,6 +50,9 @@ export default function ActionPanel({
   onSyncStart,
   onSyncEnd,
   onNotionSync,
+  // デフォルト値を設定
+  wsStatus = 'connecting',
+  connectedDevicesCount = 0,
 }: Props) {
   const [isRendered, setIsRendered] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -161,15 +169,16 @@ export default function ActionPanel({
         <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6 no-scrollbar">
           {/* システムステータス */}
           <div className="grid grid-cols-2 gap-3">
+            {/* 1. Wake Lock */}
             <div
-              className={`p-4 rounded-2xl border flex flex-col gap-2 transition-colors ${
+              className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
                 isWakeLockActive
                   ? 'bg-amber-500/10 border-amber-500/20'
                   : 'bg-white/5 border-white/10'
               }`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                   isWakeLockActive
                     ? 'bg-amber-500/20 text-amber-400'
                     : 'bg-white/5 text-zinc-500'
@@ -181,23 +190,64 @@ export default function ActionPanel({
                   <Moon className="w-4 h-4" />
                 )}
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-zinc-500">Wake Lock</p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">
+                  Wake Lock
+                </p>
                 <p
-                  className={`text-sm font-bold ${isWakeLockActive ? 'text-amber-400' : 'text-zinc-300'}`}
+                  className={`text-xs font-bold truncate ${isWakeLockActive ? 'text-amber-400' : 'text-zinc-300'}`}
                 >
                   {isWakeLockActive ? 'Active' : 'Standby'}
                 </p>
               </div>
             </div>
 
-            <div className="bg-white/5 border border-white/10 p-4 rounded-2xl flex flex-col gap-2">
-              <div className="w-8 h-8 bg-emerald-500/20 text-emerald-400 rounded-full flex items-center justify-center">
-                <RefreshCw className="w-4 h-4" />
+            {/* 2. Remote Sync (WebSocket) */}
+            <div
+              className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
+                wsStatus === 'connected'
+                  ? 'bg-green-500/10 border-green-500/20'
+                  : wsStatus === 'connecting'
+                    ? 'bg-yellow-500/10 border-yellow-500/20'
+                    : 'bg-red-500/10 border-red-500/20'
+              }`}
+            >
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                  wsStatus === 'connected'
+                    ? 'bg-green-500/20 text-green-400'
+                    : wsStatus === 'connecting'
+                      ? 'bg-yellow-500/20 text-yellow-400'
+                      : 'bg-red-500/20 text-red-400'
+                }`}
+              >
+                {wsStatus === 'connected' && <Activity className="w-4 h-4" />}
+                {wsStatus === 'connecting' && (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                )}
+                {wsStatus === 'disconnected' && (
+                  <ServerCrash className="w-4 h-4" />
+                )}
               </div>
-              <div>
-                <p className="text-[10px] font-bold text-zinc-500">Database</p>
-                <p className="text-sm font-bold text-zinc-300">Synced</p>
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">
+                  Remote Sync
+                </p>
+                <p
+                  className={`text-xs font-bold truncate ${
+                    wsStatus === 'connected'
+                      ? 'text-green-400'
+                      : wsStatus === 'connecting'
+                        ? 'text-yellow-400'
+                        : 'text-red-400'
+                  }`}
+                >
+                  {wsStatus === 'connected'
+                    ? `${connectedDevicesCount} Devices`
+                    : wsStatus === 'connecting'
+                      ? 'Connecting...'
+                      : 'Offline'}
+                </p>
               </div>
             </div>
           </div>

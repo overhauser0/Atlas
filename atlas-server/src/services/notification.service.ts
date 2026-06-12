@@ -3,6 +3,7 @@ import { PushNotification } from '../schemas/push.schema';
 import { Piece, PieceSchema } from '../schemas/piece.schema';
 import * as postgresRepo from '../repositories/postgres.repository';
 import * as pieceService from './piece.service';
+import { broadcast } from '../utils/websocket';
 
 // 💡 追加: 検索パラメータの型定義
 export interface GetNotificationHistoryParams {
@@ -31,6 +32,8 @@ export const handleExternalPush = async (data: PushNotification) => {
     pieceResult = await pieceService.createNewPiece(pieceData);
   }
 
+  broadcast('REFRESH_NOTIFICATIONS');
+
   return { archived, pieceResult };
 };
 
@@ -53,9 +56,11 @@ export const getNotificationHistory = async (
 };
 
 export const markNotificationAsRead = async (id: string) => {
+  broadcast('REFRESH_NOTIFICATIONS');
   return await postgresRepo.markNotificationAsRead(id);
 };
 
 export const markAllNotificationsAsRead = async () => {
+  broadcast('REFRESH_NOTIFICATIONS');
   return await postgresRepo.markAllNotificationsAsRead();
 };

@@ -16,7 +16,6 @@ export default function WakeLockHandler({ isEnabled, onStatusChange }: Props) {
     try {
       wakeLock.current = await (navigator as any).wakeLock.request('screen');
 
-      // ★取得成功時にステータスを更新
       onStatusChange?.(true);
       console.log('☀️ Wake Lock is active');
 

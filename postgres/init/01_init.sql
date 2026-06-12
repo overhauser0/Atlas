@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     title TEXT NOT NULL,
     note TEXT,
     category TEXT DEFAULT 'GENERAL',
+    url TEXT,
     metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

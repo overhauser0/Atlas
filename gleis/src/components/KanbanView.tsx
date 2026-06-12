@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Plus, ExternalLink, HardDrive, Calendar } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { atlasFetch } from '@/utils/api';
 
 // カンバンで表示するステータス
 const KANBAN_COLUMNS = ['INBOX', 'Waiting', 'Going'];
@@ -41,12 +42,8 @@ export default function KanbanView({
     setDraggingTaskId(null);
 
     // バックエンドの更新（ステータス変更を送信）
-    await fetch(`/api/v1/pieces/${task.id}`, {
+    await atlasFetch(`/pieces/${task.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-      },
       body: JSON.stringify({
         ...task,
         status: targetStatus,

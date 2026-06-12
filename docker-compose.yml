@@ -25,27 +25,29 @@ services:
       NOTION_MONTHLY_DB_ID: ${NOTION_MONTHLY_DB_ID}
       NOTION_WEEKLY_DB_ID: ${NOTION_WEEKLY_DB_ID}
       ATLAS_API_KEY: ${ATLAS_API_KEY}
+      ATLAS_PASSWORD: ${ATLAS_PASSWORD}
     volumes:
       - ./atlas-server:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）
     ports:
-      - '5676:5676'
+      - '5675:5675'
     depends_on:
       - db
     networks:
       - atlas-net
-  frontend:
+  gleis:
     build: ./gleis
     container_name: gleis
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: /api/v1
+      NEXT_PUBLIC_API_URL: https://atlas.overhauser0.synology.me/
+      NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
     volumes:
       - ./gleis:/app
       - /app/node_modules
       - /app/.next
     ports:
-      - '5675:5675'
+      - '5676:5676'
     depends_on:
       - atlas-server
     networks:
@@ -55,7 +57,7 @@ services:
     container_name: trails
     restart: always
     environment:
-      NEXT_PUBLIC_API_URL: /api/v1
+      NEXT_PUBLIC_API_URL: https://atlas.overhauser0.synology.me/
     volumes:
       - ./trails:/app # コードをマウント（ホットリロード用）
       - /app/node_modules # NASとの同期から除外（高速化）

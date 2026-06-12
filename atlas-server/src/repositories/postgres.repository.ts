@@ -45,6 +45,7 @@ export interface NotificationsTable {
   id: Generated<string>;
   title: string;
   note: string;
+  url: string;
   category: string;
   metadata: JSONColumnType<any>;
   created_at: Generated<Date>;
@@ -351,6 +352,7 @@ export const insertNotification = async (data: PushNotificationInput) => {
     .values({
       title: data.title,
       note: data.note || '',
+      url: data.url || '',
       category: data.category || 'INFO',
       metadata: JSON.stringify(data.metadata || {}),
       is_read: false,

@@ -5,6 +5,7 @@ import * as pushController from './controllers/push.controller';
 import * as pieceController from './controllers/piece.controller';
 import * as reviewController from './controllers/review.controller';
 import * as pgRepo from './repositories/postgres.repository';
+import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
 
@@ -13,7 +14,6 @@ app.use('/*', cors());
 
 // --- 🔒 APIキー認証ミドルウェア ---
 
-/*
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
@@ -28,11 +28,24 @@ app.use('/api/v1/*', async (c, next) => {
   await next();
 });
 
-*/
 // ----------------------------------
 
 // Routes
 app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
+
+app.post('/auth/verify', async (c) => {
+  const body = await c.req.json();
+  const inputPassword = body.password;
+  const expectedPassword = process.env.ATLAS_PASSWORD;
+
+  if (!expectedPassword || inputPassword !== expectedPassword) {
+    console.warn('[Auth] Password verification failed');
+    return c.json({ success: false, error: 'Invalid password' }, 401);
+  }
+
+  console.log('[Auth] Password verification succeeded');
+  return c.json({ success: true });
+});
 
 // /api/v1 プレフィックスで整理
 const api = new Hono();
@@ -75,10 +88,12 @@ app.onError(async (err, c) => {
   return c.json({ success: false, error: 'Internal Server Error' }, 500);
 });
 
-const port = 5676;
+const port = 5675;
 console.log(`🚀 Atlas Server (Hono) running on port ${port}`);
 
-serve({
+const server = serve({
   fetch: app.fetch,
   port,
 });
+
+initWebSocket(server as any);

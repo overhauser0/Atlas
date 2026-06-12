@@ -2,6 +2,7 @@ import { Piece, PieceSchema, DbPieceSchema } from '../schemas/piece.schema';
 import * as notionRepo from '../repositories/notion.repository';
 import * as postgresRepo from '../repositories/postgres.repository';
 import { syncNotionToLocal } from './sync.service';
+import { broadcast } from '../utils/websocket';
 
 /**
  * Pieceを作成し、適切に振り分ける
@@ -16,14 +17,18 @@ export const createNewPiece = async (piece: Piece) => {
     // 2. 作成されたデータをローカルキャッシュに同期
     validatedPiece.id = page.id;
 
-    return await postgresRepo.upsertNotionPieceCache(
+    const result = await postgresRepo.upsertNotionPieceCache(
       validatedPiece,
       new Date(),
       page,
     );
+    broadcast('REFRESH_PIECES');
+    return result;
   } else {
     // ローカル専用タスクとして保存
-    return await postgresRepo.insertLocalPiece(validatedPiece);
+    const result = await postgresRepo.insertLocalPiece(validatedPiece);
+    broadcast('REFRESH_PIECES');
+    return result;
   }
 };
 
@@ -50,10 +55,13 @@ export const updatePiece = async (id: string, payload: Partial<Piece>) => {
 
   if (targetSource === 'NOTION') {
     await notionRepo.updatePiecePage(id, dbUpdates);
-
-    return await postgresRepo.updateNotionPieceCache(id, dbUpdates);
+    const result = await postgresRepo.updateNotionPieceCache(id, dbUpdates);
+    broadcast('REFRESH_PIECES');
+    return result;
   } else if (targetSource === 'LOCAL') {
-    return await postgresRepo.updateLocalPiece(id, dbUpdates);
+    const result = await postgresRepo.updateLocalPiece(id, dbUpdates);
+    broadcast('REFRESH_PIECES');
+    return result;
   } else {
     throw new Error('Source (NOTION or LOCAL) is required to update a piece');
   }
@@ -124,5 +132,6 @@ export const rescheduleOverduePiecesToToday = async () => {
       console.error(`Error updating piece ${piece.id}:`, error);
     }
   }
+  broadcast('REFRESH_PIECES');
   return updatedPieces;
 };

@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   LayoutDashboard,
   Columns2,
@@ -29,13 +29,15 @@ import QuickAlarmModal from '@/components/QuickAlarmModal';
 import VoiceCaptureModal from '@/components/VoiceCaptureModal';
 import ActionPanel from '@/components/ActionPanel';
 import CommandPalette from '@/components/CommandPalette';
-import NotificationHandler from '@/components/NotificationHandler';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
 import { getCurrentYearMonth } from '@/utils/dateUtils';
+import { atlasFetch } from '@/utils/api';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
+import { useNotificationSync } from '@/hooks/useNotificationSync';
+import { useToast } from '@/components/Toast';
 
 export default function Home() {
   // ============================================================================
@@ -60,11 +62,22 @@ export default function Home() {
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
 
   // Data (タスク・通知データ)
-  const [notifications, setNotifications] = useState<any[]>([]);
   const [activeRequests, setActiveRequests] = useState(0);
   const incrementRequest = () => setActiveRequests((prev) => prev + 1);
   const decrementRequest = () =>
     setActiveRequests((prev) => Math.max(0, prev - 1));
+
+  // WebSoket
+  const [wsStatus, setWsStatus] = useState<
+    'connecting' | 'connected' | 'disconnected'
+  >('connecting');
+  const [connectedDevices, setConnectedDevices] = useState<any[]>([]);
+  const [ownDeviceId, setOwnDeviceId] = useState('');
+
+  // PC（Chrome拡張機能）が1台でも接続されているかどうかのフラグ
+  const hasExtension = connectedDevices.some(
+    (d) => d.clientType === 'extension',
+  );
 
   // Modals & Panels (各種ポップアップの開閉状態)
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
@@ -96,6 +109,20 @@ export default function Home() {
     decrementRequest,
     appSettings.syncInterval,
   );
+
+  const { notifications, markAsRead, fetchNotifications } = useNotificationSync(
+    isAuthenticated,
+    appSettings.notificationInterval,
+    () => fetchTasks(true),
+  );
+
+  // fetchTasksの最新版の参照を作る
+  const fetchTasksRef = useRef(fetchTasks);
+  useEffect(() => {
+    fetchTasksRef.current = fetchTasks;
+  }, [fetchTasks]);
+
+  const { addToast } = useToast();
 
   // ============================================================================
   // 2. Handlers (イベント・UI操作関連)
@@ -136,26 +163,41 @@ export default function Home() {
     setIsStatsOpen(true);
   };
 
-  // Notifications
-  const handleMarkAsRead = async (id: string) => {
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
-    );
-    try {
-      await fetch(`/api/v1/notifications/${id}/read`, {
-        method: 'POST',
-        headers: { 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '' },
-      });
-    } catch (e) {
-      console.error('Failed to mark as read:', e);
+  const handleSendToPC = useCallback((url: string) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(
+        JSON.stringify({
+          type: 'OPEN_URL_ON_PC',
+          url: url,
+        }),
+      );
+      addToast('💻 PCにURLを送信しました！');
+    } else {
+      addToast('⚠️ サーバー（Atlas）との通信が切断されています。');
     }
-  };
+  }, []);
 
   // ============================================================================
   // 3. Helpers (計算・フォーマット)
   // ============================================================================
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  // OSからデバイス名を自動推測するヘルパー
+  const getAutoDeviceName = () => {
+    if (typeof navigator === 'undefined') return 'Unknown Web';
+    const ua = navigator.userAgent;
+    if (
+      /iPad/i.test(ua) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+    )
+      return 'iPad';
+    if (/iPhone/i.test(ua)) return 'iPhone';
+    if (/Mac OS/i.test(ua)) return 'Mac';
+    if (/Windows/i.test(ua)) return 'Windows PC';
+    if (/Android/i.test(ua)) return 'Android';
+    return 'Web Browser';
+  };
 
   // ============================================================================
   // 4. Effects (ライフサイクル・イベント監視)
@@ -199,6 +241,105 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isAuthenticated, appSettings.syncInterval]);
 
+  // 💡 WebSocketの接続と受信用 useEffect
+  const wsRef = useRef<WebSocket | null>(null);
+  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    let currentDeviceId = localStorage.getItem('gleis_device_id');
+    if (!currentDeviceId) {
+      currentDeviceId = crypto.randomUUID();
+      localStorage.setItem('gleis_device_id', currentDeviceId);
+    }
+    setOwnDeviceId(currentDeviceId);
+    const deviceName = getAutoDeviceName();
+
+    let reconnectTimeout: NodeJS.Timeout;
+
+    const connectWebSocket = () => {
+      // 既存の接続があれば閉じる（二重接続防止）
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      setWsStatus('connecting');
+
+      const wsUrl =
+        process.env.NEXT_PUBLIC_WS_URL || 'wss://atlas.overhauser0.synology.me';
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        console.log('🌐 Connected to Atlas WebSocket');
+        setWsStatus('connected');
+
+        // 接続時に自身をGleis端末としてサーバーに登録
+        ws.send(
+          JSON.stringify({
+            type: 'REGISTER_DEVICE',
+            clientType: 'gleis',
+            deviceId: currentDeviceId,
+            deviceName: deviceName,
+          }),
+        );
+
+        // 現在の接続端末リストを要求
+        ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
+
+        // ハートビート開始（30秒ごとにPINGを送信してプロキシの切断を防ぐ）
+        pingIntervalRef.current = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'PING' })); // サーバー側はこのメッセージを無視するだけでOK
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          if (event.data.startsWith('{')) {
+            const data = JSON.parse(event.data);
+            if (data.type === 'DEVICE_LIST') {
+              setConnectedDevices(data.devices || []);
+            }
+          } else {
+            if (event.data === 'REFRESH_PIECES') {
+              fetchTasksRef.current(true);
+            } else if (event.data === 'REFRESH_NOTIFICATIONS') {
+              fetchNotifications();
+            }
+          }
+        } catch (e) {
+          console.warn('WS Message Parse Error:', e);
+        }
+      };
+
+      ws.onclose = () => {
+        console.warn(
+          '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
+        );
+        setWsStatus('disconnected');
+        setConnectedDevices([]); // 切断時はリストをクリア
+        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+      };
+
+      ws.onerror = (error) => {
+        console.warn('WebSocket Error:', error);
+        ws.close(); // エラーが起きたら一度閉じて、oncloseの再接続処理に回す
+      };
+    };
+
+    // 初回接続スタート
+    connectWebSocket();
+
+    // クリーンアップ関数（コンポーネントが破棄された時）
+    return () => {
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+      if (wsRef.current) wsRef.current.close();
+    };
+  }, []); // 依存配列は空（初回のみ実行）
+
   // iOS Keyboard Fix
   useIosKeyboardFix();
 
@@ -236,12 +377,6 @@ export default function Home() {
           appSettings={appSettings}
           setAppSettings={setAppSettings}
         />
-        <NotificationHandler
-          appSettings={appSettings}
-          onUpdateNotifications={setNotifications}
-          onTaskUpdate={fetchTasks}
-        />
-
         <VoiceCaptureModal
           isOpen={isVoiceCaptureOpen}
           onClose={() => setIsVoiceCaptureOpen(false)}
@@ -345,6 +480,8 @@ export default function Home() {
               onCreateTask={() => openCreateTaskModal()}
               onTaskClick={openEditTaskModal}
               onOpenStats={handleOpenStats}
+              onSyncStart={incrementRequest}
+              onSyncEnd={decrementRequest}
             />
           )}
           {currentView === 'kanban' && (
@@ -371,7 +508,7 @@ export default function Home() {
           {currentView === 'notifications' && (
             <NotificationsView
               notifications={notifications}
-              onMarkAsRead={handleMarkAsRead}
+              onMarkAsRead={markAsRead}
               onCreateTask={(text) => openCreateTaskModal(text)}
             />
           )}
@@ -379,6 +516,9 @@ export default function Home() {
             <SettingsView
               appSettings={appSettings}
               setAppSettings={setAppSettings}
+              wsStatus={wsStatus}
+              connectedDevices={connectedDevices}
+              ownDeviceId={ownDeviceId}
             />
           )}
 
@@ -405,6 +545,7 @@ export default function Home() {
             onSuccess={() => fetchTasks(true)}
             onSyncStart={incrementRequest}
             onSyncEnd={decrementRequest}
+            onSendToPC={hasExtension ? handleSendToPC : undefined}
           />
           <ActionPanel
             isOpen={isActionPanelOpen}
@@ -419,6 +560,8 @@ export default function Home() {
             onSyncStart={incrementRequest}
             onSyncEnd={decrementRequest}
             onNotionSync={() => handleNotionSync(true)}
+            wsStatus={wsStatus}
+            connectedDevicesCount={connectedDevices.length}
           />
         </main>
       </div>

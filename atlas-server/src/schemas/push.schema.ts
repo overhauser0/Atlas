@@ -14,6 +14,14 @@ export const PushNotificationSchema = z.object({
   // 保存先。Service層での分岐に使用
   storageTarget: z.enum(['NOTION', 'LOCAL', '']).default(''),
 
+  url: z
+    .string()
+    .url('正しいURL形式で入力してください')
+    .nullable()
+    .optional()
+    .or(z.literal(''))
+    .transform((v) => v || null),
+
   // 拡張データ（topicsやflagsなど、Taskスキーマに変換する際のソースを含む）
   metadata: z
     .object({

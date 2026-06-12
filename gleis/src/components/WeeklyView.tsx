@@ -12,6 +12,8 @@ import {
   getStatusColor,
   sortTasksByStatus,
 } from '@/utils/miscellaneousUtils';
+import { atlasFetch } from '@/utils/api';
+import { useToast } from '@/components/Toast';
 
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
@@ -21,6 +23,8 @@ interface Props {
   onCreateTask: () => void;
   onTaskClick: (task: Task) => void;
   onOpenStats: (date: Date) => void;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
 }
 
 export default function WeeklyView({
@@ -31,8 +35,11 @@ export default function WeeklyView({
   onCreateTask,
   onTaskClick,
   onOpenStats,
+  onSyncStart,
+  onSyncEnd,
 }: Props) {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const onDrop = async (newDateStr: string | null) => {
     if (!draggingTaskId || newDateStr === null) {
@@ -51,19 +58,22 @@ export default function WeeklyView({
     );
     setDraggingTaskId(null);
 
-    // バックエンドの更新
-    await fetch(`/api/v1/pieces/${task.id}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-      },
-      body: JSON.stringify({
-        ...task,
-        date: newDateTime,
-        source: task.source,
-      }),
-    });
+    onSyncStart();
+    try {
+      await atlasFetch(`/pieces/${task.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...task,
+          date: newDateTime,
+          source: task.source,
+        }),
+      });
+    } catch (err) {
+      console.warn('Fetch Error', err);
+      addToast('タスクの保存に失敗しました', 'alert');
+    } finally {
+      onSyncEnd();
+    }
   };
 
   const weekColumns = useMemo(() => {

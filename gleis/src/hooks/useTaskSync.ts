@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { Task } from '@/types';
 import { isPastDate } from '@/utils/dateUtils';
+import { atlasFetch } from '@/utils/api';
 
 export const useTaskSync = (
   isAuthenticated: boolean,
@@ -17,12 +18,8 @@ export const useTaskSync = (
 
   const fetchLastSyncTime = useCallback(async () => {
     try {
-      const res = await fetch('/api/v1/pieces/sync', {
+      const res = await atlasFetch('/pieces/sync', {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
       });
       if (!res.ok) return null;
       const syncInfo = await res.json();
@@ -44,12 +41,9 @@ export const useTaskSync = (
 
       try {
         await fetchLastSyncTime();
-        const res = await fetch(
-          '/api/v1/pieces?area=Work&excludeStatus=Canceled',
-          {
-            method: 'GET',
-            headers: { 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '' },
-          },
+        const res = await atlasFetch(
+          '/pieces?area=Work&excludeStatus=Canceled',
+          { method: 'GET' },
         );
 
         if (!res.ok) return;
@@ -87,12 +81,11 @@ export const useTaskSync = (
       try {
         const last = (await fetchLastSyncTime()) || 0;
         if (force || new Date().getTime() - last >= syncInterval * 60 * 1000) {
-          await fetch('/api/v1/pieces/sync', {
+          await atlasFetch('/pieces/sync', {
             method: 'POST',
-            headers: { 'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '' },
           });
         }
-        await fetchTasks(true);
+        // await fetchTasks(true); → WebSocketに
       } finally {
         onSyncEnd();
       }
@@ -103,15 +96,11 @@ export const useTaskSync = (
   const handleRescheduleOverdue = useCallback(async () => {
     onSyncStart();
     try {
-      await fetch('/api/v1/pieces/reschedule-overdue', {
+      await atlasFetch('/pieces/reschedule-overdue', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
       });
-      // 完了後にタスク一覧を再取得
-      await fetchTasks(true);
+      // 完了後にタスク一覧を再取得 → WebSocketに
+      // await fetchTasks(true);
     } catch (e) {
       console.warn(e);
       throw e;

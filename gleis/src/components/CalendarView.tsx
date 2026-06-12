@@ -4,6 +4,7 @@ import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
 import { mergeNewDateWithOriginalTime } from '@/utils/dateUtils';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { atlasFetch } from '@/utils/api';
 
 interface Props {
   tasks: Task[];
@@ -57,12 +58,8 @@ export default function CalendarView({
     );
     setDraggingTaskId(null);
 
-    await fetch(`/api/v1/pieces/${task.id}`, {
+    await atlasFetch(`/pieces/${task.id}`, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-      },
       body: JSON.stringify({
         ...task,
         date: newDateTime,
@@ -75,7 +72,7 @@ export default function CalendarView({
     <div className="flex flex-col h-full overflow-hidden">
       {/* カレンダーヘッダー */}
       <div className="flex items-center justify-between mb-4 px-2">
-        <h2 className="text-xl font-bold text-white tracking-wide">
+        <h2 className="text-xl font-bold text-gray-400 tracking-wide">
           {currentDate.toLocaleDateString('en-US', {
             month: 'long',
             year: 'numeric',

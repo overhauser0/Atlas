@@ -2,25 +2,26 @@
   "name": "gleis",
   "version": "1.0.0",
   "scripts": {
-    "dev": "next dev -p 5675",
+    "dev": "next dev -p 5676",
     "build": "next build",
     "start": "next start"
   },
   "dependencies": {
+    "@serwist/next": "^9.0.0",
+    "lucide-react": "latest",
     "next": "15.0.3",
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "lucide-react": "latest",
-    "@serwist/next": "^9.0.0",
     "serwist": "^9.0.0"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
+    "@tailwindcss/postcss": "latest",
     "@types/node": "^20.0.0",
     "@types/react": "^18.0.0",
     "@types/react-dom": "^18.0.0",
-    "postcss": "latest",
+    "autoprefixer": "^10.5.0",
+    "postcss": "^8.5.15",
     "tailwindcss": "latest",
-    "@tailwindcss/postcss": "latest"
+    "typescript": "^5.0.0"
   }
 }

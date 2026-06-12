@@ -11,6 +11,7 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import { LifeItem } from '@/types';
+import { atlasFetch } from '@/utils/api';
 
 interface Props {
   isOpen: boolean;
@@ -91,8 +92,7 @@ export default function DetailModal({
 
   const handleSave = async () => {
     setIsSaving(true);
-    const url =
-      mode === 'edit' ? `/api/v1/pieces/${formData.id}` : '/api/v1/pieces';
+    const url = mode === 'edit' ? `/pieces/${formData.id}` : '/pieces';
     const method = mode === 'edit' ? 'PATCH' : 'POST';
 
     const payload = {
@@ -104,12 +104,8 @@ export default function DetailModal({
       url: formData.url || null,
     };
     try {
-      const res = await fetch(url, {
+      const res = await atlasFetch(url, {
         method: method,
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
         body: JSON.stringify(payload),
       });
 

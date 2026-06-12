@@ -1,6 +1,14 @@
 // src/components/NotificationsView.tsx
 'use client';
-import { Bell, Clock, Info, AlertTriangle, Check, Plus } from 'lucide-react';
+import {
+  Bell,
+  Clock,
+  Info,
+  AlertTriangle,
+  Check,
+  Plus,
+  ExternalLink,
+} from 'lucide-react';
 
 interface Props {
   notifications: any[];
@@ -18,6 +26,8 @@ export default function NotificationsView({
       return <AlertTriangle className="w-4 h-4 text-red-400" />;
     return <Info className="w-4 h-4 text-emerald-400" />;
   };
+
+  console.log('notifications', notifications);
 
   return (
     <>
@@ -54,7 +64,7 @@ export default function NotificationsView({
                       {n.title}
                     </div>
                     <div className="text-xs text-zinc-400 mt-1.5 leading-relaxed">
-                      {n.content}
+                      {n.note}
                     </div>
                     <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-600 mt-3">
                       <Clock className="w-3 h-3" />
@@ -70,6 +80,18 @@ export default function NotificationsView({
                       >
                         <Check className="w-4 h-4" />
                       </button>
+                    )}
+                    {n.url && n.url.startsWith('http') && (
+                      <a
+                        href={n.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="noir-icon-btn"
+                        title="リンクを開く"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
                     )}
                     <button
                       onClick={() => onCreateTask(n.title)}
