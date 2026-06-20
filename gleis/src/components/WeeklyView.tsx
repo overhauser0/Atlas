@@ -11,6 +11,7 @@ import {
   COLUMNS,
   getStatusColor,
   sortTasksByStatus,
+  getNotionLinkById,
 } from '@/utils/miscellaneousUtils';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/Toast';
@@ -170,7 +171,7 @@ export default function WeeklyView({
                 key={col.name}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(col.dateStr)}
-                className={`${shouldShrink ? 'w-[112px]' : 'w-[280px]'} ${col.isToday ? 'bg-neon/[0.02] rounded-t-2xl' : ''} flex-shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
+                className={`${shouldShrink ? 'w-28' : 'w-70'} ${col.isToday ? 'bg-neon/2 rounded-t-2xl' : ''} shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div
                   className={`text-sm font-medium pb-2 border-b flex justify-between items-center transition-all ${
@@ -217,7 +218,7 @@ export default function WeeklyView({
                         </div>
                         {task.source === 'NOTION' && (
                           <a
-                            href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+                            href={getNotionLinkById(task.id)}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}

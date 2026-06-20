@@ -32,7 +32,6 @@ import CommandPalette from '@/components/CommandPalette';
 import NotificationsView from '@/components/NotificationsView';
 import { Task, ViewType } from '@/types';
 import { getCurrentYearMonth } from '@/utils/dateUtils';
-import { atlasFetch } from '@/utils/api';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
@@ -112,7 +111,6 @@ export default function Home() {
 
   const { notifications, markAsRead, fetchNotifications } = useNotificationSync(
     isAuthenticated,
-    appSettings.notificationInterval,
     () => fetchTasks(true),
   );
 
@@ -244,6 +242,10 @@ export default function Home() {
   // 💡 WebSocketの接続と受信用 useEffect
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const fetchNotificationsRef = useRef(fetchNotifications);
+  useEffect(() => {
+    fetchNotificationsRef.current = fetchNotifications;
+  }, [fetchNotifications]);
 
   useEffect(() => {
     let currentDeviceId = localStorage.getItem('gleis_device_id');
@@ -286,6 +288,8 @@ export default function Home() {
         // 現在の接続端末リストを要求
         ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
 
+        fetchNotificationsRef.current();
+
         // ハートビート開始（30秒ごとにPINGを送信してプロキシの切断を防ぐ）
         pingIntervalRef.current = setInterval(() => {
           if (ws.readyState === WebSocket.OPEN) {
@@ -296,17 +300,13 @@ export default function Home() {
 
       ws.onmessage = (event) => {
         try {
-          if (event.data.startsWith('{')) {
-            const data = JSON.parse(event.data);
-            if (data.type === 'DEVICE_LIST') {
-              setConnectedDevices(data.devices || []);
-            }
-          } else {
-            if (event.data === 'REFRESH_PIECES') {
-              fetchTasksRef.current(true);
-            } else if (event.data === 'REFRESH_NOTIFICATIONS') {
-              fetchNotifications();
-            }
+          const data = JSON.parse(event.data);
+          if (data.type === 'DEVICE_LIST') {
+            setConnectedDevices(data.devices || []);
+          } else if (data.type === 'REFRESH_PIECES') {
+            fetchTasksRef.current(true);
+          } else if (data.type === 'REFRESH_NOTIFICATIONS') {
+            fetchNotificationsRef.current();
           }
         } catch (e) {
           console.warn('WS Message Parse Error:', e);
@@ -546,6 +546,7 @@ export default function Home() {
             onSyncStart={incrementRequest}
             onSyncEnd={decrementRequest}
             onSendToPC={hasExtension ? handleSendToPC : undefined}
+            onNavigate={handleViewChange}
           />
           <ActionPanel
             isOpen={isActionPanelOpen}

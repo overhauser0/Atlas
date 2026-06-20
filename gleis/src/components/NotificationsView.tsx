@@ -27,8 +27,6 @@ export default function NotificationsView({
     return <Info className="w-4 h-4 text-emerald-400" />;
   };
 
-  console.log('notifications', notifications);
-
   return (
     <>
       <div className="flex-1 px-4 pb-20 mx-auto w-full space-y-6 overflow-y-auto noir-scrollbar">

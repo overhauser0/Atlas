@@ -4,7 +4,6 @@ import { atlasFetch } from '@/utils/api';
 
 export const useNotificationSync = (
   isAuthenticated: boolean,
-  notificationInterval: number,
   onTaskUpdate: () => void,
 ) => {
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -54,18 +53,6 @@ export const useNotificationSync = (
       console.error('Failed to mark as read:', e);
     }
   }, []);
-
-  // 3. 定期ポーリング処理
-  useEffect(() => {
-    if (!isAuthenticated || notificationInterval <= 0) return;
-
-    // 初回実行
-    fetchNotifications();
-
-    // インターバル設定
-    const timer = setInterval(fetchNotifications, notificationInterval * 1000);
-    return () => clearInterval(timer);
-  }, [isAuthenticated, notificationInterval, fetchNotifications]);
 
   return {
     notifications,

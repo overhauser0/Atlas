@@ -1,6 +1,7 @@
 import * as notionRepo from '../repositories/notion.repository';
 import * as pgRepo from '../repositories/postgres.repository';
 import { DbPiece } from '../schemas/piece.schema';
+import { broadcast } from '../utils/websocket';
 
 // 最終同期時刻を取得する関数
 export const getLastSyncTime = async () => {
@@ -61,6 +62,8 @@ export const syncNotionToLocal = async () => {
 
   // 4. 同期が成功したら時刻を更新する
   await pgRepo.updateLastNotionSyncTime(new Date().toISOString());
+
+  broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
 
   return {
     status: 'SUCCESS',

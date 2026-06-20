@@ -44,3 +44,7 @@ export const sortTasksByStatus = (tasks: any[]) => {
     return (a.title || '').localeCompare(b.title || '', 'ja');
   });
 };
+
+export const getNotionLinkById = (id: string) => {
+  return `https://notion.so/${id.replace(/-/g, '')}`;
+};

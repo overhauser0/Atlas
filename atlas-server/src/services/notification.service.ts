@@ -32,7 +32,7 @@ export const handleExternalPush = async (data: PushNotification) => {
     pieceResult = await pieceService.createNewPiece(pieceData);
   }
 
-  broadcast('REFRESH_NOTIFICATIONS');
+  broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
 
   return { archived, pieceResult };
 };
@@ -56,11 +56,11 @@ export const getNotificationHistory = async (
 };
 
 export const markNotificationAsRead = async (id: string) => {
-  broadcast('REFRESH_NOTIFICATIONS');
+  broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
   return await postgresRepo.markNotificationAsRead(id);
 };
 
 export const markAllNotificationsAsRead = async () => {
-  broadcast('REFRESH_NOTIFICATIONS');
+  broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
   return await postgresRepo.markAllNotificationsAsRead();
 };

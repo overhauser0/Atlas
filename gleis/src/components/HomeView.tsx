@@ -2,7 +2,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '@/types';
 import { Plus, ArrowRight, ExternalLink, HardDrive, Award } from 'lucide-react';
-import { getStatusColor, sortTasksByStatus } from '@/utils/miscellaneousUtils';
+import {
+  getStatusColor,
+  sortTasksByStatus,
+  getNotionLinkById,
+} from '@/utils/miscellaneousUtils';
 
 interface HomeViewProps {
   tasks: Task[];
@@ -178,7 +182,7 @@ export default function HomeView({
                 <div className="flex items-center gap-1 md:gap-2">
                   {task.source === 'NOTION' && (
                     <a
-                      href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+                      href={getNotionLinkById(task.id)}
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}

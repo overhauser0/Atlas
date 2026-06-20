@@ -10,11 +10,15 @@ import {
   Trash2,
   SquareArrowUp,
   MonitorUp,
+  MoreHorizontal,
+  ChevronDown,
+  HardDrive,
 } from 'lucide-react';
-import { Task } from '@/types';
-import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { Task, ViewType, isViewType } from '@/types';
+import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/Toast';
+import { parseGleisLink } from '@/utils/schemeUtils';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -26,6 +30,7 @@ interface TaskModalProps {
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onSendToPC?: (url: string) => void;
+  onNavigate: (viewname: ViewType) => void;
 }
 
 export default function TaskModal({
@@ -38,6 +43,7 @@ export default function TaskModal({
   onSyncStart,
   onSyncEnd,
   onSendToPC,
+  onNavigate,
 }: TaskModalProps) {
   const { addToast } = useToast();
 
@@ -51,6 +57,11 @@ export default function TaskModal({
     url: '',
   });
   const [isSaving, setIsSaving] = useState(false);
+
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
+  const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
+  const statusMenuRef = useRef<HTMLDivElement>(null);
 
   const titleInputRef = useRef<HTMLInputElement>(null);
   const focusTitleInput = () => {
@@ -85,7 +96,33 @@ export default function TaskModal({
         if ((initialTitle || '') === '') focusTitleInput();
       }
     }
-  }, [isOpen, mode, task]);
+    setIsMoreMenuOpen(false);
+    setIsStatusMenuOpen(false);
+  }, [isOpen, mode, task, initialTitle]);
+
+  // ドロップダウンの外側をクリックした時に閉じる処理
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        moreMenuRef.current &&
+        !moreMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsMoreMenuOpen(false);
+      }
+      if (
+        statusMenuRef.current &&
+        !statusMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsStatusMenuOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isOpen]);
 
   const handleSave = async () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
@@ -124,17 +161,12 @@ export default function TaskModal({
 
   const handleDelete = () => {
     if (!task?.id) return;
-
-    if (!window.confirm('本当にこのタスクを削除しますか？')) {
-      return;
-    }
+    if (!window.confirm('本当にこのタスクを削除しますか？')) return;
 
     onClose();
     onSyncStart();
 
-    atlasFetch(`/pieces/${task.id}`, {
-      method: 'DELETE',
-    })
+    atlasFetch(`/pieces/${task.id}`, { method: 'DELETE' })
       .then(async (response) => {
         if (!response.ok)
           throw new Error(`Server Error: ${response.statusText}`);
@@ -152,10 +184,7 @@ export default function TaskModal({
 
   const handlePromote = async () => {
     if (!task?.id) return;
-
-    if (!window.confirm('このタスクをNotionに昇格させますか？')) {
-      return;
-    }
+    if (!window.confirm('このタスクをNotionに昇格させますか？')) return;
 
     onClose();
     onSyncStart();
@@ -164,14 +193,12 @@ export default function TaskModal({
       const response = await atlasFetch(`/pieces/${task.id}/promote`, {
         method: 'POST',
       });
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
           errorData.message || `Server Error: ${response.status}`,
         );
       }
-
       addToast('タスクを昇格させました', 'info');
       onSuccess();
     } catch (e) {
@@ -182,6 +209,24 @@ export default function TaskModal({
     }
   };
 
+  const handleLinkClick = (url: string) => {
+    const gleisLink = parseGleisLink(url);
+
+    if (gleisLink) {
+      if (gleisLink.type === 'view') {
+        if (isViewType(gleisLink.target)) {
+          onNavigate?.(gleisLink.target);
+          onClose();
+        } else {
+          console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
+        }
+      }
+      return true;
+    }
+    window.open(url, '_blank', 'noopener,noreferrer');
+    return false;
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -189,21 +234,24 @@ export default function TaskModal({
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
-      // 1. Esc: モーダルを閉じる
       if (e.key === 'Escape') {
         e.preventDefault();
+        // ドロップダウンが開いている場合はモーダルを閉じずにドロップダウンだけ閉じる
+        if (isMoreMenuOpen || isStatusMenuOpen) {
+          setIsMoreMenuOpen(false);
+          setIsStatusMenuOpen(false);
+          return;
+        }
         onClose();
         return;
       }
 
-      // 2. Ctrl/Cmd + Enter: 保存
       if (cmdOrCtrl && e.key === 'Enter') {
         e.preventDefault();
         handleSave();
         return;
       }
 
-      // 3. Ctrl/Cmd + P: Promote (Notion昇格)
       if (cmdOrCtrl && e.key.toLowerCase() === 'p') {
         e.preventDefault();
         if (editForm.source === 'LOCAL' && mode === 'edit' && task?.id) {
@@ -212,7 +260,6 @@ export default function TaskModal({
         return;
       }
 
-      // 4. Delete: 削除
       if (e.key === 'Delete') {
         const activeEl = document.activeElement;
         const isInputActive =
@@ -238,6 +285,8 @@ export default function TaskModal({
     handleSave,
     handlePromote,
     handleDelete,
+    isMoreMenuOpen,
+    isStatusMenuOpen,
   ]);
 
   if (!isOpen) return null;
@@ -251,34 +300,22 @@ export default function TaskModal({
         }
       }}
     >
-      <div className="w-full max-w-md noir-glass rounded-2xl p-6 border border-white/10 flex flex-col gap-6 shadow-[0_0_60px_-15px_rgba(0,112,243,0.15)]">
+      <div className="noir-glass w-full max-w-md rounded-2xl p-6 flex flex-col gap-6">
+        {/* === HEADER === */}
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-bold text-white flex-1">
-            {mode === 'create' ? 'New Task' : 'Edit Task'}
-          </h2>
-          {mode === 'edit' && task?.id && (
-            <button
-              onClick={handleDelete}
-              type="button"
-              className="noir-icon-btn hover:text-red-400"
-              title="タスクを削除 (Delete)"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
-          )}
-          {editForm.source === 'LOCAL' && mode === 'edit' && task?.id && (
-            <button
-              onClick={handlePromote}
-              type="button"
-              className="noir-icon-btn hover:text-green-400"
-              title="Notionに昇格 (Ctrl+P)"
-            >
-              <SquareArrowUp className="w-5 h-5" />
-            </button>
-          )}
+          <div className="flex flex-1 items-center gap-3">
+            <h2 className="text-lg font-bold text-white">
+              {mode === 'create' ? 'New Task' : 'Edit Task'}
+            </h2>
+            {mode === 'edit' && editForm.source === 'LOCAL' && (
+              <HardDrive className="w-4 h-4 text-gray-400" />
+            )}
+          </div>
+
+          {/* Notion Link */}
           {editForm.source === 'NOTION' && task?.id && (
             <a
-              href={`https://notion.so/${task.id.replace(/-/g, '')}`}
+              href={getNotionLinkById(task.id)}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -288,11 +325,13 @@ export default function TaskModal({
               <ExternalLink className="w-5 h-5" />
             </a>
           )}
+
+          {/* PCで開く */}
           {onSendToPC && editForm.source === 'NOTION' && task?.id && (
             <button
               onClick={(e) => {
                 e.preventDefault();
-                onSendToPC(`https://notion.so/${task.id.replace(/-/g, '')}`);
+                onSendToPC(getNotionLinkById(task.id));
                 onClose();
               }}
               className="noir-icon-btn"
@@ -301,6 +340,49 @@ export default function TaskModal({
               <MonitorUp className="w-5 h-5" />
             </button>
           )}
+
+          {/* 三点リーダーメニュー */}
+          {mode === 'edit' && task?.id && (
+            <div className="relative" ref={moreMenuRef}>
+              <button
+                onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
+                className={`noir-icon-btn ${isMoreMenuOpen ? 'bg-white/10 text-white' : ''}`}
+                title="その他"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+
+              {isMoreMenuOpen && (
+                <div className="noir-subglass absolute right-0 w-48 z-60 mt-2 py-1.5 rounded-xl">
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      handleDelete();
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/10 flex items-center gap-3 transition-colors"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    削除
+                  </button>
+
+                  {editForm.source === 'LOCAL' && (
+                    <button
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        handlePromote();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-green-400 hover:bg-white/10 flex items-center gap-3 transition-colors border-t border-white/5"
+                    >
+                      <SquareArrowUp className="w-4 h-4" />
+                      Notionに昇格
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* 閉じる */}
           <button
             onClick={onClose}
             className="noir-icon-btn"
@@ -309,7 +391,10 @@ export default function TaskModal({
             <X className="w-5 h-5" />
           </button>
         </div>
+
+        {/* === BODY === */}
         <div className="flex flex-col gap-4">
+          {/* Source Select */}
           {mode === 'create' && (
             <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
               {(['LOCAL', 'NOTION'] as const).map((src) => (
@@ -328,6 +413,8 @@ export default function TaskModal({
               ))}
             </div>
           )}
+
+          {/* Title Input */}
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <Text className="h-4 w-4 text-gray-500" />
@@ -343,37 +430,76 @@ export default function TaskModal({
               ref={titleInputRef}
             />
           </div>
-          <div className="relative flex w-full">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Calendar className="h-4 w-4 text-gray-500" />
+
+          <div className="flex items-center gap-3">
+            {/* Date Input */}
+            <div className="relative flex flex-1">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Calendar className="h-4 w-4 text-gray-500" />
+              </div>
+              <input
+                type="date"
+                value={editForm.date}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, date: e.target.value })
+                }
+                className="noir-input pl-9 w-full box-border appearance-none min-w-0"
+              />
             </div>
-            <input
-              type="date"
-              value={editForm.date}
-              onChange={(e) =>
-                setEditForm({ ...editForm, date: e.target.value })
-              }
-              className="noir-input pl-9 w-auto flex-1 box-border appearance-none min-w-0"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
+
+            {/* ステータスカスタムドロップダウン */}
+            <div className="relative flex-1" ref={statusMenuRef}>
               <button
-                key={s}
-                onClick={() => setEditForm({ ...editForm, status: s })}
-                className={`p-2.5 rounded-xl border flex items-center gap-2 ${
-                  editForm.status === s
-                    ? 'bg-white/10 border-white/30 text-white'
-                    : 'border-white/5 text-gray-400'
+                type="button"
+                onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                className={`w-full p-3 rounded-xl border bg-black/50 text-white flex items-center justify-between transition-colors focus:outline-none ${
+                  isStatusMenuOpen
+                    ? 'border-neon'
+                    : 'border-white/10 hover:border-white/30'
                 }`}
               >
-                <div
-                  className={`w-2.5 h-2.5 rounded-full ${getStatusColor(s)}`}
+                <div className="flex items-center gap-2.5">
+                  <div
+                    className={`w-2.5 h-2.5 rounded-full ${getStatusColor(editForm.status)}`}
+                  />
+                  <span className="text-sm tracking-wide font-medium">
+                    {editForm.status}
+                  </span>
+                </div>
+                <ChevronDown
+                  className={`w-4 h-4 text-gray-500 transition-transform duration-300 ${
+                    isStatusMenuOpen ? 'rotate-180 text-neon' : ''
+                  }`}
                 />
-                <span className="text-xs">{s}</span>
               </button>
-            ))}
+
+              {isStatusMenuOpen && (
+                <div className="noir-subglass absolute left-0 right-0 z-60 mt-2 p-1.5 rounded-xl flex flex-col gap-1">
+                  {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => {
+                        setEditForm({ ...editForm, status: s });
+                        setIsStatusMenuOpen(false);
+                      }}
+                      className={`p-3 rounded-lg flex items-center gap-3 transition-all ${
+                        editForm.status === s
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-400 hover:bg-white/5 hover:text-white'
+                      }`}
+                    >
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full ${getStatusColor(s)}`}
+                      />
+                      <span className="text-sm font-medium">{s}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
+
+          {/* Note Input */}
           <div className="relative flex-1">
             <div className="absolute inset-y-0 left-0 pl-3 pt-3 flex items-start pointer-events-none">
               <MessageSquare className="h-4 w-4 text-gray-500" />
@@ -388,6 +514,8 @@ export default function TaskModal({
               placeholder="Note... (optional)"
             />
           </div>
+
+          {/* URL Input */}
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -404,18 +532,23 @@ export default function TaskModal({
               />
             </div>
             {editForm.url && (
-              <a
-                href={editForm.url}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleLinkClick(editForm.url);
+                }}
                 className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors shrink-0"
-                title="リンクを開く"
+                title="開く"
               >
                 <ExternalLink className="w-4 h-4" />
-              </a>
+              </button>
             )}
           </div>
         </div>
+
+        {/* Footer Actions */}
         <button
           onClick={handleSave}
           disabled={isSaving}

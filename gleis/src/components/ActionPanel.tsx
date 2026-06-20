@@ -146,7 +146,7 @@ export default function ActionPanel({
 
       {/* パネル本体（ダークガラス） */}
       <div
-        className={`absolute top-0 right-0 h-full w-full max-w-sm bg-zinc-950/90 backdrop-blur-2xl shadow-2xl border-l border-white/10 flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto ${
+        className={`noir-glass border-none! absolute top-0 right-0 h-full w-full max-w-sm flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}
       >

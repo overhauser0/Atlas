@@ -22,12 +22,12 @@ export const createNewPiece = async (piece: Piece) => {
       new Date(),
       page,
     );
-    broadcast('REFRESH_PIECES');
+    broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   } else {
     // ローカル専用タスクとして保存
     const result = await postgresRepo.insertLocalPiece(validatedPiece);
-    broadcast('REFRESH_PIECES');
+    broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   }
 };
@@ -53,18 +53,19 @@ export const updatePiece = async (id: string, payload: Partial<Piece>) => {
 
   const dbUpdates = DbPieceSchema.partial().parse(payload);
 
+  let result = null;
+
   if (targetSource === 'NOTION') {
     await notionRepo.updatePiecePage(id, dbUpdates);
-    const result = await postgresRepo.updateNotionPieceCache(id, dbUpdates);
-    broadcast('REFRESH_PIECES');
-    return result;
+    result = await postgresRepo.updateNotionPieceCache(id, dbUpdates);
   } else if (targetSource === 'LOCAL') {
-    const result = await postgresRepo.updateLocalPiece(id, dbUpdates);
-    broadcast('REFRESH_PIECES');
-    return result;
+    result = await postgresRepo.updateLocalPiece(id, dbUpdates);
   } else {
     throw new Error('Source (NOTION or LOCAL) is required to update a piece');
   }
+
+  broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
+  return result;
 };
 
 export const getPieceBlocks = async (id: string) => {
@@ -88,6 +89,7 @@ export const deletePiece = async (id: string) => {
     await postgresRepo.deleteLocalPiece(id);
   }
 
+  broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
   return { success: true, id, source: piece.source };
 };
 
@@ -132,6 +134,6 @@ export const rescheduleOverduePiecesToToday = async () => {
       console.error(`Error updating piece ${piece.id}:`, error);
     }
   }
-  broadcast('REFRESH_PIECES');
+  broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
   return updatedPieces;
 };

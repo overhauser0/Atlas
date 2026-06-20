@@ -138,35 +138,6 @@ export default function SettingsView({
               <span className="text-xs text-gray-500 font-medium">min</span>
             </div>
           </div>
-
-          {/* 通知ポーリング設定（秒） */}
-          <div className="flex items-center justify-between p-5 hover:bg-white/2 transition-colors">
-            <div className="pr-4">
-              <div className="text-sm font-medium text-gray-200">
-                Notification Poll Interval
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Interval for checking new notifications (seconds). Set to 0 to
-                disable auto-check.
-              </p>
-            </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <input
-                type="number"
-                min="0"
-                step="10"
-                value={appSettings.notificationInterval}
-                onChange={(e) =>
-                  setAppSettings((s: any) => ({
-                    ...s,
-                    notificationInterval: parseInt(e.target.value) || 0,
-                  }))
-                }
-                className="w-16 noir-input p-2! text-center"
-              />
-              <span className="text-xs text-gray-500 font-medium">sec</span>
-            </div>
-          </div>
         </div>
       </section>
       {/* --- Section: Alerts --- */}
