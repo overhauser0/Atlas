@@ -561,6 +561,7 @@ export default function Home() {
             onSyncStart={incrementRequest}
             onSyncEnd={decrementRequest}
             onNotionSync={() => handleNotionSync(true)}
+            onMarkAsRead={markAsRead}
             wsStatus={wsStatus}
             connectedDevicesCount={connectedDevices.length}
           />

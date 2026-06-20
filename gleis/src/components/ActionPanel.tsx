@@ -16,6 +16,7 @@ import {
   CalendarDays,
   Activity,
   ServerCrash,
+  Check,
 } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 
@@ -32,7 +33,7 @@ interface Props {
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onNotionSync: () => void;
-  // 🌟 追加：WebSocketステータス用のProps
+  onMarkAsRead: (id: string) => void;
   wsStatus?: 'connected' | 'connecting' | 'disconnected';
   connectedDevicesCount?: number;
 }
@@ -50,6 +51,7 @@ export default function ActionPanel({
   onSyncStart,
   onSyncEnd,
   onNotionSync,
+  onMarkAsRead,
   // デフォルト値を設定
   wsStatus = 'connecting',
   connectedDevicesCount = 0,
@@ -317,6 +319,10 @@ export default function ActionPanel({
                         <div
                           key={n.id}
                           className="relative flex gap-4 items-center group"
+                          onClick={() => {
+                            onClose();
+                            onNavigateToNotifications();
+                          }}
                         >
                           {/* 左側のアクセントライン */}
                           <div
@@ -354,33 +360,28 @@ export default function ActionPanel({
                               })}
                             </div>
                           </div>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onMarkAsRead(n.id);
+                              }}
+                              className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 border border-white/5 transition-colors"
+                            >
+                              <Check className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
                       );
                     })}
                   </div>
                 ) : (
                   /* 未読通知がない場合の表示 */
-                  <div className="py-4 flex flex-col items-center justify-center text-zinc-500">
+                  <div className="py-2 flex flex-col items-center justify-center text-zinc-500">
                     <Bell className="w-6 h-6 mb-2 opacity-20" />
                     <p className="text-xs font-bold">You're all caught up!</p>
                   </div>
                 )}
-
-                {/* 区切り線 */}
-                {recentUnreadNotifications.length > 0 && (
-                  <div className="h-px w-full bg-white/5" />
-                )}
-
-                {/* 全画面表示への遷移ボタン */}
-                <button
-                  onClick={() => {
-                    onClose();
-                    onNavigateToNotifications();
-                  }}
-                  className="w-full py-3 bg-white/5 hover:bg-white/10 text-zinc-300 text-xs font-bold rounded-xl flex items-center justify-center gap-1 transition-colors active:scale-95"
-                >
-                  View all notifications <ChevronRight className="w-3 h-3" />
-                </button>
               </div>
             </div>
           </section>
