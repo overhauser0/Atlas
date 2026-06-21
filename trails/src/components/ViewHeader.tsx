@@ -1,13 +1,13 @@
 // src/components/ViewHeader.tsx
-import { Settings, CloudSync, CloudCheck, CloudAlert } from 'lucide-react';
+import { Settings, Loader2, CloudCheck } from 'lucide-react';
 
 interface Props {
   title: string;
-  syncStatus: 'syncing' | 'synced' | 'error';
+  isSyncing: boolean;
   onOpenConfig: () => void;
 }
 
-export default function ViewHeader({ title, syncStatus, onOpenConfig }: Props) {
+export default function ViewHeader({ title, isSyncing, onOpenConfig }: Props) {
   return (
     <header className="sticky top-0 z-50 bg-gray-100/80 backdrop-blur-md px-5 py-4 flex justify-between items-center border-b border-gray-200">
       <div className="flex items-center gap-3">
@@ -23,14 +23,10 @@ export default function ViewHeader({ title, syncStatus, onOpenConfig }: Props) {
 
       <div className="flex items-center gap-4">
         <div className="text-gray-400">
-          {syncStatus === 'syncing' && (
-            <CloudSync className="w-5 h-5 animate-spin" />
-          )}
-          {syncStatus === 'synced' && (
+          {isSyncing ? (
+            <Loader2 className="w-6 h-6 animate-spin text-yellow-400" />
+          ) : (
             <CloudCheck className="w-5 h-5 text-green-500" />
-          )}
-          {syncStatus === 'error' && (
-            <CloudAlert className="w-5 h-5 text-red-500" />
           )}
         </div>
         <button

@@ -7,71 +7,74 @@ interface AuthViewProps {
   onLogin: () => void;
 }
 
-const CORRECT_PASSWORD =
-  process.env.NEXT_PUBLIC_ATLAS_PASSWORD || 'UNSET_PASSWORD_ERROR';
-
 export default function AuthView({ onLogin }: AuthViewProps) {
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState(false);
+  const [isUnlocking, setIsUnlocking] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (passwordInput === CORRECT_PASSWORD) {
-      localStorage.setItem('atlas_auth', 'true');
-      setLoginError(false);
-      onLogin();
-    } else {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}auth/verify`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ password: passwordInput }),
+        },
+      );
+
+      if (response.ok) {
+        setLoginError(false);
+        setIsUnlocking(true);
+
+        // ロック解除の演出後、ログイン処理を実行
+        setTimeout(() => {
+          localStorage.setItem('atlas_auth', 'true');
+          onLogin();
+        }, 800); // UIアニメーションに合わせる場合は調整してください
+      } else {
+        setLoginError(true);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
       setLoginError(true);
-      setPasswordInput('');
     }
   };
 
   return (
-    <div className="flex h-screen items-center justify-center bg-gray-100 relative overflow-hidden">
-      {/* 背景の柔らかいアンバーグロウ */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-primary-200 rounded-full blur-[150px] opacity-50 pointer-events-none" />
-
-      <div className="bg-white p-8 rounded-3xl border border-gray-200 w-full max-w-sm flex flex-col items-center z-10 relative shadow-xl">
-        {/* ロゴデザイン */}
-        <div className="w-16 h-16 bg-primary-500 rounded-2xl flex items-center justify-center text-white font-bold text-3xl mb-6 shadow-md">
-          T
-        </div>
-
-        <h1 className="text-2xl font-bold tracking-widest mb-2 text-gray-900">
-          Trails
-        </h1>
-        <p className="text-xs text-gray-400 uppercase tracking-widest mb-8">
-          Personal LifeOS
-        </p>
-
-        <form onSubmit={handleLogin} className="w-full flex flex-col gap-4">
+    <div className="flex items-center justify-center min-h-screen bg-black relative overflow-hidden">
+      <div className="relative z-10 w-full max-w-sm px-6">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Password"
-              className={`w-full bg-gray-50 border rounded-xl py-3 pl-10 pr-4 text-gray-900 text-sm focus:outline-none transition-colors ${
+              disabled={isUnlocking}
+              className={`w-full bg-black/50 border rounded-xl py-3 pl-10 pr-4 text-white text-sm focus:outline-none transition-all duration-300 ${
                 loginError
                   ? 'border-red-500 focus:border-red-500'
-                  : 'border-gray-200 focus:border-primary-500'
+                  : 'border-white/10 focus:border-white'
               }`}
               autoFocus
             />
           </div>
-
           {loginError && (
-            <p className="text-xs text-red-500 text-center">
+            <p className="text-xs text-red-500 text-center animate-pulse">
               Incorrect password.
             </p>
           )}
-
           <button
             type="submit"
-            className="w-full bg-gray-900 text-white font-bold py-3 rounded-xl transition-transform hover:scale-[1.02] active:scale-95"
+            disabled={isUnlocking}
+            className="w-full bg-white text-black font-bold py-3 rounded-xl transition-all duration-300"
           >
-            Enter
+            {isUnlocking ? 'Unlocking...' : 'Unlock Trails'}
           </button>
         </form>
       </div>

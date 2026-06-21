@@ -44,6 +44,7 @@ export default function DetailModal({
     url: '',
     imageUrl: '',
     iconType: 'leaf',
+    source: '',
   });
   const [isSaving, setIsSaving] = useState(false);
 
@@ -70,6 +71,7 @@ export default function DetailModal({
           url: '',
           imageUrl: '',
           iconType: 'leaf',
+          source: '',
         });
       }
     }

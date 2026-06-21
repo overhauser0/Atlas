@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Compass, Archive, Plane, BookOpen, ImageIcon } from 'lucide-react';
-import { AppTab, LifeItem } from '@/types';
-import { markCategory } from '@/utils/grouping';
+import { AppTab, Piece, LifeItem } from '@/types';
 
 import HomeView from '@/components/HomeView';
 import BucketView from '@/components/BucketView';
@@ -14,16 +13,29 @@ import DetailModal from '@/components/DetailModal';
 import ConfigModal from '@/components/ConfigModal';
 import ViewHeader from '@/components/ViewHeader';
 import AuthView from '@/components/AuthView';
+import { usePieceSync } from '@/hooks/usePieceSync';
+import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 
 export default function AppMain() {
+  // ============================================================================
+  // 1. States (状態管理)
+  // ============================================================================
+
+  // Auth & Settings (認証・設定)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [items, setItems] = useState<LifeItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+
+  // Global UI & View (画面・メニュー状態)
   const [currentTab, setCurrentTab] = useState<AppTab>('Home');
+  const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error'>(
     'synced',
   );
+
+  const [activeRequests, setActiveRequests] = useState(0);
+  const incrementRequest = () => setActiveRequests((prev) => prev + 1);
+  const decrementRequest = () =>
+    setActiveRequests((prev) => Math.max(0, prev - 1));
 
   // モーダル系
   const [isConfigOpen, setIsConfigOpen] = useState(false);
@@ -34,100 +46,35 @@ export default function AppMain() {
     defaultFlags: string[];
   }>({ isOpen: false, mode: 'create', item: null, defaultFlags: [] });
 
-  // ビューごとのタイトルを定義
-  const viewTitles: Record<AppTab, string> = {
-    Home: 'Trails',
-    Bucket: 'Bucket',
-    Travel: 'Travel',
-    Explore: 'Explore',
-    Diary: 'Diary',
-  };
+  // ============================================================================
+  // 2. Custom Hooks (計算・フォーマット)
+  // ============================================================================
+  const {
+    items,
+    setItems,
+    isPiecesLoading,
+    lastSyncTime,
+    fetchPieces,
+    handleNotionSync,
+  } = usePieceSync(isAuthenticated, incrementRequest, decrementRequest);
 
-  // ---------------- 認証チェック ----------------
-  useEffect(() => {
-    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
-    setIsAuthChecking(false);
-  }, []);
+  const handleRefresh = useCallback(() => {
+    fetchPieces(true);
+  }, [fetchPieces]);
+  const { wsStatus, connectedDevices } = useAtlasWebSocket(handleRefresh);
 
-  // ---------------- データ取得・同期 ----------------
-  const fetchData = useCallback(
-    async (isSilent = false) => {
-      if (!isAuthenticated) return;
-      if (!isSilent) setIsLoading(true);
-
-      try {
-        const res = await fetch(
-          '/api/v1/pieces?area=Life&excludeStatus=Canceled',
-          {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-            },
-          },
-        );
-
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
-
-        // gleisのタスク型をLifeItemへ変換
-        const mappedItems: LifeItem[] = data.pieces
-          .filter((p: any) => p.type === 'Event')
-          .map((p: any) => {
-            return {
-              id: p.id,
-              title: p.title,
-              status: p.status,
-              date: p.date,
-              area: p.area,
-              type: p.type,
-              topics: p.topics || [],
-              flags: p.flags || [],
-              fkw: p.fkw || [],
-              note: p.note || '',
-              url: p.url || '',
-              prefs: p.prefs || [],
-              imageUrl: p.imageUrl || '',
-              iconType: p.flags?.includes('Food') ? 'food' : 'leaf',
-              category: markCategory(p),
-            };
-          });
-
-        setItems(mappedItems);
-        setSyncStatus('synced');
-      } catch (e) {
-        console.error(e);
-        setSyncStatus('error');
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [isAuthenticated],
-  );
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const handleSync = async () => {
-    setSyncStatus('syncing');
-    try {
-      await fetch('/api/v1/pieces/sync', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-        },
-      });
-      await fetchData(true);
-    } catch (e) {
-      setSyncStatus('error');
-    }
-  };
+  // ============================================================================
+  // 3. Handlers (イベント・UI操作関連)
+  // ============================================================================
 
   const openDetailModal = (item: LifeItem) => {
     // setSelectedItem(item);
-    setDetailModalConfig({ isOpen: true, mode: 'edit', item: item });
+    setDetailModalConfig({
+      isOpen: true,
+      mode: 'edit',
+      item: item,
+      defaultFlags: [],
+    });
   };
   // FABクリック時のハンドラ
   const handleOpenCreate = () => {
@@ -145,7 +92,34 @@ export default function AppMain() {
     });
   };
 
-  // ---------------- 描画 ----------------
+  // ============================================================================
+  // 4. Effects (ライフサイクル・イベント監視)
+  // ============================================================================
+
+  // Auth Init
+  useEffect(() => {
+    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
+    setIsAuthChecking(false);
+  }, []);
+
+  // ---------------- データ取得・同期 ----------------
+
+  // fetchPiecesの最新版の参照を作る
+  const fetchPiecesRef = useRef(fetchPieces);
+  useEffect(() => {
+    fetchPiecesRef.current = fetchPieces;
+  }, [fetchPieces]);
+
+  // Initial Data Fetch
+  useEffect(() => {
+    const isFirstTime = items.length === 0;
+    fetchPieces(!isFirstTime);
+  }, [fetchPieces, items.length]);
+
+  // ============================================================================
+  // 5. Render (UI描画)
+  // ============================================================================
+
   if (isAuthChecking) return <div className="h-screen bg-gray-100" />;
   if (!isAuthenticated)
     return <AuthView onLogin={() => setIsAuthenticated(true)} />;
@@ -154,8 +128,8 @@ export default function AppMain() {
     <div className="flex flex-col h-screen overflow-hidden bg-gray-100">
       {/* 1. 固定ヘッダー */}
       <ViewHeader
-        title={viewTitles[currentTab]}
-        syncStatus={syncStatus}
+        title={currentTab}
+        isSyncing={activeRequests > 0}
         onOpenConfig={() => setIsConfigOpen(true)}
       />
 
@@ -234,14 +208,21 @@ export default function AppMain() {
         mode={detailModalConfig.mode}
         item={detailModalConfig.item}
         defaultFlags={detailModalConfig.defaultFlags}
-        onClose={() => setDetailModalConfig({ isOpen: false })}
-        onUpdate={fetchData}
+        onClose={() =>
+          setDetailModalConfig({
+            isOpen: false,
+            mode: 'create',
+            item: null,
+            defaultFlags: [],
+          })
+        }
+        onUpdate={fetchPieces}
       />
       <ConfigModal
         isOpen={isConfigOpen}
         onClose={() => setIsConfigOpen(false)}
         onSync={() => {
-          handleSync(); // 既存の同期関数
+          handleNotionSync(true);
           setIsConfigOpen(false);
         }}
         onLogout={() => {

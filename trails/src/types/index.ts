@@ -1,5 +1,21 @@
 export type AppTab = 'Home' | 'Bucket' | 'Travel' | 'Explore' | 'Diary';
 
+export interface Piece {
+  id: string;
+  title: string;
+  status: string;
+  date: string | null;
+  area: string | null;
+  type: string | null;
+  topics: string[];
+  flags: string[];
+  note: string;
+  url: string;
+  fkw: string[];
+  imageUrl: string;
+  source: string;
+}
+
 export interface LifeItem {
   id: string;
   title: string;
@@ -15,6 +31,7 @@ export interface LifeItem {
   imageUrl: string;
   iconType: string;
   category?: string[];
+  source: string;
 }
 
 export interface DiaryEntry {
