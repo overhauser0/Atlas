@@ -50,10 +50,13 @@ app.post('/auth/verify', async (c) => {
 
 // /api/v1 プレフィックスで整理
 const api = new Hono();
+// 通知
 api.post('/push', pushController.receivePush);
 api.get('/notifications', pushController.getNotificationHistory);
 api.post('/notifications/read', pushController.markAllAsRead);
 api.post('/notifications/:id/read', pushController.markAsRead);
+
+// Piece
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createPiece);
 api.post('/pieces/:id/promote', pieceController.promotePiece);
@@ -66,11 +69,17 @@ api.post(
   '/pieces/reschedule-overdue',
   pieceController.rescheduleOverduePiecesToToday,
 );
+
+// Monthly,Weekly
 api.get('/reviews', reviewController.getReviews);
 api.patch('/reviews/:pageId', reviewController.updateReview);
+
+// Diary
 api.get('/diaries', diaryController.getDiaries);
-api.post('/diaries/sync', diaryController.syncDiaries);
 api.patch('/diaries/:id', diaryController.updateDiary);
+api.post('/diaries/sync', diaryController.syncDiaries);
+
+// Google Calendar
 api.get('/calendar/events', calendarController.getEvents);
 api.post('/calendar/sync', calendarController.receiveCalendarSync);
 
