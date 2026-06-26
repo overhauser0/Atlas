@@ -53,7 +53,28 @@ CREATE TABLE IF NOT EXISTS notifications (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 5. アプリのメタデータ（最終同期時刻など）を保存するテーブル
+-- 5. 日記データ用テーブル
+CREATE TABLE IF NOT EXISTS diaries (
+    id VARCHAR(255) PRIMARY KEY, -- NotionのページID
+    name VARCHAR(255) NOT NULL,  -- yyyy-mm-dd形式の文字列
+    date VARCHAR(255),           -- 日付 (NotionのDateプロパティ)
+    rate VARCHAR(50),            -- ★☆☆☆☆ ～ ★★★★★
+    note TEXT,                   -- 日記本文
+    last_edited_time TIMESTAMP WITH TIME ZONE, -- Notion上の最終更新日時
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP -- 同期日時
+);
+
+-- 6. Googl Calendarデータキャッシュ用テーブル
+CREATE TABLE IF NOT EXISTS google_events (
+    id VARCHAR(255) PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    note TEXT,
+    url VARCHAR(1024),
+    date VARCHAR(255), -- YYYY-MM-DD 形式
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 7. アプリのメタデータ（最終同期時刻など）を保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,
@@ -65,7 +86,7 @@ INSERT INTO app_metadata (key, value)
 VALUES ('last_notion_sync_time', '1970-01-01T00:00:00Z')
 ON CONFLICT DO NOTHING;
 
--- 6. インデックスの作成（検索の高速化）
+-- 8. インデックスの作成（検索の高速化）
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_area ON notion_pieces_cache(area);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_status ON notion_pieces_cache(status);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_date ON notion_pieces_cache(date);

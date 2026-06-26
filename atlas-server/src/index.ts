@@ -4,6 +4,8 @@ import { cors } from 'hono/cors';
 import * as pushController from './controllers/push.controller';
 import * as pieceController from './controllers/piece.controller';
 import * as reviewController from './controllers/review.controller';
+import * as diaryController from './controllers/diary.controller';
+import * as calendarController from './controllers/calendar.controller';
 import * as pgRepo from './repositories/postgres.repository';
 import { initWebSocket } from './utils/websocket';
 
@@ -13,7 +15,6 @@ const app = new Hono();
 app.use('/*', cors());
 
 // --- 🔒 APIキー認証ミドルウェア ---
-
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
@@ -67,6 +68,11 @@ api.post(
 );
 api.get('/reviews', reviewController.getReviews);
 api.patch('/reviews/:pageId', reviewController.updateReview);
+api.get('/diaries', diaryController.getDiaries);
+api.post('/diaries/sync', diaryController.syncDiaries);
+api.patch('/diaries/:id', diaryController.updateDiary);
+api.get('/calendar/events', calendarController.getEvents);
+api.post('/calendar/sync', calendarController.receiveCalendarSync);
 
 app.route('/api/v1', api);
 

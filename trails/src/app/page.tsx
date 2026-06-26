@@ -1,20 +1,30 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Compass, Archive, Plane, BookOpen, ImageIcon } from 'lucide-react';
-import { AppTab, Piece, LifeItem } from '@/types';
+import {
+  Compass,
+  Archive,
+  Plane,
+  BookOpen,
+  CalendarIcon,
+  MoreHorizontal,
+} from 'lucide-react';
+import { AppTab, LifeItem, DiaryItem } from '@/types';
 
 import HomeView from '@/components/HomeView';
+import CalendarView from '@/components/CalendarView';
 import BucketView from '@/components/BucketView';
 import TravelView from '@/components/TravelView';
 import ExploreView from '@/components/ExploreView';
-import DiaryView from '@/components/DiaryView';
 import DetailModal from '@/components/DetailModal';
 import ConfigModal from '@/components/ConfigModal';
 import ViewHeader from '@/components/ViewHeader';
 import AuthView from '@/components/AuthView';
 import { usePieceSync } from '@/hooks/usePieceSync';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
+import { useDiarySync } from '@/hooks/useDiarySync';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+import DiaryModal from '@/components/DiaryModal';
 
 export default function AppMain() {
   // ============================================================================
@@ -27,10 +37,9 @@ export default function AppMain() {
 
   // Global UI & View (画面・メニュー状態)
   const [currentTab, setCurrentTab] = useState<AppTab>('Home');
-  const [isLoading, setIsLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<'syncing' | 'synced' | 'error'>(
-    'synced',
-  );
+
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement>(null);
 
   const [activeRequests, setActiveRequests] = useState(0);
   const incrementRequest = () => setActiveRequests((prev) => prev + 1);
@@ -46,6 +55,11 @@ export default function AppMain() {
     defaultFlags: string[];
   }>({ isOpen: false, mode: 'create', item: null, defaultFlags: [] });
 
+  const [diaryModalConfig, setDiaryModalConfig] = useState<{
+    isOpen: boolean;
+    diary: DiaryItem | null;
+  }>({ isOpen: false, diary: null });
+
   // ============================================================================
   // 2. Custom Hooks (計算・フォーマット)
   // ============================================================================
@@ -58,13 +72,71 @@ export default function AppMain() {
     handleNotionSync,
   } = usePieceSync(isAuthenticated, incrementRequest, decrementRequest);
 
-  const handleRefresh = useCallback(() => {
+  const handleRefreshPieces = useCallback(() => {
     fetchPieces(true);
   }, [fetchPieces]);
-  const { wsStatus, connectedDevices } = useAtlasWebSocket(handleRefresh);
+
+  const { diaries, fetchDiaries, syncDiary } = useDiarySync(
+    isAuthenticated,
+    incrementRequest,
+    decrementRequest,
+  );
+  const handleRefreshDiaries = useCallback(() => {
+    fetchDiaries();
+  }, [fetchDiaries]);
+
+  const { wsStatus, connectedDevices } = useAtlasWebSocket(
+    handleRefreshPieces,
+    handleRefreshDiaries,
+  );
+
+  const { googleEvents, fetchGoogleEvents } = useGoogleCalendar(
+    isAuthenticated,
+    incrementRequest,
+    decrementRequest,
+  );
 
   // ============================================================================
-  // 3. Handlers (イベント・UI操作関連)
+  // 3. Effects (ライフサイクル・イベント監視)
+  // ============================================================================
+
+  // Auth Init
+  useEffect(() => {
+    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
+    setIsAuthChecking(false);
+  }, []);
+
+  // Moreメニューの外側をクリックしたときにメニューを閉じる処理
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        moreMenuRef.current &&
+        !moreMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsMoreOpen(false);
+      }
+    }
+    if (isMoreOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMoreOpen]);
+
+  // ---------------- データ取得・同期 ----------------
+
+  // Initial Data Fetch
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const isFirstTime = items.length === 0;
+    fetchPieces(!isFirstTime);
+    fetchDiaries();
+    fetchGoogleEvents();
+  }, [isAuthenticated, fetchPieces, fetchDiaries, fetchGoogleEvents]);
+
+  // ============================================================================
+  // 4. Handlers (イベント・UI操作関連)
   // ============================================================================
 
   const openDetailModal = (item: LifeItem) => {
@@ -91,30 +163,17 @@ export default function AppMain() {
       defaultFlags: flags,
     });
   };
+  const handleTabChange = (tab: AppTab) => {
+    setCurrentTab(tab);
+    setIsMoreOpen(false);
+  };
 
-  // ============================================================================
-  // 4. Effects (ライフサイクル・イベント監視)
-  // ============================================================================
-
-  // Auth Init
-  useEffect(() => {
-    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
-    setIsAuthChecking(false);
-  }, []);
-
-  // ---------------- データ取得・同期 ----------------
-
-  // fetchPiecesの最新版の参照を作る
-  const fetchPiecesRef = useRef(fetchPieces);
-  useEffect(() => {
-    fetchPiecesRef.current = fetchPieces;
-  }, [fetchPieces]);
-
-  // Initial Data Fetch
-  useEffect(() => {
-    const isFirstTime = items.length === 0;
-    fetchPieces(!isFirstTime);
-  }, [fetchPieces, items.length]);
+  const handleDiaryClick = (diary: DiaryItem | null) => {
+    setDiaryModalConfig({
+      isOpen: true,
+      diary,
+    });
+  };
 
   // ============================================================================
   // 5. Render (UI描画)
@@ -133,13 +192,22 @@ export default function AppMain() {
         onOpenConfig={() => setIsConfigOpen(true)}
       />
 
-      {/* 2. スクロール可能なメインエリア */}
-      <main className="flex-1 overflow-y-auto pb-24 no-scrollbar">
+      {/* 2. メインエリア */}
+      <main className="flex-1 overflow-hidden relative">
         {currentTab === 'Home' && (
           <HomeView
             data={items}
             onNavigate={setCurrentTab}
             onItemClick={openDetailModal}
+          />
+        )}
+        {currentTab === 'Calendar' && (
+          <CalendarView
+            data={items}
+            diaries={diaries}
+            googleEvents={googleEvents}
+            onItemClick={openDetailModal}
+            onDiaryClick={handleDiaryClick}
           />
         )}
         {currentTab === 'Bucket' && (
@@ -163,7 +231,6 @@ export default function AppMain() {
             onOpenCreate={handleOpenCreate}
           />
         )}
-        {currentTab === 'Diary' && <DiaryView />}
       </main>
 
       {/* 3. ナビゲーションバー (固定) */}
@@ -176,29 +243,60 @@ export default function AppMain() {
             onClick={setCurrentTab}
           />
           <NavButton
+            tab="Calendar"
+            current={currentTab}
+            icon={<CalendarIcon />}
+            onClick={setCurrentTab}
+          />
+          <NavButton
             tab="Bucket"
             current={currentTab}
             icon={<Archive />}
             onClick={setCurrentTab}
           />
-          <NavButton
-            tab="Travel"
-            current={currentTab}
-            icon={<Plane />}
-            onClick={setCurrentTab}
-          />
-          <NavButton
-            tab="Explore"
-            current={currentTab}
-            icon={<BookOpen />}
-            onClick={setCurrentTab}
-          />
-          <NavButton
-            tab="Diary"
-            current={currentTab}
-            icon={<ImageIcon />}
-            onClick={setCurrentTab}
-          />
+          <div className="relative" ref={moreMenuRef}>
+            <button
+              onClick={() => setIsMoreOpen(!isMoreOpen)}
+              className={`flex flex-col items-center gap-1 transition-colors ${
+                isMoreOpen
+                  ? 'text-primary-600'
+                  : 'text-gray-400 hover:text-gray-600'
+              }`}
+            >
+              <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">
+                <MoreHorizontal />
+              </div>
+              <span className="text-[10px] font-medium">More</span>
+            </button>
+
+            {/* ポップアップメニュー */}
+            {isMoreOpen && (
+              <div className="absolute bottom-16 right-0 w-40 bg-white/95 backdrop-blur-md border border-gray-200 rounded-xl shadow-lg py-1 z-50 animate-in fade-in slide-in-from-bottom-2 duration-150">
+                <button
+                  onClick={() => handleTabChange('Travel')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left ${
+                    currentTab === 'Travel'
+                      ? 'text-primary-600 bg-gray-50'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <Plane className="w-4 h-4" />
+                  <span>Travel</span>
+                </button>
+                <button
+                  onClick={() => handleTabChange('Explore')}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm font-medium transition-colors text-left border-t border-gray-100 ${
+                    currentTab === 'Explore'
+                      ? 'text-primary-600 bg-gray-50'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  <span>Explore</span>
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
       </div>
 
@@ -223,6 +321,7 @@ export default function AppMain() {
         onClose={() => setIsConfigOpen(false)}
         onSync={() => {
           handleNotionSync(true);
+          syncDiary();
           setIsConfigOpen(false);
         }}
         onLogout={() => {
@@ -230,6 +329,13 @@ export default function AppMain() {
           setIsAuthenticated(false);
           setIsConfigOpen(false);
         }}
+      />
+      <DiaryModal
+        isOpen={diaryModalConfig.isOpen}
+        diary={diaryModalConfig.diary}
+        onClose={() =>
+          setDiaryModalConfig((prev) => ({ ...prev, isOpen: false }))
+        }
       />
     </div>
   );

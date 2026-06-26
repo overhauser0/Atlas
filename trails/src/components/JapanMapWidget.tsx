@@ -97,7 +97,7 @@ export default function JapanMapWidget({ data }: Props) {
 
       {/* 日本地図グリッド */}
       <div
-        className="grid gap-0.5 sm:gap-1 w-full max-w-[400px]"
+        className="grid gap-0.5 sm:gap-1 w-full max-w-100"
         // x軸:13マス, y軸:11マス のグリッドを作成
         style={{
           gridTemplateColumns: 'repeat(13, minmax(0, 1fr))',

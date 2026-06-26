@@ -1,5 +1,7 @@
 import { Client } from '@notionhq/client';
 import { DbPiece } from '../schemas/piece.schema';
+import { DbDiary } from '../schemas/diary.schema';
+import { NotionDiaryItem } from '../schemas/diary.schema';
 
 // ==========================================
 // 1. 接続・環境設定
@@ -9,6 +11,7 @@ const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
 const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
 const NOTION_MONTHLY_DB_ID = process.env.NOTION_MONTHLY_DB_ID!;
 const NOTION_WEEKLY_DB_ID = process.env.NOTION_WEEKLY_DB_ID!;
+const NOTION_DIARY_DB_ID = process.env.NOTION_DIARY_DB_ID!;
 
 // ==========================================
 // 2. Piece (Task/LifeLog) 関連の操作
@@ -239,4 +242,165 @@ export const updatePageTextProperty = async (
       [propertyName]: { rich_text: [{ text: { content: text } }] },
     },
   });
+};
+
+// ==========================================
+// 5. Diary 関連の操作
+// ==========================================
+
+/**
+ * [Read] NotionのDiaryデータベースから日記を取得する
+ * @param lastSyncTime 指定されている場合、この時間以降に更新されたものだけを取得（差分同期）
+ */
+export const getDiaryPages = async (
+  lastSyncTime?: Date,
+): Promise<NotionDiaryItem[]> => {
+  if (!NOTION_DIARY_DB_ID)
+    throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
+
+  let allPages: any[] = [];
+  let hasMore = true;
+  let cursor: string | undefined = undefined;
+
+  const queryArgs: any = {
+    database_id: NOTION_DIARY_DB_ID,
+    page_size: 100,
+  };
+
+  if (lastSyncTime) {
+    queryArgs.filter = {
+      timestamp: 'last_edited_time',
+      last_edited_time: {
+        on_or_after: lastSyncTime.toISOString(),
+      },
+    };
+  }
+
+  while (hasMore) {
+    queryArgs.start_cursor = cursor;
+    const response = await notionClient.databases.query(queryArgs);
+
+    allPages = [...allPages, ...response.results];
+    hasMore = response.has_more;
+    cursor = response.next_cursor ?? undefined;
+  }
+
+  return allPages.map((page: any) => {
+    const props = page.properties;
+
+    const name = props.Name?.title?.[0]?.plain_text || '';
+    const date = props.Date?.date?.start || null;
+    const rate = props.Rate?.select?.name || null;
+    const note = props.Note?.rich_text?.[0]?.plain_text || null;
+
+    return {
+      id: page.id,
+      name,
+      date,
+      rate,
+      note,
+      last_edited_time: page.last_edited_time,
+    };
+  });
+};
+
+/**
+ * [Update] Notionの既存Diaryページを更新する
+ * @param pageId Notion Page ID
+ * @param diary 更新するDiaryのデータ(差分)
+ */
+export const updateDiaryPage = async (
+  pageId: string,
+  diary: Partial<DbDiary>,
+) => {
+  const properties: any = {
+    Name: { title: [{ text: { content: diary.name } }] },
+  };
+
+  if (diary.date) {
+    properties.Date = { date: { start: diary.date } };
+  }
+
+  if (diary.rate) {
+    properties.Rate = { select: { name: diary.rate } };
+  }
+
+  if (diary.note !== undefined && diary.note !== null) {
+    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
+  }
+
+  return await notionClient.pages.update({
+    page_id: pageId,
+    properties,
+  });
+};
+
+/**
+ * [Create] NotionのDiaryデータベースに新しいページを作成する
+ * @param diary 作成するDiaryのデータ
+ */
+export const insertDiaryPage = async (diary: DbDiary) => {
+  const properties: any = {
+    Name: { title: [{ text: { content: diary.name } }] },
+  };
+
+  if (diary.date) {
+    properties.Date = { date: { start: diary.date } };
+  }
+
+  if (diary.rate) {
+    properties.Rate = { select: { name: diary.rate } };
+  }
+
+  if (diary.note !== undefined && diary.note !== null) {
+    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
+  }
+
+  return await notionClient.pages.create({
+    parent: { database_id: NOTION_DIARY_DB_ID },
+    properties,
+  });
+};
+
+/**
+ * [Create/Update] NotionのDiaryデータベースに日記を保存（新規作成または更新）する ※要らないはず
+ * @param diary 保存する日記データ
+ * @param existingPageId 既存のページID（更新の場合に指定）
+ */
+export const saveDiaryPage = async (
+  diary: Omit<NotionDiaryItem, 'id' | 'lastEditedTime'>,
+  existingPageId?: string,
+) => {
+  if (!NOTION_DIARY_DB_ID)
+    throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
+
+  const properties: any = {
+    Name: { title: [{ text: { content: diary.name } }] },
+  };
+
+  if (diary.date) {
+    properties.Date = { date: { start: diary.date } };
+  }
+
+  if (diary.rate) {
+    properties.Rate = { select: { name: diary.rate } };
+  }
+
+  if (diary.note !== undefined && diary.note !== null) {
+    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
+  }
+
+  if (existingPageId) {
+    // 既存ページの更新
+    return await notionClient.pages.update({
+      page_id: existingPageId,
+      properties,
+    });
+  } else {
+    // 新規作成
+    return await notionClient.pages.create({
+      parent: { database_id: NOTION_DIARY_DB_ID },
+      properties,
+    });
+  }
 };

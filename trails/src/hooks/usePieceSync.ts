@@ -64,6 +64,7 @@ export const usePieceSync = (
               prefs: p.prefs || [],
               imageUrl: p.imageUrl || '',
               iconType: p.flags?.includes('Food') ? 'food' : 'leaf',
+              source: p.source,
               category: markCategory(p),
             };
           });

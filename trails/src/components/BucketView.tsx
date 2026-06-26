@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+// useRef と useEffect を追加
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus, BadgeCheck, Archive } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
@@ -14,6 +15,16 @@ interface Props {
 
 export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
   const [activeTab, setActiveTab] = useState<'UNDONE' | 'DONE'>('UNDONE');
+
+  // スクロールコンテナ用のref
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  // UNDONE / DONE のタブを切り替えた時に一番上に戻す
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [activeTab]);
 
   const filteredData = useMemo(() => {
     return activeTab === 'UNDONE'
@@ -37,9 +48,10 @@ export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
   };
 
   return (
-    <div className="max-w-5xl mx-auto w-full p-5 md:p-8">
-      {/* タブ形式のフィルタリング */}
-      <div className="flex bg-gray-200 p-1 rounded-xl mb-6">
+    // 1. ラッパーを h-full flex flex-col にして高さを固定
+    <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8 relative">
+      {/* 2. タブ部分は shrink-0 で潰れないようにする */}
+      <div className="shrink-0 flex bg-gray-200 p-1 rounded-xl mb-6">
         {(['UNDONE', 'DONE'] as const).map((tab) => (
           <button
             key={tab}
@@ -55,7 +67,11 @@ export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
         ))}
       </div>
 
-      <div className="space-y-8 pb-20">
+      {/* 3. リスト部分に flex-1 と overflow-y-auto を付与し、ここでスクロールさせる */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto no-scrollbar space-y-8 pb-32"
+      >
         {years.map((year) => (
           <div key={year}>
             <h4 className="text-sm font-bold text-gray-800 mb-3 pl-1">
@@ -76,10 +92,10 @@ export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
         ))}
       </div>
 
-      {/* FAB */}
+      {/* FAB (配置を少し微調整) */}
       <button
         onClick={onOpenCreate}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+        className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>

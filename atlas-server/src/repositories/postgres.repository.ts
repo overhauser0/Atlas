@@ -1,7 +1,10 @@
 import { Kysely, PostgresDialect, Generated, JSONColumnType } from 'kysely';
 import { Pool } from 'pg';
 import { DbPiece } from '../schemas/piece.schema';
+import { DbDiary } from '../schemas/diary.schema';
 import { PushNotificationInput } from '../schemas/push.schema';
+import { DiaryTable } from '../schemas/diary.schema';
+import { DbGoogleEvent } from '../schemas/calendar.schema';
 
 // ==========================================
 // 1. テーブル定義 (Interfaces)
@@ -63,6 +66,8 @@ export interface Database {
   notion_pieces_cache: NotionPiecesCacheTable;
   notifications: NotificationsTable;
   app_metadata: AppMetadataTable;
+  diaries: DiaryTable;
+  google_events: DbGoogleEvent;
 }
 
 // ==========================================
@@ -433,4 +438,186 @@ export const updateLastNotionSyncTime = async (nowISO: string) => {
       }),
     )
     .execute();
+};
+
+// ------------------------------------------
+// Diaries
+// ------------------------------------------
+
+/**
+ * [Read] 保存されているすべての日記を取得する
+ * @returns 日付降順でソートされた日記の配列
+ */
+export const getDiaries = async () => {
+  return await db
+    .selectFrom('diaries')
+    .selectAll()
+    .orderBy('date', 'desc')
+    .execute();
+};
+
+/**
+ * [Upsert] Notionから取得した日記データをDBに保存・更新する
+ * @param diary NotionのPieceデータ
+ * @param last_edited_time 最終更新日時
+ */
+export const upsertDiary = async (diary: DbDiary, last_edited_time: Date) => {
+  const values = {
+    ...diary,
+    last_edited_time,
+  };
+
+  const upsertedDiary = await db
+    .insertInto('diaries')
+    .values(values as any)
+    .onConflict((oc) => oc.column('id').doUpdateSet(values as any))
+    .returningAll()
+    .executeTakeFirst();
+
+  return upsertedDiary;
+};
+
+/**
+ * [Update] ユーザー操作によるDiaryキャッシュの部分更新
+ * @param id Notion Page ID
+ * @param updates 更新内容
+ */
+export const updateDiary = async (id: string, updates: Partial<DbPiece>) => {
+  const dbUpdates = {
+    ...updates,
+    last_edited_time: new Date(), // タイムスタンプだけ強制セット
+  };
+
+  const updatedDiary = await db
+    .updateTable('diaries')
+    .set(dbUpdates as any)
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirst();
+
+  return updatedDiary;
+};
+
+/**
+ * [Read] 日記の最終同期時刻を取得する
+ */
+export const getLastDiarySyncTime = async (): Promise<string> => {
+  const record = await db
+    .selectFrom('app_metadata')
+    .select('value')
+    .where('key', '=', 'last_diary_sync_time')
+    .executeTakeFirst();
+
+  return record?.value || '1970-01-01T00:00:00Z';
+};
+
+/**
+ * [Upsert] 日記の最終同期時刻を更新する
+ * @param nowISO 現在時刻のISO文字列
+ */
+export const updateLastDiarySyncTime = async (nowISO: string) => {
+  await db
+    .insertInto('app_metadata')
+    .values({
+      key: 'last_diary_sync_time',
+      value: nowISO,
+    })
+    .onConflict((oc) =>
+      oc.column('key').doUpdateSet({
+        value: nowISO,
+        updated_at: new Date(),
+      }),
+    )
+    .execute();
+};
+
+// ------------------------------------------
+// Google Calendar Events
+// ------------------------------------------
+
+/**
+ * [Upsert] n8nから受信したGoogleカレンダーのイベントをDBに保存・更新する
+ * @param events n8nから送られてくるイベントの配列
+ */
+export const upsertGoogleEvents = async (events: any[]) => {
+  if (!events || events.length === 0) return;
+
+  const values = events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    note: event.note || '',
+    date: event.date,
+    url: event.url || '',
+    synced_at: new Date(),
+  }));
+
+  await db
+    .insertInto('google_events')
+    .values(values as any)
+    .onConflict((oc) =>
+      oc.column('id').doUpdateSet((eb) => ({
+        title: eb.ref('excluded.title'),
+        note: eb.ref('excluded.note'),
+        date: eb.ref('excluded.date'),
+        url: eb.ref('excluded.url'),
+        synced_at: eb.ref('excluded.synced_at'),
+      })),
+    )
+    .execute();
+};
+
+/**
+ * [Read] 保存されているGoogleカレンダーのイベントを取得する
+ */
+export const getGoogleEvents = async () => {
+  return await db
+    .selectFrom('google_events')
+    .selectAll()
+    .orderBy('date', 'asc')
+    .execute();
+};
+
+// 追加と削除を両方やる
+
+export const syncGoogleEvents = async (events: any[]) => {
+  if (!events || events.length === 0) {
+    // 予定が0件の場合は全削除（または何もしない等、要件に合わせて調整）
+    return;
+  }
+
+  // 1. 追加・更新 (Upsert) 処理
+  const values = events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    note: event.note || '',
+    date: event.date,
+    url: event.url || '',
+    synced_at: new Date(),
+  }));
+
+  await db
+    .insertInto('google_events')
+    .values(values as any)
+    .onConflict((oc) =>
+      oc.column('id').doUpdateSet((eb) => ({
+        title: eb.ref('excluded.title'),
+        note: eb.ref('excluded.note'),
+        date: eb.ref('excluded.date'),
+        url: eb.ref('excluded.url'),
+        synced_at: eb.ref('excluded.synced_at'),
+      })),
+    )
+    .execute();
+
+  // 2. 削除 (Delete) 処理を追加
+  // n8nから送られてきた「現在アクティブなID」のリストを作成
+  const activeIds = events.map((e) => e.id);
+
+  // DBにあって、n8nから送られてきたリストにないIDの予定を削除する
+  if (activeIds.length > 0) {
+    await db
+      .deleteFrom('google_events')
+      .where('id', 'not in', activeIds)
+      .execute();
+  }
 };

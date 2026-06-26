@@ -112,7 +112,7 @@ export default function DetailModal({
       });
 
       if (res.ok) {
-        onUpdate();
+        //onUpdate();
         onClose();
       }
     } catch (e) {
@@ -121,6 +121,10 @@ export default function DetailModal({
       setIsSaving(false);
     }
   };
+
+  const isSaveBtnNeeds =
+    mode === 'create' ||
+    (mode === 'edit' && formData.source === 'NOTION' && formData.id);
 
   return (
     <div
@@ -132,7 +136,7 @@ export default function DetailModal({
       onClick={onClose}
     >
       <div
-        className={`bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
+        className={`relative bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           isVisible
             ? 'translate-y-0 sm:scale-100 sm:opacity-100'
             : 'translate-y-full sm:translate-y-0 sm:scale-95 sm:opacity-0'
@@ -152,14 +156,30 @@ export default function DetailModal({
           )}
 
           {/* Title */}
-          <input
-            value={formData.title}
-            onChange={(e) =>
-              setFormData({ ...formData, title: e.target.value })
-            }
-            placeholder="Title"
-            className="w-full font-bold text-2xl text-gray-900 placeholder-gray-400 focus:outline-none mb-2"
-          />
+          <div className="flex">
+            <input
+              value={formData.title}
+              onChange={(e) =>
+                setFormData({ ...formData, title: e.target.value })
+              }
+              placeholder="Title"
+              className="w-full font-bold text-2xl text-gray-900 placeholder-gray-400 focus:outline-none"
+            />
+            {mode === 'edit' && formData.source === 'NOTION' && formData.id && (
+              <button
+                onClick={() =>
+                  window.open(
+                    `https://notion.so/${formData.id.replace(/-/g, '')}`,
+                    '_blank',
+                  )
+                }
+                className="z-10 w-10 h-10 bg-white/80 backdrop-blur-md border border-gray-200 rounded-full flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-white shadow-sm transition-all shrink-0"
+                title="Open in Notion"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </button>
+            )}
+          </div>
 
           {/* Date */}
           <div className="flex items-center gap-3">
@@ -239,13 +259,13 @@ export default function DetailModal({
           )}
         </div>
 
-        {/* 下部ボタン */}
-        <div className="p-6 pt-4 border-t border-gray-100 bg-white">
-          <div className="flex gap-3 mb-3">
+        {/* ==== 下部ボタン ==== */}
+        <div className="p-6 pt-4 border-t border-gray-100 bg-white flex gap-3">
+          {isSaveBtnNeeds && (
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1 bg-gray-900 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+              className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
             >
               {isSaving ? (
                 <Loader2 className="animate-spin w-5 h-5" />
@@ -255,19 +275,7 @@ export default function DetailModal({
                 </>
               )}
             </button>
-
-            <button
-              onClick={() =>
-                window.open(
-                  `https://notion.so/${formData.id.replace(/-/g, '')}`,
-                  '_blank',
-                )
-              }
-              className="flex-1 py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-colors bg-primary-50 text-primary-700 hover:bg-primary-100"
-            >
-              <ExternalLink className="w-4 h-4" /> Notion
-            </button>
-          </div>
+          )}
 
           <button
             onClick={onClose}

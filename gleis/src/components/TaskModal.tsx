@@ -227,6 +227,7 @@ export default function TaskModal({
     return false;
   };
 
+  // ショートカットキー
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
@@ -234,9 +235,25 @@ export default function TaskModal({
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
 
+      // 非入力状態でのみ有効
+      if (e.key === 'Delete') {
+        const activeEl = document.activeElement;
+        const isInputActive =
+          activeEl &&
+          (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
+
+        if (!isInputActive && mode === 'edit' && task?.id) {
+          e.preventDefault();
+          handleDelete();
+        }
+        return;
+      }
+
+      // 常に有効
+
       if (e.key === 'Escape') {
         e.preventDefault();
-        // ドロップダウンが開いている場合はモーダルを閉じずにドロップダウンだけ閉じる
+        // ドロップダウン、ステータスメニュー優先
         if (isMoreMenuOpen || isStatusMenuOpen) {
           setIsMoreMenuOpen(false);
           setIsStatusMenuOpen(false);
@@ -260,17 +277,9 @@ export default function TaskModal({
         return;
       }
 
-      if (e.key === 'Delete') {
-        const activeEl = document.activeElement;
-        const isInputActive =
-          activeEl &&
-          (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
-
-        if (!isInputActive && mode === 'edit' && task?.id) {
-          e.preventDefault();
-          handleDelete();
-        }
-        return;
+      if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        setEditForm({ ...editForm, status: 'Done' });
       }
     };
 

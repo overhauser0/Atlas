@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
 import ListItem from './ListItem';
@@ -10,11 +10,21 @@ export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
   const [activeType, setActiveType] = useState<
     'All' | 'Drinking' | 'Climbing' | 'R-Escape'
   >('All');
+
+  // スクロール制御用のref
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   const tabs = ['All', 'Drinking', 'Climbing', 'R-Escape'];
+
+  // カテゴリ切り替え時にスクロールトップ
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = 0;
+    }
+  }, [activeType]);
 
   const filteredData = useMemo(() => {
     if (activeType === 'All') return data;
-    // item.topicsの中にactiveTypeが含まれているか判定
     return data.filter((item: LifeItem) => item.topics.includes(activeType));
   }, [data, activeType]);
 
@@ -26,9 +36,10 @@ export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
   });
 
   return (
-    <div className="max-w-5xl mx-auto w-full p-5 md:p-8 pb-24">
-      {/* Exploreタブ用カテゴリフィルタ */}
-      <div className="flex gap-2 overflow-x-auto pb-4 -mx-5 px-5 md:mx-0 md:px-0 no-scrollbar mb-4">
+    // 1. 全体高さを固定
+    <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8 relative">
+      {/* 2. フィルタタブ部分（縮小させない） */}
+      <div className="shrink-0 flex gap-2 overflow-x-auto pb-4 -mx-5 px-5 md:mx-0 md:px-0 no-scrollbar mb-2">
         {tabs.map((t) => (
           <button
             key={t}
@@ -44,26 +55,36 @@ export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
         ))}
       </div>
 
-      <div className="space-y-8">
-        {years.map((year) => (
-          <div key={year}>
-            <h4 className="text-sm font-bold text-gray-800 mb-3 pl-1">
-              {year === 'PLAN' ? 'Plan' : year}
-            </h4>
-            <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
-              {grouped[year].map((item: LifeItem) => (
-                <div key={item.id}>
-                  <ListItem item={item} onItemClick={() => onItemClick(item)} />
-                </div>
-              ))}
+      {/* 3. リスト部分のみスクロール */}
+      <div
+        ref={scrollRef}
+        className="flex-1 overflow-y-auto no-scrollbar pb-32"
+      >
+        <div className="space-y-8">
+          {years.map((year) => (
+            <div key={year}>
+              <h4 className="text-sm font-bold text-gray-800 mb-3 pl-1">
+                {year === 'PLAN' ? 'Plan' : year}
+              </h4>
+              <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
+                {grouped[year].map((item: LifeItem) => (
+                  <div key={item.id}>
+                    <ListItem
+                      item={item}
+                      onItemClick={() => onItemClick(item)}
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
+      {/* FAB */}
       <button
         onClick={onOpenCreate}
-        className="fixed bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+        className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>

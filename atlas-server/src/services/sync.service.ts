@@ -71,3 +71,53 @@ export const syncNotionToLocal = async () => {
     timestamp: new Date().toISOString(),
   };
 };
+
+// ==========================================
+// Diary 同期関連の操作
+// ==========================================
+
+// 日記の最終同期時刻を取得する関数
+export const getLastDiarySyncTime = async () => {
+  return await pgRepo.getLastDiarySyncTime();
+};
+
+/**
+ * Notionから日記データを取得し、ローカルのPostgresキャッシュを最新状態にする
+ */
+export const syncDiariesNotionToLocal = async () => {
+  try {
+    // 1. 前回の同期時刻を取得 (差分同期用)
+    const lastSyncStr = await pgRepo.getLastDiarySyncTime();
+    let lastSyncDate: Date | undefined;
+
+    // 初回('1970-01-01T...')でなければ Date オブジェクト化
+    if (lastSyncStr !== '1970-01-01T00:00:00Z') {
+      lastSyncDate = new Date(lastSyncStr);
+    }
+
+    // 2. Notionリポジトリから更新された日記データを取得
+    // ※ 削除検知を行わないため、差分同期を基本とします
+    const diaries = await notionRepo.getDiaryPages(lastSyncDate);
+
+    const syncResults = await Promise.all(
+      diaries.map(async (page: any) => {
+        return await pgRepo.upsertDiary(page, new Date(page.last_edited_time));
+      }),
+    );
+
+    // 3. 同期が成功したら時刻を更新する
+    await pgRepo.updateLastDiarySyncTime(new Date().toISOString());
+
+    // 4. WebSocketでフロントエンドに日記データの更新を通知
+    broadcast(JSON.stringify({ type: 'REFRESH_DIARIES' }));
+
+    return {
+      status: 'SUCCESS',
+      count: syncResults.length,
+      timestamp: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error('Error in syncDiariesNotionToLocal:', error);
+    throw error;
+  }
+};

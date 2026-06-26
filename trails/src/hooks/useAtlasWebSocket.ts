@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { getAutoDeviceName } from '@/utils/getAutoDeviceName';
 
-export function useAtlasWebSocket(onRefreshRequested: () => void) {
+export function useAtlasWebSocket(
+  onRefreshPieces: () => void,
+  onRefreshDiaries: () => void,
+) {
   const [wsStatus, setWsStatus] = useState<
     'connecting' | 'connected' | 'disconnected'
   >('disconnected');
@@ -11,11 +14,14 @@ export function useAtlasWebSocket(onRefreshRequested: () => void) {
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // 最新のコールバックを保持する（再レンダリング時の古いクロージャ参照を防ぐため）
-  const onRefreshRef = useRef(onRefreshRequested);
+  // 最新のコールバックを保持する
+  const onRefreshPiecesRef = useRef(onRefreshPieces);
+  const onRefreshDiariesRef = useRef(onRefreshDiaries);
+
   useEffect(() => {
-    onRefreshRef.current = onRefreshRequested;
-  }, [onRefreshRequested]);
+    onRefreshPiecesRef.current = onRefreshPieces;
+    onRefreshDiariesRef.current = onRefreshDiaries;
+  }, [onRefreshPieces, onRefreshDiaries]);
 
   useEffect(() => {
     let currentDeviceId = localStorage.getItem('gleis_device_id');
@@ -68,8 +74,9 @@ export function useAtlasWebSocket(onRefreshRequested: () => void) {
           if (data.type === 'DEVICE_LIST') {
             setConnectedDevices(data.devices || []);
           } else if (data.type === 'REFRESH_PIECES') {
-            // ここで渡された fetchPieces(true) を実行する
-            onRefreshRef.current();
+            onRefreshPiecesRef.current();
+          } else if (data.type === 'REFRESH_DIARIES') {
+            onRefreshDiariesRef.current();
           }
         } catch (e) {
           console.warn('WS Message Parse Error:', e);

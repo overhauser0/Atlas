@@ -1,4 +1,4 @@
-export type AppTab = 'Home' | 'Bucket' | 'Travel' | 'Explore' | 'Diary';
+export type AppTab = 'Home' | 'Calendar' | 'Bucket' | 'Travel' | 'Explore';
 
 export interface Piece {
   id: string;
@@ -38,4 +38,12 @@ export interface DiaryEntry {
   id: string;
   date: string;
   content: string;
+}
+
+export interface DiaryItem {
+  id?: string;
+  name: string; // yyyy-mm-dd形式
+  date: string; // yyyy-mm-dd形式
+  rate: string | null;
+  note: string | null;
 }
