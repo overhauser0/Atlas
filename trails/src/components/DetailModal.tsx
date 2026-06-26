@@ -203,7 +203,7 @@ export default function DetailModal({
                 setFormData({ ...formData, note: e.target.value })
               }
               placeholder="Add a note..."
-              className="w-full bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100 min-h-[80px] resize-none"
+              className="w-full bg-gray-50 p-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100 min-h-20 resize-none"
             />
           </div>
 
