@@ -104,6 +104,7 @@ export default function Home() {
     fetchTasks,
     handleNotionSync,
     handleRescheduleOverdue,
+    fetchBlocks,
   } = useTaskSync(
     isAuthenticated,
     incrementRequest,
@@ -555,6 +556,7 @@ export default function Home() {
             onSyncEnd={decrementRequest}
             onSendToPC={hasExtension ? handleSendToPC : undefined}
             onNavigate={handleViewChange}
+            onShowContent={fetchBlocks}
           />
           <ActionPanel
             isOpen={isActionPanelOpen}

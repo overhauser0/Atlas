@@ -122,6 +122,23 @@ export const useTaskSync = (
     }
   }, [fetchTasks, onSyncStart, onSyncEnd]);
 
+  const fetchBlocks = useCallback(async (id: string) => {
+    onSyncStart();
+    try {
+      if (!id) return false;
+      const res = await atlasFetch(`/pieces/${id}/blocks`, {
+        method: 'GET',
+      });
+      const data = await res.json();
+      return data.blocks;
+    } catch (e) {
+      console.warn(e);
+      throw e;
+    } finally {
+      onSyncEnd();
+    }
+  }, []);
+
   return {
     tasks,
     setTasks,
@@ -133,5 +150,6 @@ export const useTaskSync = (
     fetchTasks,
     handleNotionSync,
     handleRescheduleOverdue,
+    fetchBlocks,
   };
 };

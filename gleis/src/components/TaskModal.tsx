@@ -14,6 +14,8 @@ import {
   ChevronDown,
   HardDrive,
   Copy,
+  FileText,
+  Loader2, // 🌟 ローディングアイコンを追加
 } from 'lucide-react';
 import { Task, ViewType, isViewType } from '@/types';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
@@ -32,6 +34,7 @@ interface TaskModalProps {
   onSyncEnd: () => void;
   onSendToPC?: (url: string) => void;
   onNavigate: (viewname: ViewType) => void;
+  onShowContent: (id: string) => Promise<any[]>;
 }
 
 export default function TaskModal({
@@ -44,6 +47,7 @@ export default function TaskModal({
   onSyncEnd,
   onSendToPC,
   onNavigate,
+  onShowContent,
 }: TaskModalProps) {
   const { addToast } = useToast();
 
@@ -85,6 +89,10 @@ export default function TaskModal({
     }, 100);
   };
 
+  const [blocks, setBlocks] = useState<any[] | null>(null);
+  const [showBlocks, setShowBlocks] = useState(false);
+  const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       setInternalMode(mode);
@@ -104,6 +112,7 @@ export default function TaskModal({
     }
     setIsMoreMenuOpen(false);
     setIsStatusMenuOpen(false);
+    setShowBlocks(false); // 開き直した時はパネルを閉じる
   }, [isOpen, mode, task]);
 
   // ドロップダウンの外側をクリックした時に閉じる処理
@@ -245,6 +254,105 @@ export default function TaskModal({
     return false;
   };
 
+  // 🌟 ブロック取得処理（ローディング状態を追加）
+  const handleShowContent = async (id: string | undefined) => {
+    if (!id) return;
+    setIsLoadingBlocks(true);
+    try {
+      const data = await onShowContent(id);
+      setBlocks(data || []);
+      setShowBlocks(true);
+    } catch (error) {
+      addToast('コンテンツの取得に失敗しました', 'alert');
+    } finally {
+      setIsLoadingBlocks(false);
+    }
+  };
+
+  // Notionブロックからテキストや状態を抽出するヘルパー関数
+  const extractBlockText = (block: any) => {
+    const type = block.type;
+    const hasChildren = block.has_children;
+
+    // ネストがあることを知らせるバッジUI
+    const NestedBadge = hasChildren ? (
+      <span className="inline-flex items-center ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider border border-neon/30 text-neon/80 bg-neon/5 align-middle select-none">
+        + NESTED
+      </span>
+    ) : null;
+
+    // 1. テキストを持たない特殊なブロックのフォールバック
+    if (!type || !block[type] || !block[type].rich_text) {
+      // 画像やブックマーク、子ページなど
+      const fallbackText =
+        type === 'image'
+          ? '[画像]'
+          : type === 'bookmark'
+            ? '[ブックマーク]'
+            : type === 'child_page'
+              ? '[サブページ]'
+              : type === 'child_database'
+                ? '[インラインデータベース]'
+                : type === 'table'
+                  ? '[テーブル(表)]'
+                  : `[${type || '未対応のブロック'}]`;
+
+      return (
+        <span className="block text-xs text-gray-500 italic my-1 p-2 bg-white/5 rounded border border-white/5">
+          {fallbackText} {NestedBadge}
+        </span>
+      );
+    }
+
+    // 2. 通常のテキストブロックの処理
+    const textContent = block[type].rich_text
+      .map((t: any) => t.plain_text)
+      .join('');
+
+    switch (type) {
+      case 'heading_1':
+      case 'heading_2':
+      case 'heading_3':
+        return (
+          <strong className="block text-gray-200 mt-3 mb-1 border-b border-white/10 pb-1">
+            {textContent} {NestedBadge}
+          </strong>
+        );
+      case 'bulleted_list_item':
+        return (
+          <span className="block ml-4 relative before:content-['•'] before:absolute before:-left-3 before:text-gray-500 my-0.5">
+            {textContent} {NestedBadge}
+          </span>
+        );
+      case 'numbered_list_item':
+        return (
+          <span className="block ml-4 my-0.5">
+            {textContent} {NestedBadge}
+          </span>
+        );
+      case 'to_do':
+        const isChecked = block.to_do.checked;
+        return (
+          <span
+            className={`block ml-1 my-0.5 flex items-start gap-2 ${isChecked ? 'text-gray-600 line-through' : ''}`}
+          >
+            <span className="mt-0.5 shrink-0">{isChecked ? '☑' : '☐'}</span>
+            <span>
+              {textContent} {NestedBadge}
+            </span>
+          </span>
+        );
+      case 'paragraph':
+      default:
+        if (textContent === '' && !hasChildren) return <br />;
+        return (
+          <span className="block my-0.5">
+            {textContent} {NestedBadge}
+          </span>
+        );
+    }
+  };
+
   // ショートカットキー
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -331,7 +439,7 @@ export default function TaskModal({
         }
       }}
     >
-      <div className="noir-glass w-full max-w-md rounded-2xl p-6 flex flex-col gap-6">
+      <div className="noir-glass w-full max-w-md rounded-2xl p-6 flex flex-col gap-6 relative transition-all duration-300">
         {/* === HEADER === */}
         <div className="flex items-center gap-2">
           <div className="flex flex-1 items-center gap-3">
@@ -342,6 +450,24 @@ export default function TaskModal({
               <HardDrive className="w-4 h-4 text-gray-400" />
             )}
           </div>
+
+          {/* コンテンツ表示ボタン */}
+          {internalMode === 'edit' &&
+            task?.id &&
+            editForm.source === 'NOTION' && (
+              <button
+                onClick={() => handleShowContent(task.id)}
+                disabled={isLoadingBlocks}
+                className={`noir-icon-btn ${showBlocks ? 'bg-white/10 text-white' : ''}`}
+                title="ページ内容を表示"
+              >
+                {isLoadingBlocks ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <FileText className="w-5 h-5" />
+                )}
+              </button>
+            )}
 
           {/* Notion Link */}
           {editForm.source === 'NOTION' && task?.id && (
@@ -600,6 +726,37 @@ export default function TaskModal({
           {isSaving ? 'Saving...' : 'Save Task'}
         </button>
       </div>
+
+      {/* 🌟 ブロック表示用のサイドパネル */}
+      {showBlocks && (
+        <div className="absolute right-0 top-0 bottom-0 w-80 md:w-96 noir-subglass border-l border-white/10 p-5 z-[60] shadow-2xl animate-fade-in flex flex-col">
+          <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/10 shrink-0">
+            <h3 className="font-bold text-gray-200">Content</h3>
+            <button
+              onClick={() => setShowBlocks(false)}
+              className="text-gray-500 hover:text-white transition-colors p-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+          <div className="overflow-y-auto noir-scrollbar flex-1 pr-2">
+            {!blocks || blocks.length === 0 ? (
+              <div className="text-gray-500 text-sm text-center mt-10">
+                No content found.
+              </div>
+            ) : (
+              <div className="text-gray-300 text-sm leading-relaxed space-y-1">
+                {blocks.map((block: any) => {
+                  const renderedText = extractBlockText(block);
+                  return renderedText ? (
+                    <div key={block.id}>{renderedText}</div>
+                  ) : null;
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
