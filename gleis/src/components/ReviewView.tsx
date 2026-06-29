@@ -140,7 +140,7 @@ export default function ReviewView({
                           pageId: data.monthly.id,
                           propName: 'Business',
                           title: 'Business Goal',
-                          value: data.monthly.business,
+                          value: data.monthly.business || '',
                         })
                       }
                       className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
@@ -164,7 +164,7 @@ export default function ReviewView({
                           pageId: data.monthly.id,
                           propName: 'Life',
                           title: 'Life Goal',
-                          value: data.monthly.life,
+                          value: data.monthly.life || '',
                         })
                       }
                       className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon"
@@ -188,7 +188,7 @@ export default function ReviewView({
                           pageId: data.monthly.id,
                           propName: 'Summary',
                           title: 'Monthly Summary',
-                          value: data.monthly.summary,
+                          value: data.monthly.summary || '',
                         })
                       }
                       className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-gray-500 hover:text-neon"
@@ -241,7 +241,7 @@ export default function ReviewView({
                                 pageId: week.id,
                                 propName: 'Summary',
                                 title: 'Weekly Summary',
-                                value: week.summary,
+                                value: week.summary || '',
                               })
                             }
                             className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"

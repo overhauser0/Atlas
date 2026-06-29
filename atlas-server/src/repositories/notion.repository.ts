@@ -2,13 +2,19 @@ import { Client } from '@notionhq/client';
 import { DbPiece } from '../schemas/piece.schema';
 import { DbDiary } from '../schemas/diary.schema';
 import { NotionDiaryItem } from '../schemas/diary.schema';
+import { getActiveResourcesInfo } from 'node:process';
 
 // ==========================================
 // 1. 接続・環境設定
 // ==========================================
 
 const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
-const DATABASE_ID = process.env.NOTION_DATABASE_ID!;
+const NOTION_PIECE_DS_ID = process.env.NOTION_PIECE_DS_ID!;
+const NOTION_MONTHLY_DS_ID = process.env.NOTION_MONTHLY_DS_ID!;
+const NOTION_WEEKLY_DS_ID = process.env.NOTION_WEEKLY_DS_ID!;
+const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
+
+const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID!;
 const NOTION_MONTHLY_DB_ID = process.env.NOTION_MONTHLY_DB_ID!;
 const NOTION_WEEKLY_DB_ID = process.env.NOTION_WEEKLY_DB_ID!;
 const NOTION_DIARY_DB_ID = process.env.NOTION_DIARY_DB_ID!;
@@ -26,9 +32,9 @@ export const getPiecePages = async () => {
   let cursor: string | undefined = undefined;
 
   while (hasMore) {
-    const response: Awaited<ReturnType<typeof notionClient.databases.query>> =
-      await notionClient.databases.query({
-        database_id: DATABASE_ID,
+    const response: Awaited<ReturnType<typeof notionClient.dataSources.query>> =
+      await notionClient.dataSources.query({
+        data_source_id: NOTION_PIECE_DS_ID,
         start_cursor: cursor, // 次のページの開始位置を指定
         page_size: 100,
       });
@@ -51,8 +57,11 @@ export const insertPiecePage = async (piece: DbPiece) => {
     State: { status: { name: piece.status || 'INBOX' } },
     _Area: { select: { name: piece.area || 'Work' } },
     _Type: { select: { name: piece.type || 'Task' } },
-    Date: piece.date ? { date: { start: piece.date } } : undefined,
   };
+
+  if (piece.date !== undefined) {
+    properties.Date = { date: piece.date ? { start: piece.date } : null };
+  }
 
   if (Array.isArray(piece?.topics)) {
     properties._Topics = {
@@ -68,9 +77,14 @@ export const insertPiecePage = async (piece: DbPiece) => {
   if (piece.url) {
     properties.URL = { url: piece.url };
   }
+  if (Array.isArray(piece?.fkw)) {
+    properties.FreeKeyWord = {
+      multi_select: piece.fkw.map((f) => ({ name: f })),
+    };
+  }
 
   return await notionClient.pages.create({
-    parent: { database_id: DATABASE_ID },
+    parent: { data_source_id: NOTION_PIECE_DS_ID },
     properties,
   });
 };
@@ -113,6 +127,11 @@ export const updatePiecePage = async (
   }
   if (piece.url !== undefined) {
     properties.URL = { url: piece.url };
+  }
+  if (piece.fkw !== undefined) {
+    properties.FreeKeyWord = {
+      multi_select: piece.fkw.map((f) => ({ name: f })),
+    };
   }
 
   return await notionClient.pages.update({
@@ -173,8 +192,8 @@ export const getPageBlocks = async (pageId: string) => {
  * @param yearMonth 検索対象の年月文字列
  */
 export const getMonthlyPage = async (yearMonth: string) => {
-  const res = await notionClient.databases.query({
-    database_id: NOTION_MONTHLY_DB_ID,
+  const res = await notionClient.dataSources.query({
+    data_source_id: NOTION_MONTHLY_DS_ID,
     filter: { property: 'Name', title: { equals: yearMonth } },
   });
   return res.results.length > 0 ? res.results[0] : null;
@@ -190,7 +209,7 @@ export const insertMonthlyPage = async (
   startDate: string,
 ) => {
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_MONTHLY_DB_ID },
+    parent: { database_id: NOTION_MONTHLY_DS_ID },
     properties: {
       Name: { title: [{ text: { content: yearMonth } }] },
       StartDate: { date: { start: startDate } },
@@ -203,8 +222,8 @@ export const insertMonthlyPage = async (
  * @param weekName 検索対象の週文字列
  */
 export const getWeeklyPage = async (weekName: string) => {
-  const res = await notionClient.databases.query({
-    database_id: NOTION_WEEKLY_DB_ID,
+  const res = await notionClient.dataSources.query({
+    data_source_id: NOTION_WEEKLY_DS_ID,
     filter: { property: 'Name', title: { equals: weekName } },
   });
   return res.results.length > 0 ? res.results[0] : null;
@@ -217,7 +236,7 @@ export const getWeeklyPage = async (weekName: string) => {
  */
 export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_WEEKLY_DB_ID },
+    parent: { database_id: NOTION_WEEKLY_DS_ID },
     properties: {
       Name: { title: [{ text: { content: weekName } }] },
       StartDate: { date: { start: startDate } },
@@ -255,7 +274,7 @@ export const updatePageTextProperty = async (
 export const getDiaryPages = async (
   lastSyncTime?: Date,
 ): Promise<NotionDiaryItem[]> => {
-  if (!NOTION_DIARY_DB_ID)
+  if (!NOTION_DIARY_DS_ID)
     throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
 
   let allPages: any[] = [];
@@ -263,7 +282,7 @@ export const getDiaryPages = async (
   let cursor: string | undefined = undefined;
 
   const queryArgs: any = {
-    database_id: NOTION_DIARY_DB_ID,
+    data_source_id: NOTION_DIARY_DS_ID,
     page_size: 100,
   };
 
@@ -278,7 +297,7 @@ export const getDiaryPages = async (
 
   while (hasMore) {
     queryArgs.start_cursor = cursor;
-    const response = await notionClient.databases.query(queryArgs);
+    const response = await notionClient.dataSources.query(queryArgs);
 
     allPages = [...allPages, ...response.results];
     hasMore = response.has_more;
@@ -357,7 +376,7 @@ export const insertDiaryPage = async (diary: DbDiary) => {
   }
 
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_DIARY_DB_ID },
+    parent: { database_id: NOTION_DIARY_DS_ID },
     properties,
   });
 };
@@ -371,7 +390,7 @@ export const saveDiaryPage = async (
   diary: Omit<NotionDiaryItem, 'id' | 'lastEditedTime'>,
   existingPageId?: string,
 ) => {
-  if (!NOTION_DIARY_DB_ID)
+  if (!NOTION_DIARY_DS_ID)
     throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
 
   const properties: any = {
@@ -399,7 +418,7 @@ export const saveDiaryPage = async (
   } else {
     // 新規作成
     return await notionClient.pages.create({
-      parent: { database_id: NOTION_DIARY_DB_ID },
+      parent: { database_id: NOTION_DIARY_DS_ID },
       properties,
     });
   }

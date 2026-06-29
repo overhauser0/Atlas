@@ -9,6 +9,7 @@ import {
   Kanban,
   CalendarDays,
   ClipboardPenLine,
+  BriefcaseBusiness,
 } from 'lucide-react';
 
 // --- Components ---
@@ -17,6 +18,7 @@ import HomeView from '@/components/HomeView';
 import WeeklyView from '@/components/WeeklyView';
 import KanbanView from '@/components/KanbanView';
 import CalendarView from '@/components/CalendarView';
+import MeetingView from '@/components/MeetingView';
 import ReviewView from '@/components/ReviewView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
@@ -88,8 +90,7 @@ export default function Home() {
   const [taskModalConfig, setTaskModalConfig] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit';
-    task: Task | null;
-    initialTitle?: string;
+    task: Partial<Task> | null;
   }>({ isOpen: false, mode: 'create', task: null });
 
   const {
@@ -97,6 +98,7 @@ export default function Home() {
     setTasks,
     completedTasks,
     overdueTasks,
+    meetingTasks,
     isTasksLoading,
     lastSyncTime,
     fetchTasks,
@@ -138,12 +140,11 @@ export default function Home() {
   };
 
   // Task Modals
-  const openCreateTaskModal = useCallback((initialTitle?: string) => {
+  const openCreateTaskModal = useCallback((task?: Partial<Task>) => {
     setTaskModalConfig({
       isOpen: true,
       mode: 'create',
-      task: null,
-      initialTitle: initialTitle,
+      task: task || null,
     });
   }, []);
 
@@ -380,7 +381,7 @@ export default function Home() {
         <VoiceCaptureModal
           isOpen={isVoiceCaptureOpen}
           onClose={() => setIsVoiceCaptureOpen(false)}
-          onCapture={(text) => openCreateTaskModal(text)}
+          onCapture={(task) => openCreateTaskModal(task)}
         />
 
         <CommandPalette
@@ -419,6 +420,7 @@ export default function Home() {
               { id: 'weekly', icon: Columns2, label: 'WeeklyTask' },
               { id: 'kanban', icon: Kanban, label: 'Kanban' },
               { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
+              { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
               { id: 'review', icon: ClipboardPenLine, label: 'Review' },
               { id: 'notifications', icon: Bell, label: 'Notifications' },
               { id: 'settings', icon: Settings, label: 'Settings' },
@@ -502,6 +504,13 @@ export default function Home() {
               onTaskClick={openEditTaskModal}
             />
           )}
+          {currentView === 'meeting' && (
+            <MeetingView
+              meetingTasks={meetingTasks}
+              onTaskClick={openEditTaskModal}
+              onCreateMeeting={openCreateTaskModal}
+            />
+          )}
           {currentView === 'review' && (
             <ReviewView initialYearMonth={getCurrentYearMonth()} />
           )}
@@ -509,7 +518,7 @@ export default function Home() {
             <NotificationsView
               notifications={notifications}
               onMarkAsRead={markAsRead}
-              onCreateTask={(text) => openCreateTaskModal(text)}
+              onCreateTask={(task) => openCreateTaskModal(task)}
             />
           )}
           {currentView === 'settings' && (
@@ -540,7 +549,6 @@ export default function Home() {
             isOpen={taskModalConfig.isOpen}
             mode={taskModalConfig.mode}
             task={taskModalConfig.task}
-            initialTitle={taskModalConfig.initialTitle}
             onClose={closeTaskModal}
             onSuccess={() => fetchTasks(true)}
             onSyncStart={incrementRequest}

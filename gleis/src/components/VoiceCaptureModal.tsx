@@ -3,11 +3,12 @@
 import { useEffect } from 'react';
 import { Mic } from 'lucide-react';
 import { useVoiceRecognition } from '@/hooks/useVoiceRecognition';
+import { Task } from '@/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onCapture: (text: string) => void;
+  onCapture: (task: Partial<Task>) => void;
 }
 
 export default function VoiceCaptureModal({
@@ -32,7 +33,7 @@ export default function VoiceCaptureModal({
   const handleCapture = () => {
     stopListening();
     if (transcript.trim()) {
-      onCapture(transcript);
+      onCapture({ title: transcript });
     }
     onClose();
   };

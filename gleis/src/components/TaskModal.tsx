@@ -13,9 +13,11 @@ import {
   MoreHorizontal,
   ChevronDown,
   HardDrive,
+  Copy,
 } from 'lucide-react';
 import { Task, ViewType, isViewType } from '@/types';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
+import { getDateString } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/Toast';
 import { parseGleisLink } from '@/utils/schemeUtils';
@@ -23,8 +25,7 @@ import { parseGleisLink } from '@/utils/schemeUtils';
 interface TaskModalProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
-  task: Task | null;
-  initialTitle?: string;
+  task: Partial<Task> | null;
   onClose: () => void;
   onSuccess: () => void;
   onSyncStart: () => void;
@@ -37,7 +38,6 @@ export default function TaskModal({
   isOpen,
   mode,
   task,
-  initialTitle = '',
   onClose,
   onSuccess,
   onSyncStart,
@@ -47,7 +47,18 @@ export default function TaskModal({
 }: TaskModalProps) {
   const { addToast } = useToast();
 
-  const [editForm, setEditForm] = useState({
+  const [editForm, setEditForm] = useState<{
+    title: string;
+    note: string;
+    status: string;
+    date: string;
+    source: string;
+    id: string;
+    url: string;
+    topics: string[];
+    type: string;
+    fkw: string[];
+  }>({
     title: '',
     note: '',
     status: 'INBOX',
@@ -55,8 +66,12 @@ export default function TaskModal({
     source: 'LOCAL',
     id: '',
     url: '',
+    topics: [],
+    type: '',
+    fkw: [],
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [internalMode, setInternalMode] = useState(mode);
 
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
@@ -72,33 +87,24 @@ export default function TaskModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (mode === 'edit' && task) {
-        setEditForm({
-          title: task.title || '',
-          note: task.note || '',
-          status: task.status || 'INBOX',
-          date: task.date ? task.date.split('T')[0] : '',
-          source: task.source || 'LOCAL',
-          id: task.id || '',
-          url: task.url || '',
-        });
-        if ((task.title || '') === '') focusTitleInput();
-      } else {
-        setEditForm({
-          title: initialTitle || '',
-          note: '',
-          status: 'INBOX',
-          date: new Date().toISOString().split('T')[0],
-          source: 'LOCAL',
-          id: '',
-          url: '',
-        });
-        if ((initialTitle || '') === '') focusTitleInput();
-      }
+      setInternalMode(mode);
+      setEditForm({
+        title: task?.title || '',
+        note: task?.note || '',
+        status: task?.status || 'INBOX',
+        date: task?.date ? task?.date.split('T')[0] : getDateString(new Date()),
+        source: task?.source || 'LOCAL',
+        id: task?.id || '',
+        url: task?.url || '',
+        topics: task?.topics || [],
+        type: task?.type || '',
+        fkw: task?.fkw || [],
+      });
+      if ((task?.title || '') === '') focusTitleInput();
     }
     setIsMoreMenuOpen(false);
     setIsStatusMenuOpen(false);
-  }, [isOpen, mode, task, initialTitle]);
+  }, [isOpen, mode, task]);
 
   // ドロップダウンの外側をクリックした時に閉じる処理
   useEffect(() => {
@@ -127,8 +133,7 @@ export default function TaskModal({
   const handleSave = async () => {
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
 
-    const isEdit = mode === 'edit' && task;
-    const payloadDate = editForm.date || null;
+    const isEdit = internalMode === 'edit' && task;
     const url = isEdit ? `/pieces/${task.id}` : '/pieces';
     const method = isEdit ? 'PATCH' : 'POST';
 
@@ -136,9 +141,12 @@ export default function TaskModal({
       title: editForm.title,
       note: editForm.note,
       status: editForm.status,
-      date: payloadDate,
+      date: editForm.date || null,
       source: isEdit ? task.source : editForm.source,
       url: editForm.url || null,
+      topics: editForm.topics || [],
+      type: editForm.type || '',
+      fkw: editForm.fkw || [],
     };
 
     onClose();
@@ -209,6 +217,16 @@ export default function TaskModal({
     }
   };
 
+  const handleDuplicate = () => {
+    if (!task?.id) return;
+    setInternalMode('create');
+    setEditForm((prev) => ({
+      ...prev,
+      id: '',
+    }));
+    addToast('タスクを複製しました。編集して保存してください。', 'info');
+  };
+
   const handleLinkClick = (url: string) => {
     const gleisLink = parseGleisLink(url);
 
@@ -242,7 +260,7 @@ export default function TaskModal({
           activeEl &&
           (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA');
 
-        if (!isInputActive && mode === 'edit' && task?.id) {
+        if (!isInputActive && internalMode === 'edit' && task?.id) {
           e.preventDefault();
           handleDelete();
         }
@@ -271,7 +289,11 @@ export default function TaskModal({
 
       if (cmdOrCtrl && e.key.toLowerCase() === 'p') {
         e.preventDefault();
-        if (editForm.source === 'LOCAL' && mode === 'edit' && task?.id) {
+        if (
+          editForm.source === 'LOCAL' &&
+          internalMode === 'edit' &&
+          task?.id
+        ) {
           handlePromote();
         }
         return;
@@ -287,7 +309,7 @@ export default function TaskModal({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [
     isOpen,
-    mode,
+    internalMode,
     task,
     editForm,
     onClose,
@@ -314,9 +336,9 @@ export default function TaskModal({
         <div className="flex items-center gap-2">
           <div className="flex flex-1 items-center gap-3">
             <h2 className="text-lg font-bold text-white">
-              {mode === 'create' ? 'New Task' : 'Edit Task'}
+              {internalMode === 'create' ? 'New Task' : 'Edit Task'}
             </h2>
-            {mode === 'edit' && editForm.source === 'LOCAL' && (
+            {internalMode === 'edit' && editForm.source === 'LOCAL' && (
               <HardDrive className="w-4 h-4 text-gray-400" />
             )}
           </div>
@@ -340,7 +362,7 @@ export default function TaskModal({
             <button
               onClick={(e) => {
                 e.preventDefault();
-                onSendToPC(getNotionLinkById(task.id));
+                if (task.id) onSendToPC(getNotionLinkById(task.id));
                 onClose();
               }}
               className="noir-icon-btn"
@@ -351,7 +373,7 @@ export default function TaskModal({
           )}
 
           {/* 三点リーダーメニュー */}
-          {mode === 'edit' && task?.id && (
+          {internalMode === 'edit' && task?.id && (
             <div className="relative" ref={moreMenuRef}>
               <button
                 onClick={() => setIsMoreMenuOpen(!isMoreMenuOpen)}
@@ -386,6 +408,18 @@ export default function TaskModal({
                       Notionに昇格
                     </button>
                   )}
+                  {internalMode === 'edit' && task?.id && (
+                    <button
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        handleDuplicate();
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-blue-400 hover:bg-white/10 flex items-center gap-3 transition-colors border-t border-white/5"
+                    >
+                      <Copy className="w-4 h-4" />
+                      複製
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -404,7 +438,7 @@ export default function TaskModal({
         {/* === BODY === */}
         <div className="flex flex-col gap-4">
           {/* Source Select */}
-          {mode === 'create' && (
+          {internalMode === 'create' && (
             <div className="flex gap-2 p-1 bg-white/5 rounded-xl border border-white/5">
               {(['LOCAL', 'NOTION'] as const).map((src) => (
                 <button

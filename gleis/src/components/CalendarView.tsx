@@ -137,7 +137,7 @@ export default function CalendarView({
                   key={day}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => onDrop(dateStr)}
-                  className={`p-2 rounded-xl border ${isToday ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 noir-glass'} flex flex-col gap-1.5 transition-colors hover:border-white/10 min-h-[100px] overflow-hidden`}
+                  className={`p-2 rounded-xl border ${isToday ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 noir-glass'} flex flex-col gap-1.5 transition-colors hover:border-white/10 min-h-25 overflow-hidden`}
                 >
                   <div
                     className={`text-xs font-medium text-right ${isToday ? 'text-blue-400' : 'text-gray-400'}`}

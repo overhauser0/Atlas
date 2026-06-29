@@ -9,6 +9,7 @@ export interface Task {
   type: string | null;
   topics: string[];
   url: string;
+  fkw: string[];
 }
 
 export const VALID_VIEWS = [
@@ -16,6 +17,7 @@ export const VALID_VIEWS = [
   'weekly',
   'kanban',
   'calendar',
+  'meeting',
   'review',
   'notifications',
   'settings',

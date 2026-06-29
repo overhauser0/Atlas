@@ -54,7 +54,7 @@ export default function QuickAlarmModal({
             value={currentAlarm}
             autoFocus
             onChange={(e) => handleUpdate(e.target.value)}
-            className="bg-black/60 border border-white/10 rounded-lg p-2 text-white text-lg font-mono focus:border-neon focus:outline-none [color-scheme:dark]"
+            className="bg-black/60 border border-white/10 rounded-lg p-2 text-white text-lg font-mono focus:border-neon focus:outline-none scheme-dark"
           />
 
           {currentAlarm && (

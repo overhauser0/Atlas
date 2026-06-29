@@ -6,7 +6,8 @@
   },
   "dependencies": {
     "@hono/node-server": "^1.11.1",
-    "@notionhq/client": "^2.2.15",
+    "@notionhq/client": "^5.22.0",
+    "@google/generative-ai": "^0.17.0",
     "dotenv": "^16.4.5",
     "hono": "^4.3.11",
     "kysely": "^0.27.3",

@@ -198,7 +198,7 @@ export default function StatsModal({
                     }}
                   >
                     <Trophy className="w-4 h-4 text-neon shrink-0 opacity-70" />
-                    <span className="text-sm font-medium text-gray-300 truncate grow-1">
+                    <span className="text-sm font-medium text-gray-300 truncate grow">
                       {task.title}
                     </span>
                     <ArrowRight className="w-5 h-5 text-gray-600 shrink-0 group-hover:text-neon transition-all md:-translate-x-2 group-hover:translate-x-0" />

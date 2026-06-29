@@ -16,7 +16,6 @@ export const getReviews = async (c: Context) => {
       );
     }
 
-    // Serviceは純粋な文字列(month)だけを受け取るため、Honoに依存していない
     const data = await reviewService.getOrCreateMonthlyReview(month);
 
     return c.json(data, 200);

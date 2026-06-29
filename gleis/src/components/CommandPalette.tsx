@@ -16,8 +16,10 @@ import {
   ClipboardPenLine,
   AlarmClock,
   Lock,
+  Sparkles,
 } from 'lucide-react';
 import { ViewType, Task } from '@/types';
+import { atlasFetch } from '@/utils/api';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -43,7 +45,12 @@ export default function CommandPalette({
   onLock,
 }: CommandPaletteProps) {
   const [search, setSearch] = useState('');
+  const [aiResult, setAiResult] = useState<string | null>(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const isAiMode = search.startsWith('?');
+  const aiQuery = search.slice(1).trim();
 
   // コマンドの定義
   const commands = [
@@ -140,9 +147,26 @@ export default function CommandPalette({
   // 画面全体の候補数がゼロかどうか
   const hasResults = filteredCommands.length > 0 || filteredTasks.length > 0;
 
+  const handleBrainstorm = async () => {
+    if (!aiQuery) return;
+    setIsAiLoading(true);
+    setAiResult(null);
+    try {
+      const response = await atlasFetch('/ai/brainstorm', {
+        method: 'POST',
+        body: JSON.stringify({ message: aiQuery }),
+      });
+      const data = await response.json();
+      setAiResult(data.reply);
+    } catch (e) {
+      setAiResult('Error: Failed to get AI response.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[15vh] sm:pt-[20vh] px-4">
-      {/* 背景のぼかしとオーバーレイ */}
       <div
         className="absolute inset-0 bg-black/60 backdrop-blur-sm"
         onClick={onClose}
@@ -152,18 +176,28 @@ export default function CommandPalette({
       <div className="relative w-full max-w-lg noir-glass rounded-2xl border border-white/10 overflow-hidden shadow-2xl animate-fade-in flex flex-col max-h-[60vh]">
         {/* 検索入力エリア */}
         <div className="flex items-center px-4 py-3 border-b border-white/5 shrink-0">
-          <Search className="w-5 h-5 text-gray-500 mr-3" />
+          {isAiMode ? (
+            <Sparkles className="w-5 h-5 mr-3 text-neon animate-pulse" />
+          ) : (
+            <Search className="w-5 h-5 text-gray-500 mr-3" />
+          )}
           <input
             ref={inputRef}
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search commands or tasks..."
+            onChange={(e) => {
+              setSearch(e.target.value);
+              if (e.target.value === '?') setAiResult(null); // '?' だけになったらリセット
+            }}
+            placeholder={
+              isAiMode ? 'Ask Atlas AI...' : 'Search commands or tasks...'
+            }
             className="flex-1 bg-transparent border-none text-white focus:outline-none placeholder:text-gray-600 text-lg pl-1"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
-                // Enterを押した時の汎用確定ロジック
-                if (filteredCommands.length > 0) {
+                if (isAiMode) {
+                  handleBrainstorm();
+                } else if (filteredCommands.length > 0) {
                   filteredCommands[0].action();
                   onClose();
                 } else if (filteredTasks.length > 0) {
@@ -177,7 +211,21 @@ export default function CommandPalette({
 
         {/* 結果リストエリア（スクロール可能領域） */}
         <div className="flex-1 overflow-y-auto noir-scrollbar py-2">
-          {!hasResults ? (
+          {isAiMode ? (
+            <div className="px-4 py-4 text-gray-300 text-sm whitespace-pre-wrap">
+              {isAiLoading ? (
+                <div className="flex items-center justify-center text-gray-500">
+                  Thinking...
+                </div>
+              ) : aiResult ? (
+                <div>{aiResult}</div>
+              ) : (
+                <div className="text-gray-600">
+                  Type your question and press Enter.
+                </div>
+              )}
+            </div>
+          ) : !hasResults ? (
             <div className="px-4 py-8 text-center text-sm text-gray-500">
               No results found.
             </div>

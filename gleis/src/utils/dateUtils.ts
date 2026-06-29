@@ -44,3 +44,17 @@ export const getCurrentYearMonth = () => {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
+
+/**
+ * 日付を YYYY-MM-DD 形式で返す
+ */
+export const getDateString = (date: Date): string => {
+  return new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  })
+    .format(date)
+    .replace(/\//g, '-');
+};

@@ -109,7 +109,7 @@ export default function JapanMapWidget({ data }: Props) {
           const w = pref.w || 1;
           const h = pref.h || 1;
 
-          // 色の決定（旧コードの青色ベースを採用しつつ、Tailwindに合わせて洗練）
+          // 色の決定
           let bgClass = 'bg-gray-100';
           let textClass = 'text-gray-400';
           if (count >= 11) {
@@ -133,7 +133,6 @@ export default function JapanMapWidget({ data }: Props) {
                 hover:scale-125 hover:z-10 hover:shadow-md cursor-pointer whitespace-nowrap
               `}
               style={{
-                // +1 しているのは、CSS Grid のライン番号が 1 から始まるため
                 gridColumn: `${pref.x + 1} / span ${w}`,
                 gridRow: `${pref.y + 1} / span ${h}`,
                 aspectRatio: `${w} / ${h}`,
@@ -141,8 +140,7 @@ export default function JapanMapWidget({ data }: Props) {
               // 必要に応じてクリックイベントを追加できます
               // onClick={() => console.log(pref.name)}
             >
-              {/* マスが小さいので、長い名前は最初の2文字だけにするなどの工夫も可 */}
-              {pref.name /*.substring(0, 2) */}
+              {pref.name}
             </div>
           );
         })}

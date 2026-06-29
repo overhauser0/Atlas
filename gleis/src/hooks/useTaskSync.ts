@@ -13,6 +13,7 @@ export const useTaskSync = (
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
+  const [meetingTasks, setMeetingTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
 
@@ -67,6 +68,18 @@ export const useTaskSync = (
               t.status !== 'Canceled',
           ),
         );
+        setMeetingTasks(
+          data.pieces
+            .filter((t: Task) => {
+              const topics = t.topics || [];
+              return topics.includes('Meeting');
+            })
+            .sort((a: Task, b: Task) => {
+              const dateA = a.date ? new Date(a.date).getTime() : 0;
+              const dateB = b.date ? new Date(b.date).getTime() : 0;
+              return dateB - dateA;
+            }),
+        );
       } finally {
         setIsTasksLoading(false);
         // onSyncEnd();
@@ -114,6 +127,7 @@ export const useTaskSync = (
     setTasks,
     completedTasks,
     overdueTasks,
+    meetingTasks,
     isTasksLoading,
     lastSyncTime,
     fetchTasks,

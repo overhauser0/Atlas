@@ -7,6 +7,7 @@ import {
   sortTasksByStatus,
   getNotionLinkById,
 } from '@/utils/miscellaneousUtils';
+import { getDateString } from '@/utils/dateUtils';
 
 interface HomeViewProps {
   tasks: Task[];
@@ -25,27 +26,12 @@ export default function HomeView({
 }: HomeViewProps) {
   const today = new Date();
 
-  // --- 1. 表示用日付の取得 ---
-  const displayDate = today.toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'Asia/Tokyo',
-  });
-
-  // --- 2. フィルタリング用のJST日付文字列 (YYYY-MM-DD) の生成 ---
+  // --- 1. フィルタリング用のJST日付文字列 (YYYY-MM-DD) の生成 ---
   const todayString = useMemo(() => {
-    return new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: 'Asia/Tokyo',
-    })
-      .format(today)
-      .replace(/\//g, '-'); // YYYY/MM/DD -> YYYY-MM-DD に変換
+    return getDateString(today);
   }, [today]);
 
-  // --- 3. 1年の進捗計算 ---
+  // --- 2. 1年の進捗計算 ---
   const yearProgress = useMemo(() => {
     const jstString = today.toLocaleString('en-US', { timeZone: 'Asia/Tokyo' });
     const jstDate = new Date(jstString);
@@ -78,16 +64,6 @@ export default function HomeView({
       task.date && task.date.startsWith(todayString) && task.status === 'Done',
   );
 
-  /*
-        <div className="flex items-center gap-4">
-          <div className="p-2.5 bg-white/5 rounded-xl border border-white/10 text-neon shadow-[0_0_15px_rgba(0,112,243,0.2)]">
-            <CalendarDays className="w-6 h-6" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white tracking-tight">
-            {displayDate}
-          </h1>
-        </div>
-  */
   return (
     <div className="p-4 md:p-8 animate-fade-in flex-1 flex flex-col h-full min-h-0">
       {/* --- ヘッダー：アイコン・日付・年の進捗バー --- */}

@@ -6,6 +6,7 @@ import * as pieceController from './controllers/piece.controller';
 import * as reviewController from './controllers/review.controller';
 import * as diaryController from './controllers/diary.controller';
 import * as calendarController from './controllers/calendar.controller';
+import * as aiController from './controllers/ai.controller';
 import * as pgRepo from './repositories/postgres.repository';
 import { initWebSocket } from './utils/websocket';
 
@@ -82,6 +83,9 @@ api.post('/diaries/sync', diaryController.syncDiaries);
 // Google Calendar
 api.get('/calendar/events', calendarController.getEvents);
 api.post('/calendar/sync', calendarController.receiveCalendarSync);
+
+// Gemini
+api.post('/ai/brainstorm', aiController.brainstorm);
 
 app.route('/api/v1', api);
 
