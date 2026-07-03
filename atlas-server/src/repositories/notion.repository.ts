@@ -2,7 +2,6 @@ import { Client } from '@notionhq/client';
 import { DbPiece } from '../schemas/piece.schema';
 import { DbDiary } from '../schemas/diary.schema';
 import { NotionDiaryItem } from '../schemas/diary.schema';
-import { getActiveResourcesInfo } from 'node:process';
 
 // ==========================================
 // 1. 接続・環境設定
@@ -209,7 +208,7 @@ export const insertMonthlyPage = async (
   startDate: string,
 ) => {
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_MONTHLY_DS_ID },
+    parent: { data_source_id: NOTION_MONTHLY_DS_ID },
     properties: {
       Name: { title: [{ text: { content: yearMonth } }] },
       StartDate: { date: { start: startDate } },
@@ -236,7 +235,7 @@ export const getWeeklyPage = async (weekName: string) => {
  */
 export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_WEEKLY_DS_ID },
+    parent: { data_source_id: NOTION_WEEKLY_DS_ID },
     properties: {
       Name: { title: [{ text: { content: weekName } }] },
       StartDate: { date: { start: startDate } },
@@ -376,7 +375,7 @@ export const insertDiaryPage = async (diary: DbDiary) => {
   }
 
   return await notionClient.pages.create({
-    parent: { database_id: NOTION_DIARY_DS_ID },
+    parent: { data_source_id: NOTION_DIARY_DS_ID },
     properties,
   });
 };
@@ -418,7 +417,7 @@ export const saveDiaryPage = async (
   } else {
     // 新規作成
     return await notionClient.pages.create({
-      parent: { database_id: NOTION_DIARY_DS_ID },
+      parent: { data_source_id: NOTION_DIARY_DS_ID },
       properties,
     });
   }

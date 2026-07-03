@@ -71,7 +71,7 @@ export default function TaskModal({
     id: '',
     url: '',
     topics: [],
-    type: '',
+    type: 'Task',
     fkw: [],
   });
   const [isSaving, setIsSaving] = useState(false);
@@ -147,14 +147,14 @@ export default function TaskModal({
     const method = isEdit ? 'PATCH' : 'POST';
 
     const payload = {
-      title: editForm.title,
-      note: editForm.note,
-      status: editForm.status,
+      title: editForm.title || 'No Title',
+      note: editForm.note || '',
+      status: editForm.status || 'INBOX',
       date: editForm.date || null,
-      source: isEdit ? task.source : editForm.source,
+      source: isEdit ? task.source : editForm.source || 'LOCAL',
       url: editForm.url || null,
       topics: editForm.topics || [],
-      type: editForm.type || '',
+      type: editForm.type || 'Task',
       fkw: editForm.fkw || [],
     };
 

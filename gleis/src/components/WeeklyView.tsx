@@ -21,7 +21,7 @@ interface Props {
   tasks: Task[];
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  onCreateTask: () => void;
+  onCreateTask: (task?: Partial<Task>) => void;
   onTaskClick: (task: Task) => void;
   onOpenStats: (date: Date) => void;
   onSyncStart: () => void;
@@ -138,6 +138,13 @@ export default function WeeklyView({
     });
   }, []);
 
+  const handleRightClick = (e: React.MouseEvent, dateStr: string | null) => {
+    e.preventDefault();
+    if (dateStr) {
+      onCreateTask && onCreateTask({ date: dateStr } as Task);
+    }
+  };
+
   return (
     <>
       <div className="flex-1 overflow-x-auto overflow-y-hidden px-2 snap-x snap-mandatory flex gap-5 pb-2 noir-scrollbar">
@@ -171,6 +178,7 @@ export default function WeeklyView({
                 key={col.name}
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={() => onDrop(col.dateStr)}
+                onContextMenu={(e) => handleRightClick(e, col.dateStr)}
                 className={`${shouldShrink ? 'w-28' : 'w-70'} ${col.isToday ? 'bg-neon/2 rounded-t-2xl' : ''} shrink-0 flex flex-col gap-4 h-full snap-start transition-[width] duration-300`}
               >
                 <div

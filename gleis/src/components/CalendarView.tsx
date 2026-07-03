@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
 import { mergeNewDateWithOriginalTime } from '@/utils/dateUtils';
-import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { getStatusColor, sortTasksByStatus } from '@/utils/miscellaneousUtils';
 import { atlasFetch } from '@/utils/api';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   onOpenTaskModal: () => void;
+  onCreateTask?: (task: Task) => void;
   onTaskClick: (task: Task) => void;
 }
 
@@ -21,6 +22,7 @@ export default function CalendarView({
   loading,
   setTasks,
   onOpenTaskModal,
+  onCreateTask,
   onTaskClick,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -66,6 +68,10 @@ export default function CalendarView({
         source: task.source,
       }),
     });
+  };
+  const handleRightClick = (e: React.MouseEvent, dateStr: string) => {
+    e.preventDefault();
+    onCreateTask && onCreateTask({ date: dateStr } as Task);
   };
 
   return (
@@ -128,7 +134,9 @@ export default function CalendarView({
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
               // この日のタスクをフィルタリング（未完了のみ、など条件があれば調整）
-              const dayTasks = tasks.filter((t) => t.date?.startsWith(dateStr));
+              const dayTasks = sortTasksByStatus(
+                tasks.filter((t) => t.date?.startsWith(dateStr)),
+              );
               const isToday =
                 new Date().toISOString().split('T')[0] === dateStr;
 
@@ -137,6 +145,7 @@ export default function CalendarView({
                   key={day}
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => onDrop(dateStr)}
+                  onContextMenu={(e) => handleRightClick(e, dateStr)}
                   className={`p-2 rounded-xl border ${isToday ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 noir-glass'} flex flex-col gap-1.5 transition-colors hover:border-white/10 min-h-25 overflow-hidden`}
                 >
                   <div

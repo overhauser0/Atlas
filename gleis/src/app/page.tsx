@@ -480,7 +480,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onCreateTask={() => openCreateTaskModal()}
+              onCreateTask={(task) => openCreateTaskModal(task)}
               onTaskClick={openEditTaskModal}
               onOpenStats={handleOpenStats}
               onSyncStart={incrementRequest}
@@ -502,6 +502,7 @@ export default function Home() {
               loading={isTasksLoading}
               setTasks={setTasks}
               onOpenTaskModal={() => openCreateTaskModal()}
+              onCreateTask={(task) => openCreateTaskModal(task)}
               onTaskClick={openEditTaskModal}
             />
           )}
@@ -513,7 +514,10 @@ export default function Home() {
             />
           )}
           {currentView === 'review' && (
-            <ReviewView initialYearMonth={getCurrentYearMonth()} />
+            <ReviewView
+              initialYearMonth={getCurrentYearMonth()}
+              completedTasks={completedTasks}
+            />
           )}
           {currentView === 'notifications' && (
             <NotificationsView

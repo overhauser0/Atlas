@@ -87,6 +87,8 @@ export const usePieceSync = (
             method: 'POST',
           });
         }
+      } catch (e) {
+        console.warn(e);
       } finally {
         onSyncEnd();
       }

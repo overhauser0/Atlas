@@ -99,6 +99,8 @@ export const useTaskSync = (
           });
         }
         // await fetchTasks(true); → WebSocketに
+      } catch (e) {
+        console.warn(e);
       } finally {
         onSyncEnd();
       }

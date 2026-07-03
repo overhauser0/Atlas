@@ -13,7 +13,6 @@ export const receiveCalendarSync = async (c: Context) => {
     const body = await c.req.json();
 
     // n8nから送られてきた配列データを取得
-    // ※ n8nの Packing Data ノードで jsonBody: "={{ $json.cache_data }}" と設定されているため、そのまま配列として受け取れる想定です
     const events = Array.isArray(body) ? body : body.cache_data;
 
     if (!events || !Array.isArray(events)) {

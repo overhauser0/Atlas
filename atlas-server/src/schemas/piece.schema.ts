@@ -10,12 +10,14 @@ export const PieceSchema = z.object({
     .transform((v) => v ?? ''),
   status: z
     .enum(['INBOX', 'Waiting', 'Going', 'Wrapper', 'Canceled', 'Done'])
+    .or(z.literal(''))
     .nullable()
-    .transform((v) => v ?? 'INBOX'),
+    .transform((v) => (!v ? 'INBOX' : v)),
   source: z
     .enum(['NOTION', 'LOCAL'])
+    .or(z.literal(''))
     .nullable()
-    .transform((v) => v ?? 'LOCAL'),
+    .transform((v) => (!v ? 'LOCAL' : v)),
   date: z
     .union([
       z.string().datetime({ offset: true }), // Notionはオフセット(+09:00等)を返すことがあるため offset: true がおすすめ
@@ -25,14 +27,16 @@ export const PieceSchema = z.object({
     .optional(),
   area: z
     .enum(['Work', 'Life'])
+    .or(z.literal(''))
     .nullable()
     .optional()
-    .transform((v) => v ?? 'Work'),
+    .transform((v) => (!v ? 'Work' : v)),
   type: z
     .enum(['Task', 'Note', 'Event'])
+    .or(z.literal('')) // 空文字列の許可
     .nullable()
     .optional()
-    .transform((v) => v ?? 'Task'),
+    .transform((v) => (!v ? 'Task' : v)),
   topics: z
     .array(z.string())
     .nullable()
