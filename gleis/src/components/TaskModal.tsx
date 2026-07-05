@@ -15,7 +15,7 @@ import {
   HardDrive,
   Copy,
   FileText,
-  Loader2, // 🌟 ローディングアイコンを追加
+  Loader2,
 } from 'lucide-react';
 import { Task, ViewType, isViewType } from '@/types';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
@@ -97,16 +97,16 @@ export default function TaskModal({
     if (isOpen) {
       setInternalMode(mode);
       setEditForm({
+        id: task?.id || '',
         title: task?.title || '',
-        note: task?.note || '',
         status: task?.status || 'INBOX',
         date: task?.date ? task?.date.split('T')[0] : getDateString(new Date()),
-        source: task?.source || 'LOCAL',
-        id: task?.id || '',
-        url: task?.url || '',
+        type: task?.type || 'Task',
         topics: task?.topics || [],
-        type: task?.type || '',
         fkw: task?.fkw || [],
+        note: task?.note || '',
+        url: task?.url || '',
+        source: task?.source || 'LOCAL',
       });
       if ((task?.title || '') === '') focusTitleInput();
     }
@@ -146,17 +146,20 @@ export default function TaskModal({
     const url = isEdit ? `/pieces/${task.id}` : '/pieces';
     const method = isEdit ? 'PATCH' : 'POST';
 
+    console.log('editForm.type', editForm.type);
     const payload = {
       title: editForm.title || 'No Title',
-      note: editForm.note || '',
       status: editForm.status || 'INBOX',
       date: editForm.date || null,
-      source: isEdit ? task.source : editForm.source || 'LOCAL',
-      url: editForm.url || null,
-      topics: editForm.topics || [],
       type: editForm.type || 'Task',
+      topics: editForm.topics || [],
       fkw: editForm.fkw || [],
+      note: editForm.note || '',
+      url: editForm.url || null,
+      source: isEdit ? task.source : editForm.source || 'LOCAL',
     };
+
+    console.log('payload', payload);
 
     onClose();
     onSyncStart();

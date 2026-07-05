@@ -17,19 +17,10 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   mode: 'create' | 'edit';
-  item: LifeItem | null;
-  defaultFlags: string[];
-  onUpdate: () => void;
+  item: Partial<LifeItem> | null;
 }
 
-export default function DetailModal({
-  isOpen,
-  onClose,
-  mode,
-  item,
-  defaultFlags,
-  onUpdate,
-}: Props) {
+export default function DetailModal({ isOpen, onClose, mode, item }: Props) {
   const [formData, setFormData] = useState<LifeItem>({
     id: '',
     title: '',
@@ -54,28 +45,24 @@ export default function DetailModal({
 
   useEffect(() => {
     if (isOpen) {
-      if (mode === 'edit' && item) {
-        setFormData({ ...item });
-      } else {
-        setFormData({
-          id: '',
-          title: '',
-          status: 'INBOX',
-          date: null,
-          area: 'Life',
-          type: null,
-          topics: [],
-          flags: defaultFlags,
-          fkw: [],
-          note: '',
-          url: '',
-          imageUrl: '',
-          iconType: 'leaf',
-          source: '',
-        });
-      }
+      setFormData({
+        id: item?.id || '',
+        title: item?.title || '',
+        status: item?.status || 'INBOX',
+        date: item?.date ? item?.date.split('T')[0] : null,
+        area: 'Life',
+        type: item?.type || 'Event',
+        topics: item?.topics || [],
+        flags: item?.flags || [],
+        fkw: item?.fkw || [],
+        note: item?.note || '',
+        url: item?.url || '',
+        imageUrl: item?.imageUrl || '',
+        iconType: 'leaf',
+        source: item?.source || 'NOTION',
+      });
     }
-  }, [isOpen, mode, item, defaultFlags]);
+  }, [isOpen, item]);
 
   useEffect(() => {
     if (isOpen) {
@@ -98,12 +85,17 @@ export default function DetailModal({
     const method = mode === 'edit' ? 'PATCH' : 'POST';
 
     const payload = {
-      title: formData.title,
-      status: formData.status,
-      note: formData.note,
-      date: formData.date,
-      source: 'NOTION',
+      title: formData.title || 'No Title',
+      status: formData.status || 'INBOX',
+      date: formData.date || null,
+      area: formData.area,
+      type: formData.type || 'Note',
+      topics: formData.topics || [],
+      flags: formData.flags,
+      fkw: formData.fkw || [],
+      note: formData.note || '',
       url: formData.url || null,
+      source: 'NOTION',
     };
     try {
       const res = await atlasFetch(url, {

@@ -13,11 +13,6 @@ const NOTION_MONTHLY_DS_ID = process.env.NOTION_MONTHLY_DS_ID!;
 const NOTION_WEEKLY_DS_ID = process.env.NOTION_WEEKLY_DS_ID!;
 const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
 
-const NOTION_DATABASE_ID = process.env.NOTION_DATABASE_ID!;
-const NOTION_MONTHLY_DB_ID = process.env.NOTION_MONTHLY_DB_ID!;
-const NOTION_WEEKLY_DB_ID = process.env.NOTION_WEEKLY_DB_ID!;
-const NOTION_DIARY_DB_ID = process.env.NOTION_DIARY_DB_ID!;
-
 // ==========================================
 // 2. Piece (Task/LifeLog) 関連の操作
 // ==========================================

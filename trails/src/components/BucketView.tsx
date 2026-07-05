@@ -10,7 +10,7 @@ import ListItem from './ListItem';
 interface Props {
   data: LifeItem[];
   onItemClick: (item: LifeItem) => void;
-  onOpenCreate?: () => void;
+  onOpenCreate: (item: Partial<LifeItem>) => void;
 }
 
 export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
@@ -92,9 +92,9 @@ export default function BucketView({ data, onItemClick, onOpenCreate }: Props) {
         ))}
       </div>
 
-      {/* FAB (配置を少し微調整) */}
+      {/* FAB */}
       <button
-        onClick={onOpenCreate}
+        onClick={() => onOpenCreate({ flags: ['Bucket'] } as LifeItem)}
         className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />

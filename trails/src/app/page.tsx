@@ -51,9 +51,8 @@ export default function AppMain() {
   const [detailModalConfig, setDetailModalConfig] = useState<{
     isOpen: boolean;
     mode: 'create' | 'edit';
-    item: LifeItem | null;
-    defaultFlags: string[];
-  }>({ isOpen: false, mode: 'create', item: null, defaultFlags: [] });
+    item: Partial<LifeItem> | null;
+  }>({ isOpen: false, mode: 'create', item: null });
 
   const [diaryModalConfig, setDiaryModalConfig] = useState<{
     isOpen: boolean;
@@ -139,30 +138,21 @@ export default function AppMain() {
   // 4. Handlers (イベント・UI操作関連)
   // ============================================================================
 
-  const openDetailModal = (item: LifeItem) => {
-    // setSelectedItem(item);
+  const openDetailModal = useCallback((item: LifeItem) => {
     setDetailModalConfig({
       isOpen: true,
       mode: 'edit',
       item: item,
-      defaultFlags: [],
     });
-  };
+  }, []);
   // FABクリック時のハンドラ
-  const handleOpenCreate = () => {
-    const flags =
-      currentTab === 'Bucket'
-        ? ['Bucket']
-        : currentTab === 'Travel'
-          ? ['Travel']
-          : ['Explore'];
+  const handleOpenCreate = useCallback((item?: Partial<LifeItem>) => {
     setDetailModalConfig({
       isOpen: true,
       mode: 'create',
-      item: null,
-      defaultFlags: flags,
+      item: item || null,
     });
-  };
+  }, []);
   const handleTabChange = (tab: AppTab) => {
     setCurrentTab(tab);
     setIsMoreOpen(false);
@@ -214,7 +204,7 @@ export default function AppMain() {
           <BucketView
             data={items.filter((i) => i.category?.includes('Bucket'))}
             onItemClick={openDetailModal}
-            onOpenCreate={handleOpenCreate}
+            onOpenCreate={(item) => handleOpenCreate(item)}
           />
         )}
         {currentTab === 'Travel' && (
@@ -305,16 +295,13 @@ export default function AppMain() {
         isOpen={detailModalConfig.isOpen}
         mode={detailModalConfig.mode}
         item={detailModalConfig.item}
-        defaultFlags={detailModalConfig.defaultFlags}
         onClose={() =>
           setDetailModalConfig({
             isOpen: false,
             mode: 'create',
             item: null,
-            defaultFlags: [],
           })
         }
-        onUpdate={fetchPieces}
       />
       <ConfigModal
         isOpen={isConfigOpen}

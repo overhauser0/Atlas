@@ -83,7 +83,9 @@ export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
 
       {/* FAB */}
       <button
-        onClick={onOpenCreate}
+        onClick={() =>
+          onOpenCreate(activeType === 'All' ? null : { topics: [activeType] })
+        }
         className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />

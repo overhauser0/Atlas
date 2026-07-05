@@ -27,16 +27,16 @@ export const useDiarySync = (
   const syncDiary = useCallback(async () => {
     if (!isAuthenticated) return;
     onSyncStart();
-    console.log('syncDiary Start');
     try {
       const res = await atlasFetch('/diaries/sync', {
         method: 'POST',
       });
-      console.log('syncDiary End', res);
+      /*
       if (res.ok) {
         // 保存後、最新データを再取得
         fetchDiaries();
       }
+      */
     } finally {
       onSyncEnd();
     }

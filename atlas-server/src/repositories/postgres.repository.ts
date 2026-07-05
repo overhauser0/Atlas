@@ -41,7 +41,6 @@ export interface NotionPiecesCacheTable {
   url: string | null;
   last_edited_time: Date;
   synced_at: Generated<Date>; // 👈 DBが作るからGenerated
-  raw_data: JSONColumnType<any>;
 }
 
 export interface NotificationsTable {
@@ -203,7 +202,6 @@ export const upsertNotionPieceCache = async (
   const values = {
     ...piece,
     last_edited_time: lastEditedTime,
-    raw_data: JSON.stringify(rawData),
   };
 
   const upsertedPiece = await db

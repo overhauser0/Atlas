@@ -480,7 +480,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onCreateTask={(task) => openCreateTaskModal(task)}
+              onCreateTask={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
               onOpenStats={handleOpenStats}
               onSyncStart={incrementRequest}
@@ -501,8 +501,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onOpenTaskModal={() => openCreateTaskModal()}
-              onCreateTask={(task) => openCreateTaskModal(task)}
+              onCreateTask={openCreateTaskModal}
               onTaskClick={openEditTaskModal}
             />
           )}
@@ -523,7 +522,7 @@ export default function Home() {
             <NotificationsView
               notifications={notifications}
               onMarkAsRead={markAsRead}
-              onCreateTask={(task) => openCreateTaskModal(task)}
+              onCreateTask={openCreateTaskModal}
             />
           )}
           {currentView === 'settings' && (

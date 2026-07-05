@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     url TEXT,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    raw_data JSONB DEFAULT '{}'        -- Notion APIからの生レスポンス保持用
+    --raw_data JSONB DEFAULT '{}'        -- Notion APIからの生レスポンス保持用 ※削除予定
 );
 
 -- 3. ローカルタスク用テーブル
@@ -96,7 +96,7 @@ CREATE INDEX IF NOT EXISTS idx_local_pieces_status ON local_pieces(status);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_date ON local_pieces(date);
 -- JSONB内部を検索したい場合（上級者向け・必要に応じて）
 -- metadata内の特定のキーをよく検索するなら、GINインデックスが最強
-CREATE INDEX IF NOT EXISTS idx_local_pieces_metadata ON local_pieces USING GIN (metadata);
+-- CREATE INDEX IF NOT EXISTS idx_local_pieces_metadata ON local_pieces USING GIN (metadata);
 
 -- 通知の既読/未読フラグ（今後カラムを追加予定なら）やカテゴリ検索用
 CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);

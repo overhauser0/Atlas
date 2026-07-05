@@ -8,16 +8,10 @@ import { groupItemsByYear } from '@/utils/grouping';
 interface Props {
   data: LifeItem[];
   onItemClick: (item: LifeItem) => void;
-  onOpenConfig?: () => void;
-  onOpenCreate?: () => void;
+  onOpenCreate: (item?: Partial<LifeItem>) => void;
 }
 
-export default function TravelView({
-  data,
-  onItemClick,
-  onOpenConfig,
-  onOpenCreate,
-}: Props) {
+export default function TravelView({ data, onItemClick, onOpenCreate }: Props) {
   const grouped = groupItemsByYear(data);
   const years = Object.keys(grouped).sort((a, b) => {
     if (a === 'PLAN') return -1;
@@ -54,7 +48,7 @@ export default function TravelView({
 
       {/* 3. FABは固定配置 (absolute) */}
       <button
-        onClick={onOpenCreate}
+        onClick={() => onOpenCreate({ topics: ['Travel'] })}
         className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
