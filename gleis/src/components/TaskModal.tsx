@@ -337,7 +337,7 @@ export default function TaskModal({
         const isChecked = block.to_do.checked;
         return (
           <span
-            className={`block ml-1 my-0.5 flex items-start gap-2 ${isChecked ? 'text-gray-600 line-through' : ''}`}
+            className={`flex ml-1 my-0.5 items-start gap-2 ${isChecked ? 'text-gray-600 line-through' : ''}`}
           >
             <span className="mt-0.5 shrink-0">{isChecked ? '☑' : '☐'}</span>
             <span>
