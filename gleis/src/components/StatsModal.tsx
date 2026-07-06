@@ -9,7 +9,7 @@ interface StatsModalProps {
   onClose: () => void;
   completedTasks: Task[];
   targetDate: Date; // モーダルを開いた基準日（Homeなら今日、Weeklyならその日）
-  onTaskClick: (task: Task) => void; // タスククリック時のコールバック
+  openTaskModal: (task?: Partial<Task>) => void; // タスククリック時のコールバック
 }
 
 export default function StatsModal({
@@ -17,7 +17,7 @@ export default function StatsModal({
   onClose,
   completedTasks,
   targetDate,
-  onTaskClick,
+  openTaskModal,
 }: StatsModalProps) {
   // ESCキーで閉じる
   useEffect(() => {
@@ -193,9 +193,7 @@ export default function StatsModal({
                   <li
                     key={task.id}
                     className="p-3 bg-white/5 border border-white/5 rounded-xl flex items-center gap-3 group"
-                    onClick={() => {
-                      onTaskClick(task);
-                    }}
+                    onClick={() => openTaskModal(task)}
                   >
                     <Trophy className="w-4 h-4 text-neon shrink-0 opacity-70" />
                     <span className="text-sm font-medium text-gray-300 truncate grow">

@@ -14,13 +14,13 @@ import { Task } from '@/types';
 interface Props {
   notifications: any[];
   onMarkAsRead: (id: string) => void;
-  onCreateTask: (task?: Partial<Task>) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
 }
 
 export default function NotificationsView({
   notifications,
   onMarkAsRead,
-  onCreateTask,
+  openTaskModal,
 }: Props) {
   const getIcon = (category: string) => {
     if (category === 'ALERT')
@@ -93,7 +93,7 @@ export default function NotificationsView({
                       </a>
                     )}
                     <button
-                      onClick={() => onCreateTask({ title: n.title })}
+                      onClick={() => openTaskModal({ title: n.title })}
                       className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400 border border-white/5 transition-colors"
                     >
                       <Plus className="w-4 h-4" />

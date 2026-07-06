@@ -11,8 +11,7 @@ import { getDateString } from '@/utils/dateUtils';
 
 interface HomeViewProps {
   tasks: Task[];
-  onOpenTaskModal: () => void;
-  onTaskClick: (task: Task) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
   completedTasks: Task[];
   onOpenStats: () => void;
 }
@@ -20,8 +19,7 @@ interface HomeViewProps {
 export default function HomeView({
   tasks,
   completedTasks,
-  onOpenTaskModal,
-  onTaskClick,
+  openTaskModal,
   onOpenStats,
 }: HomeViewProps) {
   const today = new Date();
@@ -88,7 +86,7 @@ export default function HomeView({
         <div className="flex items-center justify-between">
           {/* 左側: 新規タスクボタン */}
           <button
-            onClick={onOpenTaskModal}
+            onClick={openTaskModal}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
           >
             <Plus className="w-5 h-5 text-neon group-hover:scale-110 transition-transform" />
@@ -142,7 +140,7 @@ export default function HomeView({
             sortedTodaysTasks.map((task) => (
               <div
                 key={task.id}
-                onClick={() => onTaskClick(task)}
+                onClick={() => openTaskModal(task)}
                 className="group flex items-center justify-between p-4 rounded-xl noir-glass border border-white/5 hover:border-white/20 cursor-pointer transition-all"
               >
                 <div className="flex items-center gap-4">

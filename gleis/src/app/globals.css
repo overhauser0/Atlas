@@ -7,6 +7,8 @@ body {
   -webkit-user-select: none; /* テキスト選択を禁止 (iOS Safari向け) */
   user-select: none; /* テキスト選択を禁止 */
   -webkit-touch-callout: none; /* 長押しメニューを禁止 */
+}
+#appwindow {
   padding-top: env(safe-area-inset-top); /* iOSのセーフエリアに対応 */
 }
 
@@ -73,7 +75,7 @@ textarea {
   @apply w-full bg-black/40 border border-white/10 rounded-xl p-3 
          text-white text-sm transition-all focus:border-neon 
          focus:outline-none focus:ring-1 focus:ring-neon/30
-         placeholder:text-gray-600 [color-scheme:dark];
+         placeholder:text-gray-600 scheme-dark;
 }
 
 /* プライマリボタン */
@@ -89,7 +91,7 @@ textarea {
 }
 
 @utility noir-dot {
-  @apply w-2 h-2 rounded-full bg-neon shadow-[0_0_4px_currentColor] opacity-70;
+  @apply w-2 h-2 rounded-full bg-neon shadow-[0_0_4px_currentColor] opacity-70 shrink-0;
 }
 
 /* セクションラベル */

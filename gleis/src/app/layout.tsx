@@ -7,6 +7,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  viewportFit: 'cover',
 };
 
 export const metadata: Metadata = {
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Gleis',
-    statusBarStyle: 'black-translucent', // 'black' / 'black-translucent' ※ステータスバーがアプリの上に被さる（透明になる）ため、画面上部に少しパディングが必要になる場合があります
+    statusBarStyle: 'black-translucent',
   },
   manifest: '/manifest.json',
 };

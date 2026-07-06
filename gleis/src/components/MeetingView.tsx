@@ -8,14 +8,7 @@ import { Task } from '@/types';
 
 interface MeetingProps {
   meetingTasks: Task[];
-  onTaskClick: (task: Task) => void;
-  onCreateMeeting: (payload: {
-    title: string;
-    type: string;
-    topics: string[];
-    fkw: string[];
-    source: 'NOTION' | 'LOCAL' | undefined;
-  }) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
 }
 
 type MeetingTemplate = {
@@ -41,12 +34,12 @@ const MEETING_TYPES: MeetingTemplate[] = [
 const TaskGroup = ({
   title,
   tasks,
-  onTaskClick,
+  openTaskModal,
   formatMinimalDate,
 }: {
   title: string;
   tasks: Task[];
-  onTaskClick: (task: Task) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
   formatMinimalDate: (dateString?: string | null) => string;
 }) => {
   if (tasks.length === 0) return null;
@@ -65,7 +58,7 @@ const TaskGroup = ({
           return (
             <button
               key={task.id}
-              onClick={() => onTaskClick(task)}
+              onClick={() => openTaskModal(task)}
               className="w-full flex items-center justify-between p-3 group rounded-lg border border-transparent hover:border-white/10 hover:bg-white/5 transition-all"
             >
               {/* 1. ステータスドット */}
@@ -123,13 +116,12 @@ const TaskGroup = ({
 
 export default function MeetingView({
   meetingTasks,
-  onTaskClick,
-  onCreateMeeting,
+  openTaskModal,
 }: MeetingProps) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleQuickCreate = (title: string, fkw: string[]) => {
-    onCreateMeeting({
+    openTaskModal({
       title,
       type: 'Note',
       topics: ['Meeting'],
@@ -265,25 +257,25 @@ export default function MeetingView({
             <TaskGroup
               title="Upcoming"
               tasks={groups.upcoming}
-              onTaskClick={onTaskClick}
+              openTaskModal={openTaskModal}
               formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Last 7 Days"
               tasks={groups.week}
-              onTaskClick={onTaskClick}
+              openTaskModal={openTaskModal}
               formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Last 30 Days"
               tasks={groups.month}
-              onTaskClick={onTaskClick}
+              openTaskModal={openTaskModal}
               formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Older"
               tasks={groups.older}
-              onTaskClick={onTaskClick}
+              openTaskModal={openTaskModal}
               formatMinimalDate={formatMinimalDate}
             />
             {hasMore && (

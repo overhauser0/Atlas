@@ -10,8 +10,7 @@ interface Props {
   tasks: Task[];
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  onCreateTask: (task?: Task) => void;
-  onTaskClick: (task: Task) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -20,8 +19,7 @@ export default function CalendarView({
   tasks,
   loading,
   setTasks,
-  onCreateTask,
-  onTaskClick,
+  openTaskModal,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -69,7 +67,7 @@ export default function CalendarView({
   };
   const handleRightClick = (e: React.MouseEvent, dateStr: string) => {
     e.preventDefault();
-    onCreateTask && onCreateTask({ date: dateStr } as Task);
+    openTaskModal && openTaskModal({ date: dateStr } as Task);
   };
 
   return (
@@ -157,7 +155,7 @@ export default function CalendarView({
                         key={task.id}
                         draggable
                         onDragStart={() => setDraggingTaskId(task.id)}
-                        onClick={() => onTaskClick(task)}
+                        onClick={() => openTaskModal(task)}
                         className={`text-[10px] leading-tight p-1 rounded hover:bg-white/10 cursor-pointer transition-all truncate flex items-center justify-between gap-1 group ${draggingTaskId === task.id ? 'opacity-30' : ''}`}
                         style={{
                           borderLeftColor: `var(--${task.status.toLowerCase()}-color, #888)`,
@@ -182,7 +180,7 @@ export default function CalendarView({
       </div>
 
       <button
-        onClick={() => onCreateTask()}
+        onClick={() => openTaskModal()}
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.5)] hover:scale-105 transition-transform z-40 border border-white/20"
       >
         <Plus className="w-8 h-8" />

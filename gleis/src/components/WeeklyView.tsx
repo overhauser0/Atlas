@@ -21,8 +21,7 @@ interface Props {
   tasks: Task[];
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  onCreateTask: (task?: Partial<Task>) => void;
-  onTaskClick: (task: Task) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
   onOpenStats: (date: Date) => void;
   onSyncStart: () => void;
   onSyncEnd: () => void;
@@ -33,8 +32,7 @@ export default function WeeklyView({
   tasks,
   loading,
   setTasks,
-  onCreateTask,
-  onTaskClick,
+  openTaskModal,
   onOpenStats,
   onSyncStart,
   onSyncEnd,
@@ -141,7 +139,7 @@ export default function WeeklyView({
   const handleRightClick = (e: React.MouseEvent, dateStr: string | null) => {
     e.preventDefault();
     if (dateStr) {
-      onCreateTask && onCreateTask({ date: dateStr } as Task);
+      openTaskModal && openTaskModal({ date: dateStr } as Task);
     }
   };
 
@@ -256,7 +254,7 @@ export default function WeeklyView({
                           ))}
                         </div>
                         <button
-                          onClick={() => onTaskClick(task)}
+                          onClick={() => openTaskModal(task)}
                           className="text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
                         >
                           Detail
@@ -272,7 +270,7 @@ export default function WeeklyView({
       </div>
 
       <button
-        onClick={() => onCreateTask()}
+        onClick={() => openTaskModal()}
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.5)] hover:scale-105 transition-transform z-40 border border-white/20"
       >
         <Plus className="w-8 h-8" />

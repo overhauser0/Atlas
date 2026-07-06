@@ -22,7 +22,7 @@ import MeetingView from '@/components/MeetingView';
 import ReviewView from '@/components/ReviewView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
-import { ToastProvider } from '@/components/Toast';
+import { ToastProvider, useToast } from '@/components/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import HeaderView from '@/components/HeaderView';
 import TaskModal from '@/components/TaskModal';
@@ -32,20 +32,22 @@ import VoiceCaptureModal from '@/components/VoiceCaptureModal';
 import ActionPanel from '@/components/ActionPanel';
 import CommandPalette from '@/components/CommandPalette';
 import NotificationsView from '@/components/NotificationsView';
+
+// --- Types & Utils & Hooks ---
 import { Task, ViewType } from '@/types';
 import { getCurrentYearMonth } from '@/utils/dateUtils';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
-import { useToast } from '@/components/Toast';
+import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 
 export default function Home() {
   // ============================================================================
-  // 1. States (状態管理)
+  // 1. Primitive States (基本状態)
   // ============================================================================
 
-  // Auth & Settings (認証・設定)
+  // Auth & Settings
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [appSettings, setAppSettings] = useState({
@@ -56,31 +58,16 @@ export default function Home() {
     wakeLockEnabled: true,
   });
 
-  // Global UI & View (画面・メニュー状態)
+  // Global UI & View
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
 
-  // Data (タスク・通知データ)
+  // Data Loading State
   const [activeRequests, setActiveRequests] = useState(0);
-  const incrementRequest = () => setActiveRequests((prev) => prev + 1);
-  const decrementRequest = () =>
-    setActiveRequests((prev) => Math.max(0, prev - 1));
 
-  // WebSoket
-  const [wsStatus, setWsStatus] = useState<
-    'connecting' | 'connected' | 'disconnected'
-  >('connecting');
-  const [connectedDevices, setConnectedDevices] = useState<any[]>([]);
-  const [ownDeviceId, setOwnDeviceId] = useState('');
-
-  // PC（Chrome拡張機能）が1台でも接続されているかどうかのフラグ
-  const hasExtension = connectedDevices.some(
-    (d) => d.clientType === 'extension',
-  );
-
-  // Modals & Panels (各種ポップアップの開閉状態)
+  // Modals & Panels
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
   const [isActionPanelOpen, setIsActionPanelOpen] = useState(false);
   const [isVoiceCaptureOpen, setIsVoiceCaptureOpen] = useState(false);
@@ -92,6 +79,21 @@ export default function Home() {
     mode: 'create' | 'edit';
     task: Partial<Task> | null;
   }>({ isOpen: false, mode: 'create', task: null });
+
+  // ============================================================================
+  // 2. Custom Hooks (データ・同期・システム操作)
+  // ============================================================================
+
+  const { addToast } = useToast();
+
+  const incrementRequest = useCallback(
+    () => setActiveRequests((prev) => prev + 1),
+    [],
+  );
+  const decrementRequest = useCallback(
+    () => setActiveRequests((prev) => Math.max(0, prev - 1)),
+    [],
+  );
 
   const {
     tasks,
@@ -117,99 +119,71 @@ export default function Home() {
     () => fetchTasks(true),
   );
 
-  // fetchTasksの最新版の参照を作る
-  const fetchTasksRef = useRef(fetchTasks);
-  useEffect(() => {
-    fetchTasksRef.current = fetchTasks;
-  }, [fetchTasks]);
-
-  const { addToast } = useToast();
+  const { wsRef, wsStatus, connectedDevices, ownDeviceId } = useAtlasWebSocket(
+    fetchTasks,
+    fetchNotifications,
+  );
 
   // ============================================================================
-  // 2. Handlers (イベント・UI操作関連)
+  // 3. Derived State (派生データ)
   // ============================================================================
 
-  // View Navigation
-  const handleViewChange = (view: ViewType) => {
+  const hasExtension = connectedDevices.some(
+    (d) => d.clientType === 'extension',
+  );
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  // ============================================================================
+  // 4. Handlers (イベント・UI操作関連)
+  // ============================================================================
+
+  const handleViewChange = useCallback((view: ViewType) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('atlas_auth');
-    setIsAuthenticated(false);
-  };
-
-  // Task Modals
-  const openCreateTaskModal = useCallback((task?: Partial<Task>) => {
-    setTaskModalConfig({
-      isOpen: true,
-      mode: 'create',
-      task: task || null,
-    });
   }, []);
 
-  const openEditTaskModal = useCallback((task: Task) => {
-    setTaskModalConfig({ isOpen: true, mode: 'edit', task });
+  const handleLogout = useCallback(() => {
+    localStorage.removeItem('atlas_auth');
+    setIsAuthenticated(false);
+  }, []);
+
+  const openTaskModal = useCallback((task?: Partial<Task>) => {
+    const mode = task?.id ? 'edit' : 'create';
+    setTaskModalConfig({ isOpen: true, mode, task: task || null });
   }, []);
 
   const closeTaskModal = useCallback(() => {
     setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
 
-  // Stats
-  const handleOpenStats = (date: Date) => {
+  const handleOpenStats = useCallback((date: Date) => {
     setStatsTargetDate(date);
     setIsStatsOpen(true);
-  };
-
-  const handleSendToPC = useCallback((url: string) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: 'OPEN_URL_ON_PC',
-          url: url,
-        }),
-      );
-      addToast('💻 PCにURLを送信しました！');
-    } else {
-      addToast('⚠️ サーバー（Atlas）との通信が切断されています。');
-    }
   }, []);
 
-  // ============================================================================
-  // 3. Helpers (計算・フォーマット)
-  // ============================================================================
-
-  const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  // OSからデバイス名を自動推測するヘルパー
-  const getAutoDeviceName = () => {
-    if (typeof navigator === 'undefined') return 'Unknown Web';
-    const ua = navigator.userAgent;
-    if (
-      /iPad/i.test(ua) ||
-      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
-    )
-      return 'iPad';
-    if (/iPhone/i.test(ua)) return 'iPhone';
-    if (/Mac OS/i.test(ua)) return 'Mac';
-    if (/Windows/i.test(ua)) return 'Windows PC';
-    if (/Android/i.test(ua)) return 'Android';
-    return 'Web Browser';
-  };
+  const handleSendToPC = useCallback(
+    (url: string) => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.send(JSON.stringify({ type: 'OPEN_URL_ON_PC', url }));
+        addToast('💻 PCにURLを送信しました！');
+      } else {
+        addToast('⚠️ サーバー（Atlas）との通信が切断されています。');
+      }
+    },
+    [wsRef, addToast],
+  );
 
   // ============================================================================
-  // 4. Effects (ライフサイクル・イベント監視)
+  // 5. Effects (ライフサイクル・イベント監視)
   // ============================================================================
 
-  // Auth Init
+  // 初期化・認証確認
   useEffect(() => {
     if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
     setIsAuthChecking(false);
   }, []);
 
-  // Settings Load & Save
+  // 設定のロード・保存
   useEffect(() => {
     const saved = localStorage.getItem('gleis_settings');
     if (saved) setAppSettings(JSON.parse(saved));
@@ -219,13 +193,16 @@ export default function Home() {
     localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
   }, [appSettings]);
 
-  // Initial Data Fetch
+  // 初回のデータフェッチ処理
+  const hasFetchedInitial = useRef(false);
   useEffect(() => {
-    const isFirstTime = tasks.length === 0;
-    fetchTasks(!isFirstTime);
-  }, [fetchTasks, tasks.length]);
+    if (isAuthenticated && !hasFetchedInitial.current) {
+      fetchTasks(false);
+      hasFetchedInitial.current = true;
+    }
+  }, [isAuthenticated, fetchTasks]);
 
-  // Timers (Clock & Auto Sync)
+  // 時計と自動同期のタイマー
   useEffect(() => {
     setCurrentTime(new Date());
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -239,138 +216,43 @@ export default function Home() {
       appSettings.syncInterval * 60 * 1000,
     );
     return () => clearInterval(interval);
-  }, [isAuthenticated, appSettings.syncInterval]);
+  }, [isAuthenticated, appSettings.syncInterval, handleNotionSync]);
 
-  // 💡 WebSocketの接続と受信用 useEffect
-  const wsRef = useRef<WebSocket | null>(null);
-  const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const fetchNotificationsRef = useRef(fetchNotifications);
-  useEffect(() => {
-    fetchNotificationsRef.current = fetchNotifications;
-  }, [fetchNotifications]);
+  // ============================================================================
+  // 6. UI Interaction Hooks (キーボードショートカット等)
+  // ============================================================================
 
-  useEffect(() => {
-    let currentDeviceId = localStorage.getItem('gleis_device_id');
-    if (!currentDeviceId) {
-      currentDeviceId = crypto.randomUUID();
-      localStorage.setItem('gleis_device_id', currentDeviceId);
-    }
-    setOwnDeviceId(currentDeviceId);
-    const deviceName = getAutoDeviceName();
-
-    let reconnectTimeout: NodeJS.Timeout;
-
-    const connectWebSocket = () => {
-      // 既存の接続があれば閉じる（二重接続防止）
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-
-      setWsStatus('connecting');
-
-      const wsUrl =
-        process.env.NEXT_PUBLIC_WS_URL || 'wss://atlas.overhauser0.synology.me';
-      const ws = new WebSocket(wsUrl);
-      wsRef.current = ws;
-
-      ws.onopen = () => {
-        console.log('🌐 Connected to Atlas WebSocket');
-        setWsStatus('connected');
-
-        // 接続時に自身をGleis端末としてサーバーに登録
-        ws.send(
-          JSON.stringify({
-            type: 'REGISTER_DEVICE',
-            clientType: 'gleis',
-            deviceId: currentDeviceId,
-            deviceName: deviceName,
-          }),
-        );
-
-        // 現在の接続端末リストを要求
-        ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
-
-        fetchNotificationsRef.current();
-
-        // ハートビート開始（30秒ごとにPINGを送信してプロキシの切断を防ぐ）
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' })); // サーバー側はこのメッセージを無視するだけでOK
-          }
-        }, 30000);
-      };
-
-      ws.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'DEVICE_LIST') {
-            setConnectedDevices(data.devices || []);
-          } else if (data.type === 'REFRESH_PIECES') {
-            fetchTasksRef.current(true);
-          } else if (data.type === 'REFRESH_NOTIFICATIONS') {
-            fetchNotificationsRef.current();
-          }
-        } catch (e) {
-          console.warn('WS Message Parse Error:', e);
-        }
-      };
-
-      ws.onclose = () => {
-        console.warn(
-          '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
-        );
-        setWsStatus('disconnected');
-        setConnectedDevices([]); // 切断時はリストをクリア
-        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-        reconnectTimeout = setTimeout(connectWebSocket, 5000);
-      };
-
-      ws.onerror = (error) => {
-        console.warn('WebSocket Error:', error);
-        ws.close(); // エラーが起きたら一度閉じて、oncloseの再接続処理に回す
-      };
-    };
-
-    // 初回接続スタート
-    connectWebSocket();
-
-    // クリーンアップ関数（コンポーネントが破棄された時）
-    return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
-      if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      if (wsRef.current) wsRef.current.close();
-    };
-  }, []); // 依存配列は空（初回のみ実行）
-
-  // iOS Keyboard Fix
   useIosKeyboardFix();
 
-  // Keyboard Shortcuts
   useKeyboardShortcuts({
     onOpenCommandPalette: () => setIsCommandPaletteOpen((p) => !p),
     onSync: () => handleNotionSync(true),
     onLogout: handleLogout,
-    onCreateTask: () => openCreateTaskModal(),
+    onCreateTask: () => openTaskModal(),
     onOpenActionPanel: () => setIsActionPanelOpen((p) => !p),
-    onNavigate: (view) => handleViewChange(view),
+    onNavigate: handleViewChange,
   });
 
   // ============================================================================
-  // 5. Render (UI描画)
+  // 7. Render (UI描画)
   // ============================================================================
 
   if (isAuthChecking) return <div className="h-screen bg-black" />;
-  if (!isAuthenticated)
+  if (!isAuthenticated) {
     return (
       <AuthView
         currentTime={currentTime}
         onLogin={() => setIsAuthenticated(true)}
       />
     );
+  }
 
   return (
     <ToastProvider>
-      <div className="flex h-screen overflow-hidden text-gray-200 relative bg-black">
+      <div
+        id="appwindow"
+        className="flex h-screen overflow-hidden text-gray-200 relative bg-black"
+      >
         <WakeLockHandler
           isEnabled={appSettings.wakeLockEnabled ?? true}
           onStatusChange={setIsWakeLockActive}
@@ -382,17 +264,16 @@ export default function Home() {
         <VoiceCaptureModal
           isOpen={isVoiceCaptureOpen}
           onClose={() => setIsVoiceCaptureOpen(false)}
-          onCapture={(task) => openCreateTaskModal(task)}
+          onCapture={openTaskModal}
         />
-
         <CommandPalette
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
           onSync={() => handleNotionSync(true)}
-          onNewTask={() => openCreateTaskModal()}
+          onNewTask={openTaskModal}
           tasks={tasks}
-          onTaskClick={openEditTaskModal}
+          onTaskClick={openTaskModal}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
           onLock={handleLogout}
         />
@@ -469,8 +350,7 @@ export default function Home() {
             <HomeView
               tasks={tasks}
               completedTasks={completedTasks}
-              onOpenTaskModal={() => openCreateTaskModal()}
-              onTaskClick={openEditTaskModal}
+              openTaskModal={openTaskModal}
               onOpenStats={() => handleOpenStats(new Date())}
             />
           )}
@@ -480,8 +360,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onCreateTask={openCreateTaskModal}
-              onTaskClick={openEditTaskModal}
+              openTaskModal={openTaskModal}
               onOpenStats={handleOpenStats}
               onSyncStart={incrementRequest}
               onSyncEnd={decrementRequest}
@@ -492,8 +371,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onCreateTask={() => openCreateTaskModal()}
-              onTaskClick={openEditTaskModal}
+              openTaskModal={openTaskModal}
             />
           )}
           {currentView === 'calendar' && (
@@ -501,15 +379,13 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              onCreateTask={openCreateTaskModal}
-              onTaskClick={openEditTaskModal}
+              openTaskModal={openTaskModal}
             />
           )}
           {currentView === 'meeting' && (
             <MeetingView
               meetingTasks={meetingTasks}
-              onTaskClick={openEditTaskModal}
-              onCreateMeeting={openCreateTaskModal}
+              openTaskModal={openTaskModal}
             />
           )}
           {currentView === 'review' && (
@@ -522,7 +398,7 @@ export default function Home() {
             <NotificationsView
               notifications={notifications}
               onMarkAsRead={markAsRead}
-              onCreateTask={openCreateTaskModal}
+              openTaskModal={openTaskModal}
             />
           )}
           {currentView === 'settings' && (
@@ -546,7 +422,7 @@ export default function Home() {
             isOpen={isStatsOpen}
             completedTasks={completedTasks}
             targetDate={statsTargetDate}
-            onTaskClick={openEditTaskModal}
+            openTaskModal={openTaskModal}
             onClose={() => setIsStatsOpen(false)}
           />
           <TaskModal
