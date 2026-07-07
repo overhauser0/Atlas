@@ -476,11 +476,8 @@ export default function CommandPalette({
                           <Wand2 className="w-4 h-4 mr-3 text-purple-400" />
                           <div className="flex-1">
                             <span className="text-sm font-medium text-gray-300 block">
-                              Magic Create:{' '}
+                              Magic Create task:{' '}
                               <span className="text-white">"{search}"</span>
-                            </span>
-                            <span className="text-[10px] text-gray-500">
-                              Extracts date, tags, and structure using AI
                             </span>
                           </div>
                           <ArrowRight
