@@ -86,6 +86,7 @@ api.post('/calendar/sync', calendarController.receiveCalendarSync);
 
 // Gemini
 api.post('/ai/brainstorm', aiController.brainstorm);
+api.post('/ai/parse-task', aiController.parseTask);
 
 app.route('/api/v1', api);
 

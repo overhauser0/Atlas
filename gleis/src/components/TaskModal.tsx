@@ -146,7 +146,6 @@ export default function TaskModal({
     const url = isEdit ? `/pieces/${task.id}` : '/pieces';
     const method = isEdit ? 'PATCH' : 'POST';
 
-    console.log('editForm.type', editForm.type);
     const payload = {
       title: editForm.title || 'No Title',
       status: editForm.status || 'INBOX',
@@ -158,8 +157,6 @@ export default function TaskModal({
       url: editForm.url || null,
       source: isEdit ? task.source : editForm.source || 'LOCAL',
     };
-
-    console.log('payload', payload);
 
     onClose();
     onSyncStart();

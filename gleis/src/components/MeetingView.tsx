@@ -12,23 +12,21 @@ interface MeetingProps {
 }
 
 type MeetingTemplate = {
-  id: string; // Reactのkey用
-  label: string; // ボタンに表示するテキスト
-  title: string; // 作成されるページのタイトル
-  fkw: string[]; // 付与するFKW
+  id: string;
+  title: string;
+  fkw: string[];
 };
 
 const MEETING_TYPES: MeetingTemplate[] = [
-  { id: 'mtg', label: '会議', title: '会議', fkw: [] },
-  { id: 'new', label: '新規', title: '新規面談', fkw: ['新規面談'] },
-  { id: 'current', label: '現生徒', title: '現生徒（）', fkw: ['現生徒面談'] },
+  { id: 'mtg', title: '会議', fkw: [] },
+  { id: 'new', title: '新規面談', fkw: ['新規面談'] },
+  { id: 'current', title: '現生徒', fkw: ['現生徒面談'] },
   {
     id: 'strategy',
-    label: '受験戦略コーチング',
-    title: '受験戦略コーチング（）',
-    fkw: [],
+    title: '受験戦略コーチング',
+    fkw: ['受験戦略コーチング'],
   },
-  { id: 'manual', label: 'トリセツ', title: 'トリセツ（）', fkw: [] },
+  { id: 'manual', title: 'トリセツ', fkw: ['トリセツ'] },
 ];
 
 const TaskGroup = ({
@@ -121,8 +119,13 @@ export default function MeetingView({
   const [searchQuery, setSearchQuery] = useState('');
 
   const handleQuickCreate = (title: string, fkw: string[]) => {
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mmdd = `${mm}${dd}`;
+
     openTaskModal({
-      title,
+      title: `${title}${mmdd}`,
       type: 'Note',
       topics: ['Meeting'],
       fkw: fkw || [],
@@ -214,14 +217,14 @@ export default function MeetingView({
       <div className="shrink-0 p-4 border-b border-white/5 bg-white/2 space-y-3">
         {/* クイックアクションバー */}
         <div className="flex items-center gap-2 overflow-x-auto noir-scrollbar pb-1">
-          {MEETING_TYPES.map(({ id, label, title, fkw }) => (
+          {MEETING_TYPES.map(({ id, title, fkw }) => (
             <button
               key={id}
               onClick={() => handleQuickCreate(title, fkw)}
               className="flex items-center gap-1.5 px-4 py-2 shrink-0 rounded-full border border-white/10 bg-white/5 text-xs font-medium text-gray-300 hover:text-white hover:border-white/30 hover:bg-white/10 transition-all group"
             >
               <Plus className="w-3.5 h-3.5 text-gray-500 group-hover:text-neon transition-colors" />
-              {label}
+              {title}
             </button>
           ))}
         </div>
