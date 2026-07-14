@@ -74,7 +74,18 @@ CREATE TABLE IF NOT EXISTS google_events (
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. アプリのメタデータ（最終同期時刻など）を保存するテーブル
+-- 7. ノートテーブル
+CREATE TABLE local_notes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    title TEXT NOT NULL,
+    content TEXT DEFAULT '',
+    url TEXT DEFAULT '',
+    is_pinned BOOLEAN DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. アプリのメタデータ（最終同期時刻など）を保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,
@@ -101,3 +112,5 @@ CREATE INDEX IF NOT EXISTS idx_local_pieces_date ON local_pieces(date);
 -- 通知の既読/未読フラグ（今後カラムを追加予定なら）やカテゴリ検索用
 CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
+
+CREATE INDEX idx_local_notes_sort ON local_notes(is_pinned DESC, updated_at DESC);

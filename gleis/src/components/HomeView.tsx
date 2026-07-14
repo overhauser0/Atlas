@@ -86,7 +86,7 @@ export default function HomeView({
         <div className="flex items-center justify-between">
           {/* 左側: 新規タスクボタン */}
           <button
-            onClick={openTaskModal}
+            onClick={() => openTaskModal()}
             className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
           >
             <Plus className="w-5 h-5 text-neon group-hover:scale-110 transition-transform" />

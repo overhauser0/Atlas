@@ -719,7 +719,7 @@ export default function TaskModal({
 
         {/* Footer Actions */}
         <button
-          onClick={handleSave}
+          onClick={() => handleSave()}
           disabled={isSaving}
           className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
         >
@@ -727,7 +727,7 @@ export default function TaskModal({
         </button>
       </div>
 
-      {/* 🌟 ブロック表示用のサイドパネル */}
+      {/* ブロック表示用のサイドパネル */}
       {showBlocks && (
         <div className="absolute right-0 top-0 bottom-0 w-80 md:w-96 noir-subglass border-l border-white/10 p-5 z-[60] shadow-2xl animate-fade-in flex flex-col">
           <div className="flex justify-between items-center mb-4 pb-3 border-b border-white/10 shrink-0">

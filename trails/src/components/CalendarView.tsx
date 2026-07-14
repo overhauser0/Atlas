@@ -3,28 +3,38 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { DiaryItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 
 interface CalendarViewProps {
+  appSettings: any;
   data: LifeItem[];
+  task: LifeItem[];
   diaries: DiaryItem[];
   googleEvents: GoogleEvent[];
   onItemClick: (item: LifeItem) => void;
   onDiaryClick: (diary: DiaryItem | null) => void;
+  onOpenCreate: (item: Partial<LifeItem>) => void;
 }
 
 export default function CalendarView({
+  appSettings,
   data,
+  task,
   diaries,
   googleEvents,
   onItemClick,
   onDiaryClick,
+  onOpenCreate,
 }: CalendarViewProps) {
-  // ========== 描画用データの内部結合 ==========
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
+  const showTasks = !!appSettings?.showTaskInCal;
+
+  // ========== 描画用データの内部結合 ==========
   const calendarItems = useMemo(() => {
     // Google Event を LifeItem の型に合わせる
     const gcalItems: any[] = (googleEvents || []).map((ev) => ({
@@ -32,23 +42,22 @@ export default function CalendarView({
       title: ev.title,
       note: ev.note,
       date: ev.date,
-      type: 'GoogleCalendar', // UI分岐用のマーカー
+      type: 'Event',
       url: ev.url,
-      // LifeItem型の必須要件を満たすダミー値
       status: 'Done',
       area: '',
       topics: [],
       flags: [],
       prefs: [],
       category: [],
+      source: 'GCAL',
     }));
 
-    return [...data, ...gcalItems];
-  }, [data, googleEvents]);
+    let combined = [...data, ...gcalItems];
+    if (showTasks && task) combined = [...combined, ...task];
 
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const [currentDate, setCurrentDate] = useState(new Date());
+    return combined;
+  }, [data, task, googleEvents, showTasks]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth(); // 0-11
@@ -108,7 +117,7 @@ export default function CalendarView({
 
   // 特定の日のアイテムを取得
   const getItemsForDate = (date: Date) => {
-    return calendarItems.filter((item) => {
+    const filtered = calendarItems.filter((item) => {
       const itemDate = getItemDate(item);
       if (!itemDate) return false;
       return (
@@ -116,6 +125,11 @@ export default function CalendarView({
         itemDate.getMonth() === date.getMonth() &&
         itemDate.getDate() === date.getDate()
       );
+    });
+    return filtered.sort((a: any, b: any) => {
+      const aIsTask = a.type === 'Task' ? 1 : 0;
+      const bIsTask = b.type === 'Task' ? 1 : 0;
+      return bIsTask - aIsTask;
     });
   };
 
@@ -233,17 +247,20 @@ export default function CalendarView({
                 {/* 予定リスト */}
                 <div className="flex flex-col gap-0.5 md:gap-1 overflow-y-auto no-scrollbar flex-1">
                   {dayItems.map((item) => {
-                    const isGCal = item.type === 'GoogleCalendar';
+                    const isGCal = item.source === 'GCAL';
+                    const isTask = item.type === 'Task';
+
+                    const itemStyle = isTask
+                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium'
+                      : isGCal
+                        ? 'bg-gray-50 text-gray-700 border-l-2 border-l-blue-400 border-y border-r border-gray-200 hover:bg-gray-100'
+                        : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200 hover:border-gray-300';
 
                     return (
                       <div
                         key={item.id}
-                        onClick={() => onItemClick(item)} // 内部のハンドラを呼ぶ
-                        className={`cursor-pointer text-[10px] px-1 py-0.5 md:py-1 overflow-hidden whitespace-nowrap transition-all ${
-                          isGCal
-                            ? 'bg-gray-50 text-gray-700 border-l-2 border-l-blue-400 border-y border-r border-gray-200 rounded-sm hover:bg-gray-100'
-                            : 'bg-gray-100 text-gray-800 border border-gray-200 rounded-sm hover:bg-gray-200 hover:border-gray-300'
-                        }`}
+                        onClick={() => onItemClick(item)}
+                        className={`cursor-pointer text-[10px] px-1 py-0.5 md:py-1 overflow-hidden whitespace-nowrap transition-all rounded-sm ${itemStyle}`}
                       >
                         {item.title}
                       </div>
@@ -255,6 +272,14 @@ export default function CalendarView({
           })}
         </div>
       </div>
+
+      {/* FAB */}
+      <button
+        onClick={() => onOpenCreate({ type: 'Event' } as LifeItem)}
+        className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+      >
+        <Plus className="w-7 h-7" />
+      </button>
     </div>
   );
 }

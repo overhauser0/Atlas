@@ -9,7 +9,8 @@ export const usePieceSync = (
   onSyncStart: () => void,
   onSyncEnd: () => void,
 ) => {
-  const [items, setItems] = useState<LifeItem[]>([]);
+  const [events, setEvents] = useState<LifeItem[]>([]);
+  const [tasks, setTasks] = useState<LifeItem[]>([]);
   const [isPiecesLoading, setIsPiecesLoading] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
 
@@ -47,7 +48,7 @@ export const usePieceSync = (
 
         // gleisのタスク型をLifeItemへ変換
         const mappedItems: LifeItem[] = data.pieces
-          .filter((p: any) => p.type === 'Event')
+          .filter((p: any) => p.area === 'Life')
           .map((p: any) => {
             return {
               id: p.id,
@@ -69,7 +70,8 @@ export const usePieceSync = (
             };
           });
 
-        setItems(mappedItems.filter((t: LifeItem) => t.area === 'Life'));
+        setEvents(mappedItems.filter((i) => i.type === 'Event'));
+        setTasks(mappedItems.filter((i) => i.type === 'Task'));
       } finally {
         setIsPiecesLoading(false);
       }
@@ -97,8 +99,8 @@ export const usePieceSync = (
   );
 
   return {
-    items,
-    setItems,
+    events,
+    tasks,
     isPiecesLoading,
     lastSyncTime,
     fetchPieces,

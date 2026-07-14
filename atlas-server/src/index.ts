@@ -7,6 +7,7 @@ import * as reviewController from './controllers/review.controller';
 import * as diaryController from './controllers/diary.controller';
 import * as calendarController from './controllers/calendar.controller';
 import * as aiController from './controllers/ai.controller';
+import * as noteController from './controllers/note.controller';
 import * as pgRepo from './repositories/postgres.repository';
 import { initWebSocket } from './utils/websocket';
 
@@ -87,6 +88,12 @@ api.post('/calendar/sync', calendarController.receiveCalendarSync);
 // Gemini
 api.post('/ai/brainstorm', aiController.brainstorm);
 api.post('/ai/parse-task', aiController.parseTask);
+
+// Note
+api.get('/notes', noteController.getNotes);
+api.post('/notes', noteController.createNote);
+api.patch('/notes/:id', noteController.updateNote);
+api.delete('/notes/:id', noteController.deleteNote);
 
 app.route('/api/v1', api);
 

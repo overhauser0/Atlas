@@ -10,6 +10,8 @@ import {
   CalendarDays,
   ClipboardPenLine,
   BriefcaseBusiness,
+  Terminal,
+  FileText,
 } from 'lucide-react';
 
 // --- Components ---
@@ -20,6 +22,7 @@ import KanbanView from '@/components/KanbanView';
 import CalendarView from '@/components/CalendarView';
 import MeetingView from '@/components/MeetingView';
 import ReviewView from '@/components/ReviewView';
+import NoteView from '@/components/NoteView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/Toast';
@@ -264,16 +267,16 @@ export default function Home() {
         <VoiceCaptureModal
           isOpen={isVoiceCaptureOpen}
           onClose={() => setIsVoiceCaptureOpen(false)}
-          onCapture={openTaskModal}
+          onCapture={(task) => openTaskModal(task)}
         />
         <CommandPalette
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
           onSync={() => handleNotionSync(true)}
-          onNewTask={openTaskModal}
+          onNewTask={(task) => openTaskModal(task)}
           tasks={tasks}
-          onTaskClick={openTaskModal}
+          onTaskClick={(task) => openTaskModal(task)}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
           onLock={handleLogout}
         />
@@ -304,6 +307,7 @@ export default function Home() {
               { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
               { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
               { id: 'review', icon: ClipboardPenLine, label: 'Review' },
+              { id: 'note', icon: FileText, label: 'Note' },
               { id: 'notifications', icon: Bell, label: 'Notifications' },
               { id: 'settings', icon: Settings, label: 'Settings' },
             ].map((item) => (
@@ -321,6 +325,18 @@ export default function Home() {
           </nav>
 
           <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2">
+            <button
+              onClick={() => {
+                setIsCommandPaletteOpen(true);
+                setIsMobileMenuOpen(false);
+              }}
+              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon transition-colors"
+            >
+              <Terminal className="w-5 h-5 shrink-0" />
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+                Command Palette
+              </span>
+            </button>
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400"
@@ -350,7 +366,7 @@ export default function Home() {
             <HomeView
               tasks={tasks}
               completedTasks={completedTasks}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
               onOpenStats={() => handleOpenStats(new Date())}
             />
           )}
@@ -360,7 +376,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
               onOpenStats={handleOpenStats}
               onSyncStart={incrementRequest}
               onSyncEnd={decrementRequest}
@@ -371,7 +387,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
             />
           )}
           {currentView === 'calendar' && (
@@ -379,13 +395,13 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               setTasks={setTasks}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
             />
           )}
           {currentView === 'meeting' && (
             <MeetingView
               meetingTasks={meetingTasks}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
             />
           )}
           {currentView === 'review' && (
@@ -394,11 +410,13 @@ export default function Home() {
               completedTasks={completedTasks}
             />
           )}
+          {currentView === 'note' && <NoteView />}
+
           {currentView === 'notifications' && (
             <NotificationsView
               notifications={notifications}
               onMarkAsRead={markAsRead}
-              openTaskModal={openTaskModal}
+              openTaskModal={(task) => openTaskModal(task)}
             />
           )}
           {currentView === 'settings' && (
@@ -422,7 +440,7 @@ export default function Home() {
             isOpen={isStatsOpen}
             completedTasks={completedTasks}
             targetDate={statsTargetDate}
-            openTaskModal={openTaskModal}
+            openTaskModal={(task) => openTaskModal(task)}
             onClose={() => setIsStatsOpen(false)}
           />
           <TaskModal

@@ -20,6 +20,7 @@ export const VALID_VIEWS = [
   'meeting',
   'review',
   'notifications',
+  'note',
   'settings',
 ] as const;
 

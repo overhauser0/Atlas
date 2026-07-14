@@ -58,3 +58,48 @@ export const getDateString = (date: Date): string => {
     .format(date)
     .replace(/\//g, '-');
 };
+
+type Separator = 'slash' | 'hyphen' | 'none';
+
+export const getDateFullString = (
+  date: Date,
+  separator: Separator = 'slash',
+): string => {
+  const baseDateString = new Intl.DateTimeFormat('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  }).format(date);
+
+  switch (separator) {
+    case 'hyphen':
+      return baseDateString.replace(/\//g, '-');
+    case 'none':
+      return baseDateString.replace(/\//g, '');
+    case 'slash':
+    default:
+      return baseDateString;
+  }
+};
+
+export const getDateShortStringSlash = (
+  date: Date,
+  separator: Separator = 'slash',
+): string => {
+  const baseDateString = new Intl.DateTimeFormat('ja-JP', {
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'Asia/Tokyo',
+  }).format(date);
+
+  switch (separator) {
+    case 'hyphen':
+      return baseDateString.replace(/\//g, '-');
+    case 'none':
+      return baseDateString.replace(/\//g, '');
+    case 'slash':
+    default:
+      return baseDateString;
+  }
+};

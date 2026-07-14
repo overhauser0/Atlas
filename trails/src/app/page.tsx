@@ -34,6 +34,9 @@ export default function AppMain() {
   // Auth & Settings (認証・設定)
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
+  const [appSettings, setAppSettings] = useState({
+    showTaskInCal: false,
+  });
 
   // Global UI & View (画面・メニュー状態)
   const [currentTab, setCurrentTab] = useState<AppTab>('Home');
@@ -63,8 +66,8 @@ export default function AppMain() {
   // 2. Custom Hooks (計算・フォーマット)
   // ============================================================================
   const {
-    items,
-    setItems,
+    events,
+    tasks,
     isPiecesLoading,
     lastSyncTime,
     fetchPieces,
@@ -123,12 +126,22 @@ export default function AppMain() {
     };
   }, [isMoreOpen]);
 
+  // 設定のロード・保存
+  useEffect(() => {
+    const saved = localStorage.getItem('trails_settings');
+    if (saved) setAppSettings(JSON.parse(saved));
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('trails_settings', JSON.stringify(appSettings));
+  }, [appSettings]);
+
   // ---------------- データ取得・同期 ----------------
 
   // Initial Data Fetch
   useEffect(() => {
     if (!isAuthenticated) return;
-    const isFirstTime = items.length === 0;
+    const isFirstTime = events.length === 0;
     fetchPieces(!isFirstTime);
     fetchDiaries();
     fetchGoogleEvents();
@@ -186,37 +199,40 @@ export default function AppMain() {
       <main className="flex-1 overflow-hidden relative">
         {currentTab === 'Home' && (
           <HomeView
-            data={items}
+            data={events}
             onNavigate={setCurrentTab}
             onItemClick={openDetailModal}
           />
         )}
         {currentTab === 'Calendar' && (
           <CalendarView
-            data={items}
+            appSettings={appSettings}
+            data={events}
+            task={tasks}
             diaries={diaries}
             googleEvents={googleEvents}
             onItemClick={openDetailModal}
             onDiaryClick={handleDiaryClick}
+            onOpenCreate={(item) => handleOpenCreate(item)}
           />
         )}
         {currentTab === 'Bucket' && (
           <BucketView
-            data={items.filter((i) => i.category?.includes('Bucket'))}
+            data={events.filter((i) => i.category?.includes('Bucket'))}
             onItemClick={openDetailModal}
             onOpenCreate={(item) => handleOpenCreate(item)}
           />
         )}
         {currentTab === 'Travel' && (
           <TravelView
-            data={items.filter((i) => i.category?.includes('Travel'))}
+            data={events.filter((i) => i.category?.includes('Travel'))}
             onItemClick={openDetailModal}
             onOpenCreate={handleOpenCreate}
           />
         )}
         {currentTab === 'Explore' && (
           <ExploreView
-            data={items.filter((i) => i.category?.includes('Explore'))}
+            data={events.filter((i) => i.category?.includes('Explore'))}
             onItemClick={openDetailModal}
             onOpenCreate={handleOpenCreate}
           />
@@ -305,6 +321,8 @@ export default function AppMain() {
       />
       <ConfigModal
         isOpen={isConfigOpen}
+        appSettings={appSettings}
+        onUpdateSettings={(s) => setAppSettings(s)}
         onClose={() => setIsConfigOpen(false)}
         onSync={() => {
           handleNotionSync(true);

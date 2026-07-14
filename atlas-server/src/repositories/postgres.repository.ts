@@ -54,6 +54,16 @@ export interface NotificationsTable {
   is_read: Generated<boolean>;
 }
 
+export interface LocalNotesTable {
+  id: Generated<string>;
+  title: string;
+  content: string;
+  url: string;
+  is_pinned: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
 export interface AppMetadataTable {
   key: string;
   value: string;
@@ -67,6 +77,7 @@ export interface Database {
   app_metadata: AppMetadataTable;
   diaries: DiaryTable;
   google_events: DbGoogleEvent;
+  local_notes: LocalNotesTable;
 }
 
 // ==========================================
@@ -618,4 +629,73 @@ export const syncGoogleEvents = async (events: any[]) => {
       .where('id', 'not in', activeIds)
       .execute();
   }
+};
+
+// ------------------------------------------
+// Local Notes (メモの仮置き場)
+// ------------------------------------------
+
+/**
+ * [Read] ノート一覧を取得 (ピン留め順 ＞ 更新日順)
+ */
+export const getLocalNotes = async () => {
+  return await db
+    .selectFrom('local_notes')
+    .selectAll()
+    .orderBy('is_pinned', 'desc')
+    .orderBy('updated_at', 'desc')
+    .execute();
+};
+
+/**
+ * [Create] 新規ノートを作成
+ */
+export const createLocalNote = async (data: {
+  title: string;
+  content?: string;
+  url?: string;
+}) => {
+  return await db
+    .insertInto('local_notes')
+    .values({
+      title: data.title,
+      content: data.content || '',
+      url: data.url || '',
+    })
+    .returningAll()
+    .executeTakeFirstOrThrow();
+};
+
+/**
+ * [Update] ノートを更新 (Debounce保存用)
+ */
+export const updateLocalNote = async (
+  id: string,
+  data: Partial<{
+    title: string;
+    content: string;
+    url: string;
+    is_pinned: boolean;
+  }>,
+) => {
+  return await db
+    .updateTable('local_notes')
+    .set({
+      ...data,
+      updated_at: new Date(), // 更新日時を現在時刻にセット
+    })
+    .where('id', '=', id)
+    .returningAll()
+    .executeTakeFirstOrThrow();
+};
+
+/**
+ * [Delete] ノートを削除 (Notion昇格完了時など)
+ */
+export const deleteLocalNote = async (id: string) => {
+  return await db
+    .deleteFrom('local_notes')
+    .where('id', '=', id)
+    .returning('id')
+    .executeTakeFirstOrThrow();
 };

@@ -4,6 +4,11 @@
 import { useState, useMemo } from 'react';
 import { FileText, Plus, ChevronRight, Clock, Search } from 'lucide-react';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
+import {
+  getDateFullString,
+  getDateShortStringSlash,
+  getDateString,
+} from '@/utils/dateUtils';
 import { Task } from '@/types';
 
 interface MeetingProps {
@@ -120,12 +125,9 @@ export default function MeetingView({
 
   const handleQuickCreate = (title: string, fkw: string[]) => {
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const mmdd = `${mm}${dd}`;
 
     openTaskModal({
-      title: `${title}${mmdd}`,
+      title: `${getDateFullString(now, 'none')} ${title}`,
       type: 'Note',
       topics: ['Meeting'],
       fkw: fkw || [],
@@ -202,7 +204,7 @@ export default function MeetingView({
     if (!dateString) return '';
     try {
       const d = new Date(dateString);
-      return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+      return getDateString(d);
     } catch {
       return '';
     }
