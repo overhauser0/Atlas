@@ -410,7 +410,12 @@ export default function Home() {
               completedTasks={completedTasks}
             />
           )}
-          {currentView === 'note' && <NoteView />}
+          {currentView === 'note' && (
+            <NoteView
+              onSyncStart={incrementRequest}
+              onSyncEnd={decrementRequest}
+            />
+          )}
 
           {currentView === 'notifications' && (
             <NotificationsView

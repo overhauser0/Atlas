@@ -319,10 +319,16 @@ export default function SettingsView({
               3 <span className="text-gray-500">// Calendar</span>
             </code>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              4 <span className="text-gray-500">// Review</span>
+              4 <span className="text-gray-500">// Meeting</span>
             </code>
             <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-              5 <span className="text-gray-500">// Notifications</span>
+              5 <span className="text-gray-500">// Review</span>
+            </code>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              6 <span className="text-gray-500">// Note</span>
+            </code>
+            <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+              7 <span className="text-gray-500">// Notifications</span>
             </code>
           </div>
         </div>

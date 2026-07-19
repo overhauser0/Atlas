@@ -14,7 +14,7 @@ export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
   // スクロール制御用のref
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const tabs = ['All', 'Drinking', 'Climbing', 'R-Escape'];
+  const tabs = ['All', 'Drinking', 'Climbing', 'R-Escape', 'Golf'];
 
   // カテゴリ切り替え時にスクロールトップ
   useEffect(() => {

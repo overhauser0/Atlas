@@ -55,8 +55,10 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
         '1': 'weekly',
         '2': 'kanban',
         '3': 'calendar',
-        '4': 'review',
-        '5': 'notifications',
+        '4': 'meeting',
+        '5': 'review',
+        '6': 'note',
+        '7': 'notifications',
       };
 
       if (keyMap[e.key]) {

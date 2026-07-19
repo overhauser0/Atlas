@@ -187,7 +187,7 @@ export default function ReviewView({
             </div>
           ) : (
             <div className="flex flex-col lg:flex-row gap-6 items-start">
-              {/* 🌟 2. 左ペイン (メインコンテンツ: Monthly & Weekly) */}
+              {/* 2. 左ペイン (メインコンテンツ: Monthly & Weekly) */}
               <div className="flex-1 w-full space-y-6">
                 {/* Monthly Focus */}
                 <section className="noir-glass p-6 rounded-2xl border border-white/10 space-y-6">
@@ -204,7 +204,7 @@ export default function ReviewView({
                       </h4>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-gray-300">
-                          {data.monthly.business || '-'}
+                          {data.monthly?.business || '-'}
                         </p>
                         <button
                           onClick={() =>
@@ -213,7 +213,7 @@ export default function ReviewView({
                               pageId: data.monthly.id,
                               propName: 'Business',
                               title: 'Business Goal',
-                              value: data.monthly.business || '',
+                              value: data.monthly?.business || '',
                             })
                           }
                           className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
@@ -230,7 +230,7 @@ export default function ReviewView({
                       </h4>
                       <div className="flex items-center justify-between gap-2">
                         <p className="text-sm text-gray-300">
-                          {data.monthly.life || '-'}
+                          {data.monthly?.life || '-'}
                         </p>
                         <button
                           onClick={() =>
@@ -239,7 +239,7 @@ export default function ReviewView({
                               pageId: data.monthly.id,
                               propName: 'Life',
                               title: 'Life Goal',
-                              value: data.monthly.life || '',
+                              value: data.monthly?.life || '',
                             })
                           }
                           className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon"
@@ -265,7 +265,7 @@ export default function ReviewView({
                               pageId: data.monthly.id,
                               propName: 'Summary',
                               title: 'Monthly Summary',
-                              value: data.monthly.summary || '',
+                              value: data.monthly?.summary || '',
                             })
                           }
                           className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-gray-500 hover:text-neon"
