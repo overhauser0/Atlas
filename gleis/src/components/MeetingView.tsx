@@ -4,11 +4,7 @@
 import { useState, useMemo } from 'react';
 import { FileText, Plus, ChevronRight, Clock, Search } from 'lucide-react';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
-import {
-  getDateFullString,
-  getDateShortStringSlash,
-  getDateString,
-} from '@/utils/dateUtils';
+import { getDateFullString, getDateShortString } from '@/utils/dateUtils';
 import { Task } from '@/types';
 
 interface MeetingProps {
@@ -38,12 +34,10 @@ const TaskGroup = ({
   title,
   tasks,
   openTaskModal,
-  formatMinimalDate,
 }: {
   title: string;
   tasks: Task[];
   openTaskModal: (task?: Partial<Task>) => void;
-  formatMinimalDate: (dateString?: string | null) => string;
 }) => {
   if (tasks.length === 0) return null;
 
@@ -105,7 +99,7 @@ const TaskGroup = ({
               {/* 右側: 日付と矢印 */}
               <div className="flex items-center gap-3 shrink-0">
                 <span className="text-xs font-mono text-gray-600 group-hover:text-gray-400 transition-colors">
-                  {formatMinimalDate(task.date)}
+                  {getDateShortString(task.date)}
                 </span>
                 <ChevronRight className="w-4 h-4 text-gray-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
               </div>
@@ -127,7 +121,7 @@ export default function MeetingView({
     const now = new Date();
 
     openTaskModal({
-      title: `${getDateFullString(now, 'none')} ${title}`,
+      title: `${getDateFullString(now, 'none').slice(2)} ${title}`,
       type: 'Note',
       topics: ['Meeting'],
       fkw: fkw || [],
@@ -200,16 +194,6 @@ export default function MeetingView({
     return { groups, hasMore };
   }, [meetingTasks, searchQuery]);
 
-  const formatMinimalDate = (dateString?: string | null) => {
-    if (!dateString) return '';
-    try {
-      const d = new Date(dateString);
-      return getDateString(d);
-    } catch {
-      return '';
-    }
-  };
-
   // 全タスクをチェックして表示内容があるか判定
   const hasAnyTasks = Object.values(groups).some((group) => group.length > 0);
 
@@ -263,25 +247,21 @@ export default function MeetingView({
               title="Upcoming"
               tasks={groups.upcoming}
               openTaskModal={openTaskModal}
-              formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Last 7 Days"
               tasks={groups.week}
               openTaskModal={openTaskModal}
-              formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Last 30 Days"
               tasks={groups.month}
               openTaskModal={openTaskModal}
-              formatMinimalDate={formatMinimalDate}
             />
             <TaskGroup
               title="Older"
               tasks={groups.older}
               openTaskModal={openTaskModal}
-              formatMinimalDate={formatMinimalDate}
             />
             {hasMore && (
               <div className="mt-6 pt-4 border-t border-white/5 flex items-center justify-center gap-2 text-gray-500 select-none">

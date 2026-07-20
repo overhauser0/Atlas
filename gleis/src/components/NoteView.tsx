@@ -10,7 +10,7 @@ import {
   ExternalLink,
   FileText,
   ArrowRight,
-  PenLine, // 🌟 追加: 新規作成アイコン用
+  PenLine,
 } from 'lucide-react';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/Toast';
@@ -167,7 +167,6 @@ export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
         )}
       </div>
 
-      {/* 🌟 工夫2: Plus(+) ではなく PenLine(ペン) にすることで「書く」アクションを強調 */}
       <button
         onClick={handleCreateNew}
         className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.3)] hover:scale-105 transition-transform z-40 border border-white/20"

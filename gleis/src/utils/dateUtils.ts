@@ -62,44 +62,68 @@ export const getDateString = (date: Date): string => {
 type Separator = 'slash' | 'hyphen' | 'none';
 
 export const getDateFullString = (
-  date: Date,
+  date: Date | string | null | undefined,
   separator: Separator = 'slash',
 ): string => {
-  const baseDateString = new Intl.DateTimeFormat('ja-JP', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'Asia/Tokyo',
-  }).format(date);
+  if (!date) return '';
 
-  switch (separator) {
-    case 'hyphen':
-      return baseDateString.replace(/\//g, '-');
-    case 'none':
-      return baseDateString.replace(/\//g, '');
-    case 'slash':
-    default:
-      return baseDateString;
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+
+    if (isNaN(d.getTime())) {
+      return '';
+    }
+
+    const baseDateString = new Intl.DateTimeFormat('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    }).format(d);
+
+    switch (separator) {
+      case 'hyphen':
+        return baseDateString.replace(/\//g, '-');
+      case 'none':
+        return baseDateString.replace(/\//g, '');
+      case 'slash':
+      default:
+        return baseDateString;
+    }
+  } catch (error) {
+    return '';
   }
 };
 
-export const getDateShortStringSlash = (
-  date: Date,
+export const getDateShortString = (
+  date: Date | string | null | undefined,
   separator: Separator = 'slash',
 ): string => {
-  const baseDateString = new Intl.DateTimeFormat('ja-JP', {
-    month: '2-digit',
-    day: '2-digit',
-    timeZone: 'Asia/Tokyo',
-  }).format(date);
+  if (!date) return '';
 
-  switch (separator) {
-    case 'hyphen':
-      return baseDateString.replace(/\//g, '-');
-    case 'none':
-      return baseDateString.replace(/\//g, '');
-    case 'slash':
-    default:
-      return baseDateString;
+  try {
+    const d = typeof date === 'string' ? new Date(date) : date;
+
+    if (isNaN(d.getTime())) {
+      return '';
+    }
+
+    const baseDateString = new Intl.DateTimeFormat('ja-JP', {
+      month: '2-digit',
+      day: '2-digit',
+      timeZone: 'Asia/Tokyo',
+    }).format(d);
+
+    switch (separator) {
+      case 'hyphen':
+        return baseDateString.replace(/\//g, '-');
+      case 'none':
+        return baseDateString.replace(/\//g, '');
+      case 'slash':
+      default:
+        return baseDateString;
+    }
+  } catch (error) {
+    return '';
   }
 };

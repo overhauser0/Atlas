@@ -7,7 +7,7 @@ import {
   sortTasksByStatus,
   getNotionLinkById,
 } from '@/utils/miscellaneousUtils';
-import { getDateString } from '@/utils/dateUtils';
+import { getDateFullString } from '@/utils/dateUtils';
 
 interface HomeViewProps {
   tasks: Task[];
@@ -26,7 +26,7 @@ export default function HomeView({
 
   // --- 1. フィルタリング用のJST日付文字列 (YYYY-MM-DD) の生成 ---
   const todayString = useMemo(() => {
-    return getDateString(today);
+    return getDateFullString(today, 'hyphen');
   }, [today]);
 
   // --- 2. 1年の進捗計算 ---
