@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import {
   X,
   ExternalLink,
@@ -254,102 +254,45 @@ export default function TaskModal({
     return false;
   };
 
-  // 🌟 ブロック取得処理（ローディング状態を追加）
+  // 🌟 ブロック取得処理（2階層目まで再帰的に取得するよう改修）
   const handleShowContent = async (id: string | undefined) => {
     if (!id) return;
     setIsLoadingBlocks(true);
     try {
-      const data = await onShowContent(id);
-      setBlocks(data || []);
+      // 1. まず1階層目を取得
+      const level1Blocks = await onShowContent(id);
+      if (!level1Blocks) {
+        setBlocks([]);
+        setShowBlocks(true);
+        return;
+      }
+
+      // 2. has_children が true のブロックの子要素を並列フェッチ
+      const blocksWithChildren = await Promise.all(
+        level1Blocks.map(async (block: any) => {
+          if (block.has_children) {
+            try {
+              // 子ブロックを取得して拡張プロパティ (children_blocks) に格納
+              const childBlocks = await onShowContent(block.id);
+              return { ...block, children_blocks: childBlocks || [] };
+            } catch (e) {
+              console.error(
+                `Failed to fetch children for block ${block.id}`,
+                e,
+              );
+              return { ...block, children_blocks: [] }; // エラー時は空配列でフォールバック
+            }
+          }
+          return block;
+        }),
+      );
+
+      setBlocks(blocksWithChildren);
       setShowBlocks(true);
     } catch (error) {
       addToast('コンテンツの取得に失敗しました', 'alert');
     } finally {
       setIsLoadingBlocks(false);
-    }
-  };
-
-  // Notionブロックからテキストや状態を抽出するヘルパー関数
-  const extractBlockText = (block: any) => {
-    const type = block.type;
-    const hasChildren = block.has_children;
-
-    // ネストがあることを知らせるバッジUI
-    const NestedBadge = hasChildren ? (
-      <span className="inline-flex items-center ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider border border-neon/30 text-neon/80 bg-neon/5 align-middle select-none">
-        + NESTED
-      </span>
-    ) : null;
-
-    // 1. テキストを持たない特殊なブロックのフォールバック
-    if (!type || !block[type] || !block[type].rich_text) {
-      // 画像やブックマーク、子ページなど
-      const fallbackText =
-        type === 'image'
-          ? '[画像]'
-          : type === 'bookmark'
-            ? '[ブックマーク]'
-            : type === 'child_page'
-              ? '[サブページ]'
-              : type === 'child_database'
-                ? '[インラインデータベース]'
-                : type === 'table'
-                  ? '[テーブル(表)]'
-                  : `[${type || '未対応のブロック'}]`;
-
-      return (
-        <span className="block text-xs text-gray-500 italic my-1 p-2 bg-white/5 rounded border border-white/5">
-          {fallbackText} {NestedBadge}
-        </span>
-      );
-    }
-
-    // 2. 通常のテキストブロックの処理
-    const textContent = block[type].rich_text
-      .map((t: any) => t.plain_text)
-      .join('');
-
-    switch (type) {
-      case 'heading_1':
-      case 'heading_2':
-      case 'heading_3':
-        return (
-          <strong className="block text-gray-200 mt-3 mb-1 border-b border-white/10 pb-1">
-            {textContent} {NestedBadge}
-          </strong>
-        );
-      case 'bulleted_list_item':
-        return (
-          <span className="block ml-4 relative before:content-['•'] before:absolute before:-left-3 before:text-gray-500 my-0.5">
-            {textContent} {NestedBadge}
-          </span>
-        );
-      case 'numbered_list_item':
-        return (
-          <span className="block ml-4 my-0.5">
-            {textContent} {NestedBadge}
-          </span>
-        );
-      case 'to_do':
-        const isChecked = block.to_do.checked;
-        return (
-          <span
-            className={`flex ml-1 my-0.5 items-start gap-2 ${isChecked ? 'text-gray-600 line-through' : ''}`}
-          >
-            <span className="mt-0.5 shrink-0">{isChecked ? '☑' : '☐'}</span>
-            <span>
-              {textContent} {NestedBadge}
-            </span>
-          </span>
-        );
-      case 'paragraph':
-      default:
-        if (textContent === '' && !hasChildren) return <br />;
-        return (
-          <span className="block my-0.5">
-            {textContent} {NestedBadge}
-          </span>
-        );
     }
   };
 
@@ -746,15 +689,165 @@ export default function TaskModal({
               </div>
             ) : (
               <div className="text-gray-300 text-sm leading-relaxed space-y-1">
-                {blocks.map((block: any) => {
-                  const renderedText = extractBlockText(block);
-                  return renderedText ? (
-                    <div key={block.id}>{renderedText}</div>
-                  ) : null;
-                })}
+                {blocks.map((block: any) => (
+                  <NotionBlockNode
+                    key={block.id}
+                    block={block}
+                    depth={1}
+                    onFetchChildren={onShowContent}
+                  />
+                ))}
               </div>
             )}
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ==========================================
+// 再帰的にNotionブロックを描画・取得する専用コンポーネント
+// ==========================================
+function NotionBlockNode({
+  block,
+  depth,
+  onFetchChildren,
+}: {
+  block: any;
+  depth: number;
+  onFetchChildren: (id: string) => Promise<any[]>;
+}) {
+  // すでに親から子要素を渡されていれば（2階層目など）展開済みにする
+  const [isExpanded, setIsExpanded] = useState(!!block.children_blocks);
+  const [childBlocks, setChildBlocks] = useState<any[]>(
+    block.children_blocks || [],
+  );
+  const [isLoading, setIsLoading] = useState(false);
+
+  const type = block.type;
+  const hasChildren = block.has_children;
+
+  // 🌟 オンデマンドフェッチ（クリック時の処理）
+  const handleToggle = async () => {
+    if (isExpanded) {
+      setIsExpanded(false);
+      return;
+    }
+    // 既に取得済みなら開くだけ
+    if (childBlocks.length > 0) {
+      setIsExpanded(true);
+      return;
+    }
+    // 未取得ならAPIを叩く（3階層目以降）
+    setIsLoading(true);
+    try {
+      const data = await onFetchChildren(block.id);
+      setChildBlocks(data || []);
+      setIsExpanded(true);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 🌟 バッジをクリッカブルなボタンに変更
+  const ToggleButton = hasChildren ? (
+    <button
+      onClick={handleToggle}
+      disabled={isLoading}
+      className={`inline-flex items-center ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold tracking-wider border align-middle select-none transition-colors ${
+        isLoading
+          ? 'border-gray-500 text-gray-400 bg-transparent animate-pulse'
+          : isExpanded
+            ? 'border-gray-600 text-gray-500 bg-transparent hover:bg-white/5'
+            : 'border-neon/30 text-neon/80 bg-neon/5 hover:bg-neon/10 cursor-pointer'
+      }`}
+    >
+      {isLoading ? 'LOADING...' : isExpanded ? '- CLOSE' : '+ NESTED'}
+    </button>
+  ) : null;
+
+  let content: JSX.Element | null = null;
+
+  if (!type || !block[type] || !block[type].rich_text) {
+    const fallbackText =
+      type === 'image' ? '[画像]' : `[${type || 'ブロック'}]`;
+    content = (
+      <span className="block text-xs text-gray-500 italic my-1 p-2 bg-white/5 rounded border border-white/5">
+        {fallbackText} {ToggleButton}
+      </span>
+    );
+  } else {
+    const textContent = block[type].rich_text
+      .map((t: any) => t.plain_text)
+      .join('');
+
+    switch (type) {
+      case 'heading_1':
+      case 'heading_2':
+      case 'heading_3':
+        content = (
+          <strong className="block text-gray-200 mt-3 mb-1 border-b border-white/10 pb-1">
+            {textContent} {ToggleButton}
+          </strong>
+        );
+        break;
+      case 'bulleted_list_item':
+        content = (
+          <span className="block ml-4 relative before:content-['•'] before:absolute before:-left-3 before:text-gray-500 my-0.5">
+            {textContent} {ToggleButton}
+          </span>
+        );
+        break;
+      case 'numbered_list_item':
+        content = (
+          <span className="block ml-4 my-0.5">
+            {textContent} {ToggleButton}
+          </span>
+        );
+        break;
+      case 'to_do':
+        const isChecked = block.to_do.checked;
+        content = (
+          <span
+            className={`flex ml-1 my-0.5 items-start gap-2 ${isChecked ? 'text-gray-600 line-through' : ''}`}
+          >
+            <span className="mt-0.5 shrink-0">{isChecked ? '☑' : '☐'}</span>
+            <span>
+              {textContent} {ToggleButton}
+            </span>
+          </span>
+        );
+        break;
+      case 'paragraph':
+      default:
+        if (textContent === '' && !hasChildren) content = <br />;
+        else
+          content = (
+            <span className="block my-0.5">
+              {textContent} {ToggleButton}
+            </span>
+          );
+        break;
+    }
+  }
+
+  return (
+    <div className="flex flex-col mb-1">
+      {content}
+      {/* 展開されている場合のみ子ブロックを描画（再帰） */}
+      {isExpanded && childBlocks.length > 0 && (
+        <div className="pl-4 ml-2 border-l border-white/10 mt-1 mb-1 space-y-1">
+          {childBlocks.map((childBlock: any) => (
+            <NotionBlockNode
+              key={childBlock.id}
+              block={childBlock}
+              depth={depth + 1}
+              onFetchChildren={onFetchChildren}
+            />
+          ))}
         </div>
       )}
     </div>
