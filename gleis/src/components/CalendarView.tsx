@@ -11,6 +11,7 @@ interface Props {
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
+  onOpenStats: (date: Date) => void;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -20,6 +21,7 @@ export default function CalendarView({
   loading,
   setTasks,
   openTaskModal,
+  onOpenStats,
 }: Props) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -129,7 +131,7 @@ export default function CalendarView({
               const day = i + 1;
               const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-              // この日のタスクをフィルタリング（未完了のみ、など条件があれば調整）
+              // この日のタスクをフィルタリング
               const dayTasks = sortTasksByStatus(
                 tasks.filter((t) => t.date?.startsWith(dateStr)),
               );
@@ -146,6 +148,10 @@ export default function CalendarView({
                 >
                   <div
                     className={`text-xs font-medium text-right ${isToday ? 'text-blue-400' : 'text-gray-400'}`}
+                    title="Open Stats"
+                    onClick={() => {
+                      onOpenStats(new Date(dateStr));
+                    }}
                   >
                     {day}
                   </div>

@@ -396,6 +396,7 @@ export default function Home() {
               loading={isTasksLoading}
               setTasks={setTasks}
               openTaskModal={(task) => openTaskModal(task)}
+              onOpenStats={handleOpenStats}
             />
           )}
           {currentView === 'meeting' && (
