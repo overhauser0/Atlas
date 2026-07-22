@@ -1,11 +1,11 @@
-import * as postgresRepo from '../repositories/postgres.repository';
+import * as noteRepo from '../repositories/note.repository';
 import { broadcast } from '../utils/websocket';
 
 /**
  * ノート一覧を取得
  */
 export const getNotes = async () => {
-  return await postgresRepo.getLocalNotes();
+  return await noteRepo.getLocalNotes();
 };
 
 /**
@@ -16,7 +16,7 @@ export const createNote = async (data: {
   content?: string;
   url?: string;
 }) => {
-  const result = await postgresRepo.createLocalNote(data);
+  const result = await noteRepo.createLocalNote(data);
 
   // スマホやPCのクライアントにリストの再取得を促す
   broadcast(JSON.stringify({ type: 'REFRESH_NOTES' }));
@@ -36,7 +36,7 @@ export const updateNote = async (
     is_pinned: boolean;
   }>,
 ) => {
-  const result = await postgresRepo.updateLocalNote(id, data);
+  const result = await noteRepo.updateLocalNote(id, data);
 
   broadcast(JSON.stringify({ type: 'REFRESH_NOTES' }));
 
@@ -47,7 +47,7 @@ export const updateNote = async (
  * ノートを削除し、変更を通知
  */
 export const deleteNote = async (id: string) => {
-  const result = await postgresRepo.deleteLocalNote(id);
+  const result = await noteRepo.deleteLocalNote(id);
 
   broadcast(JSON.stringify({ type: 'REFRESH_NOTES' }));
 

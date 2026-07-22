@@ -1,6 +1,11 @@
-import { Piece, PieceSchema, DbPieceSchema } from '../schemas/piece.schema';
+import {
+  Piece,
+  CreatePieceSchema,
+  UpdatePieceSchema,
+  dbPieceSchema,
+} from '../models/piece.model';
 import * as notionRepo from '../repositories/notion.repository';
-import * as postgresRepo from '../repositories/postgres.repository';
+import * as pieceRepo from '../repositories/piece.repository';
 import { syncNotionToLocal } from './sync.service';
 import { broadcast } from '../utils/websocket';
 
@@ -10,23 +15,22 @@ import { broadcast } from '../utils/websocket';
 export const createNewPiece = async (piece: Piece) => {
   const targetSource = piece.source;
 
-  const validatedPiece = DbPieceSchema.parse(piece);
+  const validatedPiece = CreatePieceSchema.parse(piece);
   if (targetSource === 'NOTION') {
     // 1. Notionに作成
     const page = await notionRepo.insertPiecePage(validatedPiece);
     // 2. 作成されたデータをローカルキャッシュに同期
     validatedPiece.id = page.id;
 
-    const result = await postgresRepo.upsertNotionPieceCache(
+    const result = await pieceRepo.upsertNotionPieceCache(
       validatedPiece,
       new Date(),
-      page,
     );
     broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   } else {
     // ローカル専用タスクとして保存
-    const result = await postgresRepo.insertLocalPiece(validatedPiece);
+    const result = await pieceRepo.insertLocalPiece(validatedPiece);
     broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   }
@@ -42,24 +46,21 @@ export const getPiecesFromCache = async (filters: {
   beforeDate?: string;
   afterDate?: string;
 }) => {
-  // 古いローカルタスクは削除する 廃止検討中
-  // await postgresRepo.deleteOldDoneLocalPieces();
-
-  return await postgresRepo.getPieces(filters);
+  return await pieceRepo.getPieces(filters);
 };
 
 export const updatePiece = async (id: string, payload: Partial<Piece>) => {
   const targetSource = payload.source;
 
-  const dbUpdates = DbPieceSchema.partial().parse(payload);
+  const dbUpdates = dbPieceSchema.partial().parse(payload);
 
   let result = null;
 
   if (targetSource === 'NOTION') {
     await notionRepo.updatePiecePage(id, dbUpdates);
-    result = await postgresRepo.updateNotionPieceCache(id, dbUpdates);
+    result = await pieceRepo.updateNotionPieceCache(id, dbUpdates);
   } else if (targetSource === 'LOCAL') {
-    result = await postgresRepo.updateLocalPiece(id, dbUpdates);
+    result = await pieceRepo.updateLocalPiece(id, dbUpdates);
   } else {
     throw new Error('Source (NOTION or LOCAL) is required to update a piece');
   }
@@ -74,7 +75,7 @@ export const getPieceBlocks = async (id: string) => {
 
 export const deletePiece = async (id: string) => {
   // sourceの判定
-  const piece = await postgresRepo.getPieceById(id);
+  const piece = await pieceRepo.getPieceById(id);
 
   if (!piece) {
     throw new Error(`Piece with id ${id} not found`);
@@ -84,9 +85,9 @@ export const deletePiece = async (id: string) => {
   if (piece.source === 'NOTION') {
     await notionRepo.archivePiecePage(id);
 
-    await postgresRepo.deleteNotionPieceCache(id);
+    await pieceRepo.deleteNotionPieceCache(id);
   } else if (piece.source === 'LOCAL') {
-    await postgresRepo.deleteLocalPiece(id);
+    await pieceRepo.deleteLocalPiece(id);
   }
 
   broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
@@ -94,7 +95,7 @@ export const deletePiece = async (id: string) => {
 };
 
 export const getPieceById = async (id: string) => {
-  return await postgresRepo.getPieceById(id);
+  return await pieceRepo.getPieceById(id);
 };
 
 export const rescheduleOverduePiecesToToday = async () => {
@@ -109,7 +110,7 @@ export const rescheduleOverduePiecesToToday = async () => {
     .format(new Date())
     .replace(/\//g, '-');
 
-  const overduePieces = await postgresRepo.getPieces({
+  const overduePieces = await pieceRepo.getPieces({
     area: 'Work',
     excludeStatus: ['Done', 'Canceled'],
     beforeDate: todayStr,
@@ -120,12 +121,12 @@ export const rescheduleOverduePiecesToToday = async () => {
     try {
       if (piece.source === 'NOTION') {
         await notionRepo.updatePiecePage(piece.id, { date: todayStr });
-        const updated = await postgresRepo.updateNotionPieceCache(piece.id, {
+        const updated = await pieceRepo.updateNotionPieceCache(piece.id, {
           date: todayStr,
         });
         if (updated) updatedPieces.push(updated);
       } else if (piece.source === 'LOCAL') {
-        const updated = await postgresRepo.updateLocalPiece(piece.id, {
+        const updated = await pieceRepo.updateLocalPiece(piece.id, {
           date: todayStr,
         });
         if (updated) updatedPieces.push(updated);

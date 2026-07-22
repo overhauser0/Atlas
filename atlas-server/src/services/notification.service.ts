@@ -1,7 +1,7 @@
 // src/services/notification.service.ts
-import { PushNotification } from '../schemas/push.schema';
-import { Piece, PieceSchema } from '../schemas/piece.schema';
-import * as postgresRepo from '../repositories/postgres.repository';
+import { PushNotificationInput } from '../models/push.model';
+import { Piece, PieceSchema } from '../models/piece.model';
+import * as notificationRepo from '../repositories/notification.repository';
 import * as pieceService from './piece.service';
 import { broadcast } from '../utils/websocket';
 
@@ -12,9 +12,9 @@ export interface GetNotificationHistoryParams {
   isRead?: boolean;
 }
 
-export const handleExternalPush = async (data: PushNotification) => {
+export const handleExternalPush = async (data: PushNotificationInput) => {
   const todayDate = new Date().toLocaleDateString('sv-SE');
-  const archived = await postgresRepo.insertNotification(data);
+  const archived = await notificationRepo.insertNotification(data);
 
   let pieceResult = null;
   if (data.storageTarget === 'NOTION') {
@@ -42,25 +42,15 @@ export const getNotificationHistory = async (
 ) => {
   const { limit, offset, isRead } = params;
 
-  let query = postgresRepo.db.selectFrom('notifications').selectAll();
-
-  if (isRead !== undefined) {
-    query = query.where('is_read', '=', isRead);
-  }
-
-  return await query
-    .orderBy('created_at', 'desc')
-    .limit(limit)
-    .offset(offset)
-    .execute();
+  return await notificationRepo.getNotifications(limit, offset, isRead);
 };
 
 export const markNotificationAsRead = async (id: string) => {
   broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
-  return await postgresRepo.markNotificationAsRead(id);
+  return await notificationRepo.markNotificationAsRead(id);
 };
 
 export const markAllNotificationsAsRead = async () => {
   broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
-  return await postgresRepo.markAllNotificationsAsRead();
+  return await notificationRepo.markAllNotificationsAsRead();
 };

@@ -85,7 +85,16 @@ CREATE TABLE local_notes (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 8. アプリのメタデータ（最終同期時刻など）を保存するテーブル
+-- 8. 独自エージェントテーブル
+CREATE TABLE ai_agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    system_prompt TEXT,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+)
+
+-- 9. アプリのメタデータ（最終同期時刻など）を保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,

@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { Generated } from 'kysely';
+import { Generated, Selectable, Insertable, Updateable } from 'kysely';
 
 // ==========================================
-// 1. Zod Schema
+// 1. Zod Schemas (APIバリデーション用)
 // ==========================================
 
 export const DiarySchema = z.object({
@@ -27,18 +27,22 @@ export const DiarySchema = z.object({
     .transform((v) => v ?? ''),
 });
 
-// データベース挿入用の型（IDはあってもなくても良い場合や、クライアントから来ない場合を想定）
-export const DbDiarySchema = DiarySchema;
+export const CreateDiarySchema = DiarySchema;
+export const UpdateDiarySchema = DiarySchema.partial();
 
 // ==========================================
-// 2. Types
+// 2. TypeScript Types (アプリ内で使い回す基本型)
 // ==========================================
 
 export type Diary = z.infer<typeof DiarySchema>;
-export type DbDiary = z.infer<typeof DbDiarySchema>;
+export type CreateDiaryInput = z.infer<typeof CreateDiarySchema>;
+export type UpdateDiaryInput = z.infer<typeof UpdateDiarySchema>;
 
-// Notionから取得した時の生データ型
-export interface NotionDiaryItem {
+// ==========================================
+// 3. Database Table Interfaces (Kysely用)
+// ==========================================
+
+export interface DiaryTable {
   id: string;
   name: string;
   date: string | null;
@@ -47,13 +51,7 @@ export interface NotionDiaryItem {
   last_edited_time: string;
 }
 
-// Kysely テーブル定義用
-export interface DiaryTable {
-  id: string;
-  name: string;
-  date: string | null;
-  rate: string | null;
-  note: string | null;
-  last_edited_time: Date;
-  synced_at: Generated<Date>;
-}
+// リポジトリ層で利用する便利な型
+export type DiaryRow = Selectable<DiaryTable>;
+export type NewDiaryRow = Insertable<DiaryTable>;
+export type DiaryUpdateRow = Updateable<DiaryTable>;

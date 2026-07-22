@@ -1,7 +1,7 @@
 // atlas-server/src/controllers/calendar.controller.ts
 
 import { Context } from 'hono';
-import * as pgRepo from '../repositories/postgres.repository';
+import * as calendarRepo from '../repositories/calendar.repository';
 import { broadcast } from '../utils/websocket';
 
 // ==========================================
@@ -23,7 +23,7 @@ export const receiveCalendarSync = async (c: Context) => {
     }
 
     // DBにUpsert
-    await pgRepo.syncGoogleEvents(events);
+    await calendarRepo.syncGoogleEvents(events);
 
     // WebSocketでフロントエンドに変更を通知
     broadcast(JSON.stringify({ type: 'REFRESH_CALENDAR' }));
@@ -45,7 +45,7 @@ export const receiveCalendarSync = async (c: Context) => {
 
 export const getEvents = async (c: Context) => {
   try {
-    const events = await pgRepo.getGoogleEvents();
+    const events = await calendarRepo.getGoogleEvents();
     return c.json({ status: 'OK', events }, 200);
   } catch (error: any) {
     console.error('❌ Get Events Error:', error);

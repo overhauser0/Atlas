@@ -1,11 +1,13 @@
 import * as notionRepo from '../repositories/notion.repository';
-import * as pgRepo from '../repositories/postgres.repository';
-import { DbPiece } from '../schemas/piece.schema';
+import * as pieceRepo from '../repositories/piece.repository';
+import * as diaryRepo from '../repositories/diary.repository';
+import * as metadataRepo from '../repositories/metadata.repository';
+import { DbPiece } from '../models/piece.model';
 import { broadcast } from '../utils/websocket';
 
 // 最終同期時刻を取得する関数
 export const getLastSyncTime = async () => {
-  return await pgRepo.getLastNotionSyncTime();
+  return await metadataRepo.getLastSyncTimeByKey('last_notion_sync_time');
 };
 
 /**
@@ -13,7 +15,9 @@ export const getLastSyncTime = async () => {
  */
 export const syncNotionToLocal = async () => {
   // 0. 連続同期のガード（前回の同期から60秒以内ならスキップ）
-  const lastSyncStr = await pgRepo.getLastNotionSyncTime();
+  const lastSyncStr = await metadataRepo.getLastSyncTimeByKey(
+    'last_notion_sync_time',
+  );
   const lastSyncDate = new Date(lastSyncStr);
   const now = new Date();
 
@@ -49,19 +53,21 @@ export const syncNotionToLocal = async () => {
       };
 
       // 3. PostgresリポジトリのUpsert関数を呼び出し、キャッシュを更新
-      return await pgRepo.upsertNotionPieceCache(
+      return await pieceRepo.upsertNotionPieceCache(
         pieceData,
         new Date(page.last_edited_time),
-        page, // 生データも保存
       );
     }),
   );
 
   // 3. ローカルのキャッシュから、Notionに存在しない（削除された）タスクを削除
-  await pgRepo.deleteStaleNotionCache(activeIds);
+  await pieceRepo.deleteStaleNotionCache(activeIds);
 
   // 4. 同期が成功したら時刻を更新する
-  await pgRepo.updateLastNotionSyncTime(new Date().toISOString());
+  await metadataRepo.updateSyncTimeByKey(
+    'last_notion_sync_time',
+    new Date().toISOString(),
+  );
 
   broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
 
@@ -78,7 +84,7 @@ export const syncNotionToLocal = async () => {
 
 // 日記の最終同期時刻を取得する関数
 export const getLastDiarySyncTime = async () => {
-  return await pgRepo.getLastDiarySyncTime();
+  return await metadataRepo.getLastSyncTimeByKey('last_diary_sync_time');
 };
 
 /**
@@ -87,7 +93,9 @@ export const getLastDiarySyncTime = async () => {
 export const syncDiariesNotionToLocal = async () => {
   try {
     // 1. 前回の同期時刻を取得 (差分同期用)
-    const lastSyncStr = await pgRepo.getLastDiarySyncTime();
+    const lastSyncStr = await metadataRepo.getLastSyncTimeByKey(
+      'last_diary_sync_time',
+    );
     let lastSyncDate: Date | undefined;
 
     // 初回('1970-01-01T...')でなければ Date オブジェクト化
@@ -101,12 +109,18 @@ export const syncDiariesNotionToLocal = async () => {
 
     const syncResults = await Promise.all(
       diaries.map(async (page: any) => {
-        return await pgRepo.upsertDiary(page, new Date(page.last_edited_time));
+        return await diaryRepo.upsertDiary(
+          page,
+          new Date(page.last_edited_time),
+        );
       }),
     );
 
     // 3. 同期が成功したら時刻を更新する
-    await pgRepo.updateLastDiarySyncTime(new Date().toISOString());
+    await metadataRepo.updateSyncTimeByKey(
+      'last_diary_sync_time',
+      new Date().toISOString(),
+    );
 
     // 4. WebSocketでフロントエンドに日記データの更新を通知
     broadcast(JSON.stringify({ type: 'REFRESH_DIARIES' }));

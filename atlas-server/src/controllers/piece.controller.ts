@@ -1,7 +1,7 @@
 import { Context } from 'hono';
 import * as pieceService from '../services/piece.service';
 import * as syncService from '../services/sync.service';
-import { PieceSchema } from '../schemas/piece.schema';
+import { PieceSchema } from '../models/piece.model';
 
 // ==========================================
 // 1. CRUD Operations

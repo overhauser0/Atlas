@@ -1,6 +1,6 @@
 // src/controllers/push.controller.ts
 import { Context } from 'hono';
-import { PushNotificationSchema } from '../schemas/push.schema';
+import { PushNotificationInputSchema } from '../models/push.model';
 import * as notificationService from '../services/notification.service';
 
 // ==========================================
@@ -10,7 +10,7 @@ import * as notificationService from '../services/notification.service';
 export const receivePush = async (c: Context) => {
   try {
     const body = await c.req.json();
-    const result = PushNotificationSchema.safeParse(body);
+    const result = PushNotificationInputSchema.safeParse(body);
 
     if (!result.success) {
       return c.json({ message: result.error.format() }, 400);

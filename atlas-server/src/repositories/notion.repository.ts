@@ -1,7 +1,10 @@
 import { Client } from '@notionhq/client';
-import { DbPiece } from '../schemas/piece.schema';
-import { DbDiary } from '../schemas/diary.schema';
-import { NotionDiaryItem } from '../schemas/diary.schema';
+import { CreatePieceInput, UpdatePieceInput } from '../models/piece.model';
+import {
+  CreateDiaryInput,
+  UpdateDiaryInput,
+  DiaryTable,
+} from '../models/diary.model';
 
 // ==========================================
 // 1. 接続・環境設定
@@ -17,9 +20,6 @@ const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
 // 2. Piece (Task/LifeLog) 関連の操作
 // ==========================================
 
-/**
- * [Read] NotionのPieceデータベースから全件取得する（同期用）
- */
 export const getPiecePages = async () => {
   let allPages: any[] = [];
   let hasMore = true;
@@ -29,7 +29,7 @@ export const getPiecePages = async () => {
     const response: Awaited<ReturnType<typeof notionClient.dataSources.query>> =
       await notionClient.dataSources.query({
         data_source_id: NOTION_PIECE_DS_ID,
-        start_cursor: cursor, // 次のページの開始位置を指定
+        start_cursor: cursor,
         page_size: 100,
       });
 
@@ -41,11 +41,7 @@ export const getPiecePages = async () => {
   return allPages;
 };
 
-/**
- * [Create] NotionのPieceデータベースに新しいページを作成する
- * @param piece 作成するPieceのデータ
- */
-export const insertPiecePage = async (piece: DbPiece) => {
+export const insertPiecePage = async (piece: CreatePieceInput) => {
   const properties: any = {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },
@@ -56,7 +52,6 @@ export const insertPiecePage = async (piece: DbPiece) => {
   if (piece.date !== undefined) {
     properties.Date = { date: piece.date ? { start: piece.date } : null };
   }
-
   if (Array.isArray(piece?.topics)) {
     properties._Topics = {
       multi_select: piece.topics.map((t) => ({ name: t })),
@@ -85,12 +80,11 @@ export const insertPiecePage = async (piece: DbPiece) => {
 
 /**
  * [Update] Notionの既存Pieceページを更新する
- * @param pageId Notion Page ID
- * @param piece 更新するPieceのデータ(差分)
+ * 💡 Partial<CreatePieceInput> の代わりに UpdatePieceInput を使用
  */
 export const updatePiecePage = async (
   pageId: string,
-  piece: Partial<DbPiece>,
+  piece: UpdatePieceInput,
 ) => {
   const properties: any = {};
 
@@ -105,11 +99,8 @@ export const updatePiecePage = async (
       multi_select: piece.topics.map((t) => ({ name: t })),
     };
   }
-
   if (piece.flags !== undefined) {
-    properties._Flags = {
-      multi_select: piece.flags.map((f) => ({ name: f })),
-    };
+    properties._Flags = { multi_select: piece.flags.map((f) => ({ name: f })) };
   }
   if (piece.note !== undefined) {
     properties.Note = {
@@ -134,14 +125,10 @@ export const updatePiecePage = async (
   });
 };
 
-/**
- * [Delete] Notionのページをアーカイブ（論理削除）する
- * @param pageId Notion Page ID
- */
 export const archivePiecePage = async (pageId: string) => {
   return await notionClient.pages.update({
     page_id: pageId,
-    archived: true, // これをtrueにすることでNotionのゴミ箱に入ります
+    archived: true,
   });
 };
 
@@ -149,28 +136,19 @@ export const archivePiecePage = async (pageId: string) => {
 // 3. Blocks (ページ本文) 関連の操作
 // ==========================================
 
-/**
- * [Read] ページIDを指定して本文（ブロック）を取得する
- * @param pageId Notion Page ID
- */
 export const getPageBlocks = async (pageId: string) => {
   let allBlocks: any[] = [];
   let cursor: string | undefined = undefined;
 
-  // 100件以上のブロックがある場合に対応するためループ処理
   while (true) {
     const response = await notionClient.blocks.children.list({
       block_id: pageId,
       start_cursor: cursor,
-      page_size: 100, // 1回あたりの最大取得件数
+      page_size: 100,
     });
 
     allBlocks.push(...response.results);
-
-    if (!response.has_more) {
-      break;
-    }
-    // まだ続きがあればカーソルを更新して次の100件を取得
+    if (!response.has_more) break;
     cursor = response.next_cursor ?? undefined;
   }
 
@@ -181,10 +159,6 @@ export const getPageBlocks = async (pageId: string) => {
 // 4. Review (Monthly / Weekly) 関連の操作
 // ==========================================
 
-/**
- * [Read] Monthlyページを名前（例: "202605"）で検索・取得する
- * @param yearMonth 検索対象の年月文字列
- */
 export const getMonthlyPage = async (yearMonth: string) => {
   const res = await notionClient.dataSources.query({
     data_source_id: NOTION_MONTHLY_DS_ID,
@@ -193,11 +167,6 @@ export const getMonthlyPage = async (yearMonth: string) => {
   return res.results.length > 0 ? res.results[0] : null;
 };
 
-/**
- * [Create] Monthlyページを新規作成する
- * @param yearMonth 作成する年月文字列（タイトル）
- * @param startDate 対象月の開始日
- */
 export const insertMonthlyPage = async (
   yearMonth: string,
   startDate: string,
@@ -211,10 +180,6 @@ export const insertMonthlyPage = async (
   });
 };
 
-/**
- * [Read] Weeklyページを名前（例: "2026-CW18"）で検索・取得する
- * @param weekName 検索対象の週文字列
- */
 export const getWeeklyPage = async (weekName: string) => {
   const res = await notionClient.dataSources.query({
     data_source_id: NOTION_WEEKLY_DS_ID,
@@ -223,11 +188,6 @@ export const getWeeklyPage = async (weekName: string) => {
   return res.results.length > 0 ? res.results[0] : null;
 };
 
-/**
- * [Create] Weeklyページを新規作成する
- * @param weekName 作成する週文字列（タイトル）
- * @param startDate 対象週の開始日
- */
 export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   return await notionClient.pages.create({
     parent: { data_source_id: NOTION_WEEKLY_DS_ID },
@@ -238,12 +198,6 @@ export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   });
 };
 
-/**
- * [Update] ページの特定のテキストプロパティ（Business, Life, Summaryなど）を更新する
- * @param pageId Notion Page ID
- * @param propertyName 更新対象のプロパティ名
- * @param text 更新するテキスト内容
- */
 export const updatePageTextProperty = async (
   pageId: string,
   propertyName: string,
@@ -261,13 +215,9 @@ export const updatePageTextProperty = async (
 // 5. Diary 関連の操作
 // ==========================================
 
-/**
- * [Read] NotionのDiaryデータベースから日記を取得する
- * @param lastSyncTime 指定されている場合、この時間以降に更新されたものだけを取得（差分同期）
- */
 export const getDiaryPages = async (
   lastSyncTime?: Date,
-): Promise<NotionDiaryItem[]> => {
+): Promise<DiaryTable[]> => {
   if (!NOTION_DIARY_DS_ID)
     throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
 
@@ -283,9 +233,7 @@ export const getDiaryPages = async (
   if (lastSyncTime) {
     queryArgs.filter = {
       timestamp: 'last_edited_time',
-      last_edited_time: {
-        on_or_after: lastSyncTime.toISOString(),
-      },
+      last_edited_time: { on_or_after: lastSyncTime.toISOString() },
     };
   }
 
@@ -300,18 +248,12 @@ export const getDiaryPages = async (
 
   return allPages.map((page: any) => {
     const props = page.properties;
-
-    const name = props.Name?.title?.[0]?.plain_text || '';
-    const date = props.Date?.date?.start || null;
-    const rate = props.Rate?.select?.name || null;
-    const note = props.Note?.rich_text?.[0]?.plain_text || null;
-
     return {
       id: page.id,
-      name,
-      date,
-      rate,
-      note,
+      name: props.Name?.title?.[0]?.plain_text || '',
+      date: props.Date?.date?.start || null,
+      rate: props.Rate?.select?.name || null,
+      note: props.Note?.rich_text?.[0]?.plain_text || null,
       last_edited_time: page.last_edited_time,
     };
   });
@@ -319,25 +261,23 @@ export const getDiaryPages = async (
 
 /**
  * [Update] Notionの既存Diaryページを更新する
- * @param pageId Notion Page ID
- * @param diary 更新するDiaryのデータ(差分)
+ * 💡 DbDiary 依存を解消し UpdateDiaryInput を使用
  */
 export const updateDiaryPage = async (
   pageId: string,
-  diary: Partial<DbDiary>,
+  diary: UpdateDiaryInput,
 ) => {
-  const properties: any = {
-    Name: { title: [{ text: { content: diary.name } }] },
-  };
+  const properties: any = {};
 
+  if (diary.name) {
+    properties.Name = { title: [{ text: { content: diary.name } }] };
+  }
   if (diary.date) {
     properties.Date = { date: { start: diary.date } };
   }
-
   if (diary.rate) {
     properties.Rate = { select: { name: diary.rate } };
   }
-
   if (diary.note !== undefined && diary.note !== null) {
     properties.Note = { rich_text: [{ text: { content: diary.note } }] };
   }
@@ -350,9 +290,9 @@ export const updateDiaryPage = async (
 
 /**
  * [Create] NotionのDiaryデータベースに新しいページを作成する
- * @param diary 作成するDiaryのデータ
+ * 💡 CreateDiaryInput を使用
  */
-export const insertDiaryPage = async (diary: DbDiary) => {
+export const insertDiaryPage = async (diary: CreateDiaryInput) => {
   const properties: any = {
     Name: { title: [{ text: { content: diary.name } }] },
   };
@@ -360,11 +300,9 @@ export const insertDiaryPage = async (diary: DbDiary) => {
   if (diary.date) {
     properties.Date = { date: { start: diary.date } };
   }
-
   if (diary.rate) {
     properties.Rate = { select: { name: diary.rate } };
   }
-
   if (diary.note !== undefined && diary.note !== null) {
     properties.Note = { rich_text: [{ text: { content: diary.note } }] };
   }
@@ -373,47 +311,4 @@ export const insertDiaryPage = async (diary: DbDiary) => {
     parent: { data_source_id: NOTION_DIARY_DS_ID },
     properties,
   });
-};
-
-/**
- * [Create/Update] NotionのDiaryデータベースに日記を保存（新規作成または更新）する ※要らないはず
- * @param diary 保存する日記データ
- * @param existingPageId 既存のページID（更新の場合に指定）
- */
-export const saveDiaryPage = async (
-  diary: Omit<NotionDiaryItem, 'id' | 'lastEditedTime'>,
-  existingPageId?: string,
-) => {
-  if (!NOTION_DIARY_DS_ID)
-    throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
-
-  const properties: any = {
-    Name: { title: [{ text: { content: diary.name } }] },
-  };
-
-  if (diary.date) {
-    properties.Date = { date: { start: diary.date } };
-  }
-
-  if (diary.rate) {
-    properties.Rate = { select: { name: diary.rate } };
-  }
-
-  if (diary.note !== undefined && diary.note !== null) {
-    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
-  }
-
-  if (existingPageId) {
-    // 既存ページの更新
-    return await notionClient.pages.update({
-      page_id: existingPageId,
-      properties,
-    });
-  } else {
-    // 新規作成
-    return await notionClient.pages.create({
-      parent: { data_source_id: NOTION_DIARY_DS_ID },
-      properties,
-    });
-  }
 };

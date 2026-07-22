@@ -8,7 +8,8 @@ import * as diaryController from './controllers/diary.controller';
 import * as calendarController from './controllers/calendar.controller';
 import * as aiController from './controllers/ai.controller';
 import * as noteController from './controllers/note.controller';
-import * as pgRepo from './repositories/postgres.repository';
+import * as agentController from './controllers/agent.controller';
+import * as notificationRepo from './repositories/notification.repository';
 import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
@@ -88,6 +89,11 @@ api.post('/calendar/sync', calendarController.receiveCalendarSync);
 // Gemini
 api.post('/ai/brainstorm', aiController.brainstorm);
 api.post('/ai/parse-task', aiController.parseTask);
+api.get('/ai/agents', agentController.getAgents);
+api.get('/ai/agents/:id', agentController.getAgent);
+api.post('/ai/agents', agentController.createAgent);
+api.patch('/ai/agents/:id', agentController.updateAgent);
+api.delete('/ai/agents/:id', agentController.deleteAgent);
 
 // Note
 api.get('/notes', noteController.getNotes);
@@ -103,10 +109,14 @@ app.onError(async (err, c) => {
 
   // エラーを通知履歴に保存する
   try {
-    await pgRepo.insertNotification({
+    await notificationRepo.insertNotification({
       title: '🚫 System Internal Error',
       note: `A server-side error occurred: ${err.message}`,
       category: 'ALERT',
+      url: '',
+      storageTarget: '',
+      metadata: null,
+      timestamp: null,
     });
   } catch (e) {
     console.warn('Failed to archive error notification', e);

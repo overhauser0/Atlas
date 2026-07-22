@@ -1,7 +1,6 @@
 import { Context } from 'hono';
 import * as syncService from '../services/sync.service';
-import * as notionRepo from '../repositories/notion.repository';
-import { DiarySchema } from '../schemas/diary.schema';
+import { DiarySchema } from '../models/diary.model';
 import * as diaryService from '../services/diary.service';
 
 // ==========================================
@@ -34,56 +33,6 @@ export const getDiaries = async (c: Context) => {
       { message: error.message || 'Failed to retrieve diaries' },
       500,
     );
-  }
-};
-
-/** ※不要なはず
- * [POST] 新しい日記の作成、または既存の日記の更新
- * フロントエンドから送られてきたデータをNotionに保存し、DBにも同期する
- */
-export const saveDiary = async (c: Context) => {
-  try {
-    const diaryData = await c.req.json(); // { id?, name, date, rate, note }
-
-    // 1. Notionに直接保存・更新
-    const existingPageId = diaryData.id;
-    await notionRepo.saveDiaryPage(diaryData, existingPageId);
-
-    // 2. 保存後に同期処理を走らせてPostgreSQL側も最新状態にする
-    const syncResult = await syncService.syncDiariesNotionToLocal();
-
-    return c.json({ status: 'SUCCESS', syncResult }, 200);
-  } catch (error: any) {
-    console.error('❌ Save Diary Error:', error);
-    return c.json({ message: error.message || 'Failed to save diary' }, 500);
-  }
-};
-
-export const createDiary = async (c: Context) => {
-  try {
-    const rawData = await c.req.json();
-
-    const validation = DiarySchema.safeParse(rawData);
-    if (!validation.success) {
-      console.warn(
-        'diary.controller: createDiary safeParse Error',
-        validation.error.format(),
-      );
-      return c.json(
-        {
-          message: 'Invalid input data',
-          errors: validation.error.format(),
-        },
-        400,
-      );
-    }
-
-    const diary = validation.data;
-    const createdDiary = await diaryService.createNewDiary(diary);
-    return c.json({ diary: createdDiary }, 201);
-  } catch (error: any) {
-    console.error('❌ Create Diary Error:', error);
-    return c.json({ message: error.message || 'Failed to create diary' }, 500);
   }
 };
 
