@@ -1,40 +1,52 @@
 import { Context } from 'hono';
+import * as agentService from '../services/agent.service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Geminiクライアントの初期化
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 // ==========================================
-// 1. Brainstorm (AIへの質問・アイデア出し)
+// 1. Execute (汎用AI実行)
 // ==========================================
-
-export const brainstorm = async (c: Context) => {
+export const execute = async (c: Context) => {
   try {
-    const { message, context } = await c.req.json();
+    // フロントエンドからの payload: { prompt, agentId }
+    const { prompt, agentId } = await c.req.json();
 
-    if (!message) {
-      return c.json({ error: 'Message is required' }, 400);
+    if (!prompt) {
+      return c.json({ error: 'Prompt is required' }, 400);
     }
 
-    // システムプロンプト
-    const systemInstruction = `
-      あなたは私の仕事（塾講師・エンジニア）をサポートする優秀なアシスタント「Atlas」です。
-      以下のルールに従って回答してください：
-      1. 簡潔かつ論理的に答えること（無駄な前置きは不要）。
-      2. アイデア出しを求められた場合は、実用的な案を箇条書きで出すこと。
-      3. マークダウン形式を利用して読みやすくすること。
-      ${context ? `現在のコンテキスト: ${context}` : ''}
-    `;
+    let systemInstruction = '';
+
+    if (agentId) {
+      // エージェント指定がある場合、DBから取得
+      const agent = await agentService.getAgentById(agentId);
+
+      if (!agent) {
+        return c.json({ error: 'Agent not found' }, 404);
+      }
+      systemInstruction = agent.system_prompt || '';
+    } else {
+      // エージェント指定がない場合
+      systemInstruction = `
+        あなたは私の仕事（塾講師・エンジニア）をサポートする優秀なアシスタント「Atlas」です。
+        以下のルールに従って回答してください：
+        1. 簡潔かつ論理的に答えること（無駄な前置きは不要）。
+        2. アイデア出しを求められた場合は、実用的な案を箇条書きで出すこと。
+        3. マークダウン形式を利用して読みやすくすること。
+        ${prompt ? `現在のコンテキスト: ${prompt}` : ''}
+      `;
+    }
 
     // モデルの初期化
-    // ※ 2026年時点の最新安定版に合わせて調整してください
     const model = genAI.getGenerativeModel({
       model: 'gemini-3.5-flash',
       systemInstruction: systemInstruction,
     });
 
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: message }] }],
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.7,
       },
@@ -43,8 +55,8 @@ export const brainstorm = async (c: Context) => {
     const response = result.response;
     return c.json({ reply: response.text() });
   } catch (error) {
-    console.error('AI Brainstorm Error:', error);
-    return c.json({ error: 'Failed to brainstorm with AI' }, 500);
+    console.error('AI Execute Error:', error);
+    return c.json({ error: 'Failed to execute AI task' }, 500);
   }
 };
 
@@ -70,7 +82,7 @@ export const parseTask = async (c: Context) => {
       hour: '2-digit',
       minute: '2-digit',
     });
-    const currentTimeJST = formatter.format(now); // 例: "2026/07/07(火) 18:30"
+    const currentTimeJST = formatter.format(now);
 
     const systemInstruction = `
       あなたはタスク管理システムのデータ解析AIです。

@@ -21,6 +21,7 @@ export const VALID_VIEWS = [
   'review',
   'notifications',
   'note',
+  'aiagent',
   'settings',
 ] as const;
 

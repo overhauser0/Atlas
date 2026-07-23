@@ -12,6 +12,7 @@ import {
   BriefcaseBusiness,
   Terminal,
   FileText,
+  Bot,
 } from 'lucide-react';
 
 // --- Components ---
@@ -23,6 +24,7 @@ import CalendarView from '@/components/CalendarView';
 import MeetingView from '@/components/MeetingView';
 import ReviewView from '@/components/ReviewView';
 import NoteView from '@/components/NoteView';
+import AiAgentView from '@/components/AiAgentView';
 import SettingsView from '@/components/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/Toast';
@@ -308,6 +310,7 @@ export default function Home() {
               { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
               { id: 'review', icon: ClipboardPenLine, label: 'Review' },
               { id: 'note', icon: FileText, label: 'Note' },
+              { id: 'aiagent', icon: Bot, label: 'Agent' },
               { id: 'notifications', icon: Bell, label: 'Notifications' },
               { id: 'settings', icon: Settings, label: 'Settings' },
             ].map((item) => (
@@ -413,6 +416,12 @@ export default function Home() {
           )}
           {currentView === 'note' && (
             <NoteView
+              onSyncStart={incrementRequest}
+              onSyncEnd={decrementRequest}
+            />
+          )}
+          {currentView === 'aiagent' && (
+            <AiAgentView
               onSyncStart={incrementRequest}
               onSyncEnd={decrementRequest}
             />

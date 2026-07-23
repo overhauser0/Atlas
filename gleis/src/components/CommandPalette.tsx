@@ -147,9 +147,9 @@ export default function CommandPalette({
     setIsAiLoading(true);
     setAiResult(null);
     try {
-      const response = await atlasFetch('/ai/brainstorm', {
+      const response = await atlasFetch('/ai', {
         method: 'POST',
-        body: JSON.stringify({ message: search }),
+        body: JSON.stringify({ prompt: search }),
       });
       const data = await response.json();
       setAiResult(data.reply);

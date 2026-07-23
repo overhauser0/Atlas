@@ -87,7 +87,7 @@ api.get('/calendar/events', calendarController.getEvents);
 api.post('/calendar/sync', calendarController.receiveCalendarSync);
 
 // Gemini
-api.post('/ai/brainstorm', aiController.brainstorm);
+api.post('/ai', aiController.execute);
 api.post('/ai/parse-task', aiController.parseTask);
 api.get('/ai/agents', agentController.getAgents);
 api.get('/ai/agents/:id', agentController.getAgent);

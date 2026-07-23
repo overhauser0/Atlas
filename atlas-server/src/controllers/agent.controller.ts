@@ -15,7 +15,7 @@ import { error } from 'console';
 export const getAgents = async (c: Context) => {
   try {
     const agents = await agentService.getAllAgents();
-    return c.json({ success: true, data: agents });
+    return c.json({ success: true, agents });
   } catch (error: any) {
     console.error('[Agent Controller] getAgents Error:', error);
     return c.json({ success: false, error: 'Failed to fetch agents' }, 500);
