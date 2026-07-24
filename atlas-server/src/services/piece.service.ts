@@ -8,24 +8,20 @@ import { broadcast } from '../utils/websocket';
  * Pieceを作成し、適切に振り分ける
  */
 export const createNewPiece = async (piece: Piece) => {
-  const targetSource = piece.source;
+  const { source, ...dbPiece } = piece;
 
-  const validatedPiece = DbPieceSchema.parse(piece);
-  if (targetSource === 'NOTION') {
+  if (source === 'NOTION') {
     // 1. Notionに作成
-    const page = await notionRepo.insertPiecePage(validatedPiece);
+    const page = await notionRepo.insertPiecePage(dbPiece);
     // 2. 作成されたデータをローカルキャッシュに同期
-    validatedPiece.id = page.id;
+    dbPiece.id = page.id;
 
-    const result = await pieceRepo.upsertNotionPieceCache(
-      validatedPiece,
-      new Date(),
-    );
+    const result = await pieceRepo.upsertNotionPieceCache(dbPiece, new Date());
     broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   } else {
     // ローカル専用タスクとして保存
-    const result = await pieceRepo.insertLocalPiece(validatedPiece);
+    const result = await pieceRepo.insertLocalPiece(dbPiece);
     broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
     return result;
   }

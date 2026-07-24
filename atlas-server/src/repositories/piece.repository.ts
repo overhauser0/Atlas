@@ -1,3 +1,5 @@
+// src/repository/piece.repository.ts
+
 import { db } from '../db/client';
 import {
   CreatePieceInput,
@@ -143,7 +145,7 @@ export const deleteNotionPieceCache = async (id: string) => {
 export const insertLocalPiece = async (dbPiece: DbPiece) => {
   const insertedPiece = await db
     .insertInto('local_pieces')
-    .values(dbPiece as any)
+    .values(dbPiece)
     .returningAll()
     .executeTakeFirst();
 
@@ -157,7 +159,7 @@ export const updateLocalPiece = async (
 ) => {
   const updatedPiece = await db
     .updateTable('local_pieces')
-    .set(updates as any)
+    .set(updates)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
