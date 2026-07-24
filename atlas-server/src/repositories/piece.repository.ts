@@ -140,7 +140,7 @@ export const deleteNotionPieceCache = async (id: string) => {
     .executeTakeFirst();
 };
 
-export const insertLocalPiece = async (dbPiece: CreatePieceInput) => {
+export const insertLocalPiece = async (dbPiece: DbPiece) => {
   const insertedPiece = await db
     .insertInto('local_pieces')
     .values(dbPiece as any)

@@ -1,5 +1,5 @@
 import { Client } from '@notionhq/client';
-import { CreatePieceInput, UpdatePieceInput } from '../models/piece.model';
+import { DbPiece, UpdatePieceInput } from '../models/piece.model';
 import {
   CreateDiaryInput,
   UpdateDiaryInput,
@@ -41,7 +41,7 @@ export const getPiecePages = async () => {
   return allPages;
 };
 
-export const insertPiecePage = async (piece: CreatePieceInput) => {
+export const insertPiecePage = async (piece: DbPiece) => {
   const properties: any = {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },

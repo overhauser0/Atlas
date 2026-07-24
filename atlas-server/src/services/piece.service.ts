@@ -1,9 +1,4 @@
-import {
-  Piece,
-  CreatePieceSchema,
-  UpdatePieceSchema,
-  dbPieceSchema,
-} from '../models/piece.model';
+import { Piece, DbPieceSchema } from '../models/piece.model';
 import * as notionRepo from '../repositories/notion.repository';
 import * as pieceRepo from '../repositories/piece.repository';
 import { syncNotionToLocal } from './sync.service';
@@ -15,7 +10,7 @@ import { broadcast } from '../utils/websocket';
 export const createNewPiece = async (piece: Piece) => {
   const targetSource = piece.source;
 
-  const validatedPiece = CreatePieceSchema.parse(piece);
+  const validatedPiece = DbPieceSchema.parse(piece);
   if (targetSource === 'NOTION') {
     // 1. Notionに作成
     const page = await notionRepo.insertPiecePage(validatedPiece);
@@ -52,7 +47,7 @@ export const getPiecesFromCache = async (filters: {
 export const updatePiece = async (id: string, payload: Partial<Piece>) => {
   const targetSource = payload.source;
 
-  const dbUpdates = dbPieceSchema.partial().parse(payload);
+  const dbUpdates = DbPieceSchema.partial().parse(payload);
 
   let result = null;
 

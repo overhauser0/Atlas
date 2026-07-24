@@ -79,14 +79,14 @@ export const CreatePieceSchema = PieceSchema;
 export const UpdatePieceSchema = PieceSchema.partial();
 
 // DB用のスキーマ
-export const dbPieceSchema = PieceSchema.omit({ source: true });
+export const DbPieceSchema = PieceSchema.omit({ source: true });
 
 // ==========================================
 // 2. TypeScript Types (アプリ内で使い回す基本型)
 // ==========================================
 
 export type Piece = z.infer<typeof PieceSchema>;
-export type DbPiece = z.infer<typeof dbPieceSchema>;
+export type DbPiece = z.infer<typeof DbPieceSchema>;
 export type CreatePieceInput = z.infer<typeof CreatePieceSchema>;
 export type UpdatePieceInput = z.infer<typeof UpdatePieceSchema>;
 
