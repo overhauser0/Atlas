@@ -187,9 +187,13 @@ export default function CommandPalette({
     setIsAiLoading(true);
     setAiResult('Parsing task details...');
     try {
-      const response = await atlasFetch('/ai/parse-task', {
+      const response = await atlasFetch('/ai', {
         method: 'POST',
-        body: JSON.stringify({ text: search }),
+        body: JSON.stringify({
+          prompt: search,
+          agentId: 'task-parser',
+          is_charged_model: false,
+        }),
       });
       const parsedTaskData = await response.json();
       onNewTask(parsedTaskData);

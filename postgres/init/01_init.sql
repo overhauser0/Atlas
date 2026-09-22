@@ -89,6 +89,8 @@ CREATE TABLE ai_agents (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
     system_prompt TEXT,
+    temperature DOUBLE PRECISION NOT NULL DEFAULT 0.7,
+    response_mime_type VARCHAR(100) DEFAULT NULL,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 )
@@ -98,15 +100,12 @@ CREATE TABLE IF NOT EXISTS routine_tasks (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   frequency VARCHAR(20) NOT NULL, -- 'weekly' または 'monthly'
-  
-  -- 週次用: 基準日(実行日)からのオフセット日数 (0:当日, 1:翌日...)
-  days_to_add INT DEFAULT 0,
-  
+  day_of_week INT,       -- 曜日 (0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土)
+ 
   -- 月次用: 日付指定 ('date') または 第◯曜日指定 ('nthWeekday')
   type VARCHAR(20), 
   day INT,               -- type='date' の時の日付 (1~31)
   week INT,              -- type='nthWeekday' の時の週数 (1~5)
-  day_of_week INT,       -- 曜日 (0:日, 1:月, 2:火, 3:水, 4:木, 5:金, 6:土)
   
   -- オプション項目
   note TEXT DEFAULT '',

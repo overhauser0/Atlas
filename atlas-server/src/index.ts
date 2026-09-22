@@ -90,7 +90,6 @@ api.post('/calendar/sync', calendarController.receiveCalendarSync);
 
 // Gemini
 api.post('/ai', aiController.execute);
-api.post('/ai/parse-task', aiController.parseTask);
 api.get('/ai/agents', agentController.getAgents);
 api.get('/ai/agents/:id', agentController.getAgent);
 api.post('/ai/agents', agentController.createAgent);
@@ -108,6 +107,7 @@ api.get('/routines', routineController.getRoutines);
 api.post('/routines', routineController.createRoutine);
 api.delete('/routines/:id', routineController.deleteRoutine);
 api.patch('/routines/:id', routineController.updateRoutine);
+api.post('/routines/generate', routineController.generateRoutineTasks);
 
 // immich
 api.get('/immich/stats', immichController.getImmichStats);

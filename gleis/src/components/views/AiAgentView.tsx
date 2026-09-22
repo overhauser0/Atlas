@@ -194,7 +194,7 @@ export default function AiAgentView({
                     ? 'bg-sky-500/20 border-sky-500/50 text-sky-400 shadow-[0_0_10px_rgba(14,165,233,0.2)]'
                     : 'bg-black/40 border-white/10 text-gray-400 hover:bg-white/10 hover:text-gray-200'
                 }`}
-                title="クリックして有料/無料モデルを切り替え"
+                title="有料/無料モデル切り替え"
               >
                 {isCharged ? (
                   <Zap className="w-3.5 h-3.5 text-sky-400" />

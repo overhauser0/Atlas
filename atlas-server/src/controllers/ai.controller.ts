@@ -1,6 +1,7 @@
 import { Context } from 'hono';
 import * as agentService from '../services/agent.service';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { SYSTEM_AGENTS } from '../services/agent.service';
 
 // Geminiクライアントの初期化
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
@@ -8,12 +9,28 @@ const genAI_charged = new GoogleGenerativeAI(
   process.env.GEMINI_API_KEY_CHARGED || '',
 );
 
+/**
+ * JSTの現在日時文字列を生成するヘルパー関数
+ */
+const getCurrentTimeJST = () => {
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('ja-JP', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return formatter.format(now);
+};
+
 // ==========================================
-// 1. Execute (汎用AI実行)
+// エージェント実行・タスク解析共通
 // ==========================================
 export const execute = async (c: Context) => {
   try {
-    // フロントエンドからの payload: { prompt, agentId }
     const { prompt, agentId, is_charged_model = false } = await c.req.json();
 
     if (!prompt) {
@@ -21,155 +38,81 @@ export const execute = async (c: Context) => {
     }
 
     let systemInstruction = '';
+    let temperature = 0.7; // デフォルト値
+    let responseMimeType: string | null | undefined = undefined;
 
-    if (agentId) {
-      // エージェント指定がある場合、DBから取得
-      const agent = await agentService.getAgentById(agentId);
+    // 1. システム組み込みエージェントのチェック (task-parser, default等)
+    if (agentId && SYSTEM_AGENTS[agentId]) {
+      const sysAgent = SYSTEM_AGENTS[agentId];
+      systemInstruction = sysAgent.system_prompt || '';
+      temperature = sysAgent.temperature ?? 0.7;
+      responseMimeType = sysAgent.response_mime_type;
 
-      if (!agent) {
+      // task-parserの場合は現在日時をプロンプトの先頭に動的注入
+      if (agentId === 'task-parser') {
+        systemInstruction =
+          `現在日時: ${getCurrentTimeJST()}\n\n` + systemInstruction;
+      }
+    }
+    // 2. ユーザーが登録したDB上のカスタムエージェントのチェック
+    else if (agentId) {
+      const dbAgent = await agentService.getAgentById(agentId);
+      if (!dbAgent) {
         return c.json({ error: 'Agent not found' }, 404);
       }
-      systemInstruction = agent.system_prompt || '';
-    } else {
-      // エージェント指定がない場合
-      systemInstruction = `
-        あなたは私の仕事（塾講師・エンジニア）をサポートする優秀なアシスタント「Atlas」です。
-        以下のルールに従って回答してください：
-        1. 簡潔かつ論理的に答えること（無駄な前置きは不要）。
-        2. アイデア出しを求められた場合は、実用的な案を箇条書きで出すこと。
-        3. マークダウン形式を利用して読みやすくすること。
-        ${prompt ? `現在のコンテキスト: ${prompt}` : ''}
-      `;
+      systemInstruction = dbAgent.system_prompt || '';
+      temperature = dbAgent.temperature ?? 0.7;
+      responseMimeType = dbAgent.response_mime_type;
     }
+    // 3. agentId 未指定時のデフォルト動作
+    else {
+      systemInstruction = SYSTEM_AGENTS.default.system_prompt || '';
+      temperature = SYSTEM_AGENTS.default.temperature ?? 0.7;
+    }
+
+    // AIクライアントの選択
+    const useAI = is_charged_model ? genAI_charged : genAI;
 
     // モデルの初期化
-    const useAI = is_charged_model ? genAI_charged : genAI;
-
     const model = useAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-3.6-flash',
       systemInstruction: systemInstruction,
     });
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.7,
-      },
-    });
-
-    const response = result.response;
-    return c.json({ reply: response.text() });
-  } catch (error) {
-    console.error('AI Execute Error:', error);
-    return c.json({ error: 'Failed to execute AI task' }, 500);
-  }
-};
-
-// ==========================================
-// 2. Parse Task (自然言語からタスク生成)
-// ==========================================
-export const parseTask = async (c: Context) => {
-  try {
-    const { text, is_charged_model = false } = await c.req.json();
-
-    if (!text) {
-      return c.json({ error: 'Text is required' }, 400);
+    // 実行設定
+    const generationConfig: any = {
+      temperature,
+    };
+    if (responseMimeType) {
+      generationConfig.responseMimeType = responseMimeType;
     }
 
-    // サーバーの現在日時を取得してJSTにフォーマット
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('ja-JP', {
-      timeZone: 'Asia/Tokyo',
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      weekday: 'short',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-    const currentTimeJST = formatter.format(now);
-
-    const systemInstruction = `
-      あなたはタスク管理システムのデータ解析AIです。
-      ユーザーの入力テキストを解析し、以下のJSONスキーマに厳密に従ってデータを出力してください。
-      
-      現在日時: ${currentTimeJST}
-
-      【出力JSONスキーマ】
-      {
-        "title": "タスクのタイトル（日時や場所の指定部分はタイトルから取り除くこと）",
-        "date": "YYYY-MM-DD または YYYY-MM-DDTHH:mm:00+09:00（時間指定がある場合）。指定がない場合はnull",
-        "type": "Task" | "Event",
-        "topics": ["Meeting"] | [],
-        "note": "場所、人、補足情報などがあれば記載（なければ空文字）",
-        "status": "INBOX"
-      }
-
-      【解析ルール】
-      1. 相対的な日時（明日、今週末、来週など）は「現在日時」を基準に具体的な日付に変換してください。
-      2. 面談、会議、イベント参加（例: リアル脱出ゲーム、ゴルフ、飲み会）などは type: "Event" にしてください。
-      3. 買う、やる、作成、システム設定（例: Dockerの更新、Gleisの実装）などは type: "Task" にしてください。
-      4. タイトルは簡潔にし、補足情報は note に移してください。
-
-      【例1】
-      入力: 「明日の15時に新規面談」
-      出力:
-      {
-        "title": "新規面談",
-        "date": "2026-07-08T15:00:00+09:00",
-        "type": "Event",
-        "topics": ["Meeting"],
-        "note": "",
-        "status": "INBOX"
-      }
-
-      【例2】
-      入力: 「今週末に笠岡でゴルフ」
-      出力:
-      {
-        "title": "ゴルフ",
-        "date": "2026-07-11",
-        "type": "Event",
-        "topics": [],
-        "note": "笠岡",
-        "status": "INBOX"
-      }
-
-      【例3】
-      入力: 「SAKURAO蒸留所の予約をする」
-      出力:
-      {
-        "title": "SAKURAO蒸留所の予約",
-        "date": null,
-        "type": "Task",
-        "topics": [],
-        "note": "",
-        "status": "INBOX"
-      }
-    `;
-
-    const useAI = is_charged_model ? genAI_charged : genAI;
-
-    const model = useAI.getGenerativeModel({
-      model: 'gemini-3.5-flash',
-      systemInstruction: systemInstruction,
-    });
-
+    // AIの呼び出し
     const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text }] }],
-      generationConfig: {
-        temperature: 0.1, // 解析タスクのため、揺らぎを最小限にする
-        responseMimeType: 'application/json',
-      },
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig,
     });
 
     const aiResponseText = result.response.text();
-    const parsedData = JSON.parse(aiResponseText);
 
-    return c.json(parsedData);
+    // レスポンスフォーマットが JSON 指定の場合はパースして返す
+    if (responseMimeType === 'application/json') {
+      try {
+        const parsedData = JSON.parse(aiResponseText);
+        return c.json(parsedData);
+      } catch (e) {
+        console.error(
+          'Failed to parse JSON response from Gemini:',
+          aiResponseText,
+        );
+        return c.json({ error: 'Failed to parse JSON response from AI' }, 500);
+      }
+    }
+
+    // 通常のテキストレスポンス
+    return c.json({ reply: aiResponseText });
   } catch (error) {
-    console.error('AI Parse Task Error:', error);
-    // 失敗時はフロントエンドのフォールバック処理に任せる
-    return c.json({ error: 'Failed to parse task' }, 500);
+    console.error('AI Execute Error:', error);
+    return c.json({ error: 'Failed to execute AI task' }, 500);
   }
 };

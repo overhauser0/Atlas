@@ -153,6 +153,24 @@ export const insertLocalPiece = async (dbPiece: DbPiece) => {
   return insertedPiece;
 };
 
+/**
+ * 複数の Piece (LOCAL) を一括でデータベースに挿入する
+ */
+export const insertBatchLocalPieces = async (dbPieces: DbPiece[]) => {
+  if (dbPieces.length === 0) return [];
+
+  const insertedPieces = await db
+    .insertInto('local_pieces')
+    .values(dbPieces)
+    .returningAll()
+    .execute();
+
+  return insertedPieces.map((piece) => ({
+    ...piece,
+    source: 'LOCAL' as const,
+  }));
+};
+
 export const updateLocalPiece = async (
   id: string,
   updates: UpdatePieceInput,

@@ -19,7 +19,7 @@ export const insertNotification = async (data: PushNotificationInput) => {
 export const getNotifications = async (
   limit = 50,
   offset = 1,
-  isRead = false,
+  isRead?: boolean,
 ) => {
   let query = db.selectFrom('notifications').selectAll();
 

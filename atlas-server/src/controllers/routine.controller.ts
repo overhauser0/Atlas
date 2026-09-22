@@ -73,8 +73,6 @@ export const deleteRoutine = async (c: Context) => {
   }
 };
 
-// --- 既存のコードに追加 ---
-
 /**
  * PATCH /api/v1/routines/:id
  * ルーチンタスクを更新する
@@ -103,6 +101,23 @@ export const updateRoutine = async (c: Context) => {
     console.error('❌ Update Routine Error:', error);
     return c.json(
       { message: error.message || 'Failed to update routine' },
+      500,
+    );
+  }
+};
+
+/**
+ * POST /api/v1/routines/generate
+ * ルーチンを一括判定し、今週・来月分のタスクをインサートする
+ */
+export const generateRoutineTasks = async (c: Context) => {
+  try {
+    const result = await routineService.generateRoutineTasks();
+    return c.json(result, 200);
+  } catch (error: any) {
+    console.error('❌ Generate Routines Error:', error);
+    return c.json(
+      { message: error.message || 'Failed to generate routine tasks' },
       500,
     );
   }

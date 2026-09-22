@@ -1,10 +1,12 @@
 import * as routineRepository from '../repositories/routine.repository';
+import * as pieceRepository from '../repositories/piece.repository';
+import { broadcast } from '../utils/websocket';
 import {
   createRoutineSchema,
-  CreateRoutineInput,
   updateRoutineSchema,
   RoutineTask,
 } from '../models/routine.model';
+import { DbPiece } from '../models/piece.model';
 
 export const getRoutines = async (
   frequency?: string,
@@ -24,4 +26,101 @@ export const deleteRoutine = async (id: number): Promise<boolean> => {
 export const updateRoutine = async (id: number, input: unknown) => {
   const validatedData = updateRoutineSchema.parse(input);
   return await routineRepository.updateRoutine(id, validatedData);
+};
+
+/**
+ * アクティブなルーチンタスクを作成する
+ */
+export const generateRoutineTasks = async () => {
+  const activeRoutines = await routineRepository.getAllRoutines(
+    undefined,
+    true,
+  );
+
+  const now = new Date();
+  const currentDayOfWeek = now.getDay();
+  const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+
+  const thisMonday = new Date(now);
+  thisMonday.setDate(now.getDate() - daysToMonday);
+  thisMonday.setHours(0, 0, 0, 0);
+
+  const mondayDateNum = thisMonday.getDate();
+  const isFourthMonday = mondayDateNum >= 22 && mondayDateNum <= 28;
+
+  let nextMonthYear = thisMonday.getFullYear();
+  let nextMonth = thisMonday.getMonth() + 1;
+  if (nextMonth > 11) {
+    nextMonth = 0;
+    nextMonthYear++;
+  }
+
+  const piecesToCreate: Partial<DbPiece>[] = [];
+
+  for (const routine of activeRoutines) {
+    // --------------------------------------------------
+    // 1. Weekly Tasks
+    // --------------------------------------------------
+    if (routine.frequency === 'weekly') {
+      const targetDayOfWeek = routine.day_of_week ?? 1;
+      const offsetFromMonday = targetDayOfWeek === 0 ? 6 : targetDayOfWeek - 1;
+
+      const dueDate = new Date(thisMonday);
+      dueDate.setDate(thisMonday.getDate() + offsetFromMonday);
+
+      piecesToCreate.push({
+        area: 'Work',
+        title: routine.title,
+        date: dueDate.toISOString().split('T')[0],
+        note: routine.note || '',
+        url: routine.url || '',
+        status: 'INBOX',
+      });
+    }
+    // --------------------------------------------------
+    // 2. Monthly Tasks
+    // --------------------------------------------------
+    else if (routine.frequency === 'monthly' && isFourthMonday) {
+      let dueDate = new Date(nextMonthYear, nextMonth, 1);
+
+      if (routine.type === 'date') {
+        dueDate.setDate(routine.day || 1);
+      } else if (routine.type === 'nthWeekday') {
+        const targetWeek = routine.week || 1;
+        const targetDayOfWeek = routine.day_of_week ?? 1;
+
+        const firstDayOfMonth = dueDate.getDay();
+        let offset = targetDayOfWeek - firstDayOfMonth;
+        if (offset < 0) offset += 7;
+
+        dueDate.setDate(1 + offset + (targetWeek - 1) * 7);
+      }
+
+      piecesToCreate.push({
+        area: 'Work',
+        title: routine.title,
+        date: dueDate.toISOString().split('T')[0],
+        note: routine.note || '',
+        url: routine.url || '',
+        status: 'INBOX',
+      });
+    }
+  }
+
+  // バッチ挿入を実行
+  let insertedPieces = [] as any;
+  if (piecesToCreate.length > 0) {
+    insertedPieces = await pieceRepository.insertBatchLocalPieces(
+      piecesToCreate as DbPiece[],
+    );
+    broadcast(JSON.stringify({ type: 'REFRESH_PIECES' }));
+  }
+
+  return {
+    message: 'Routine tasks generated successfully',
+    base_monday: thisMonday.toISOString().split('T')[0],
+    is_fourth_monday: isFourthMonday,
+    generated_count: insertedPieces.length,
+    generated_tasks: insertedPieces,
+  };
 };

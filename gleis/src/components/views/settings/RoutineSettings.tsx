@@ -18,7 +18,6 @@ export interface RoutineTask {
   id?: number;
   title: string;
   frequency: 'weekly' | 'monthly';
-  days_to_add: number;
   type: 'date' | 'nthWeekday' | null;
   day: number | null;
   week: number | null;
@@ -31,7 +30,6 @@ export interface RoutineTask {
 const DEFAULT_ROUTINE: RoutineTask = {
   title: '',
   frequency: 'weekly',
-  days_to_add: 1, // Default: Monday
   type: null,
   day: null,
   week: null,
@@ -96,7 +94,7 @@ export default function RoutineSettings() {
       setEditData({
         ...DEFAULT_ROUTINE,
         frequency: 'weekly',
-        days_to_add: dayValue,
+        day_of_week: dayValue,
       });
     } else {
       setEditData({
@@ -144,7 +142,7 @@ export default function RoutineSettings() {
       payload.type = null;
       payload.day = null;
       payload.week = null;
-      payload.day_of_week = null;
+      payload.day_of_week = payload.day_of_week ?? 1;
     } else if (payload.frequency === 'monthly') {
       if (payload.type === 'date') {
         payload.week = null;
@@ -201,7 +199,7 @@ export default function RoutineSettings() {
   ) => {
     return routines.filter((r) => {
       if (freq === 'weekly') {
-        return r.frequency === 'weekly' && r.days_to_add === dayValue;
+        return r.frequency === 'weekly' && r.day_of_week === dayValue;
       }
       return (
         r.frequency === 'monthly' &&
@@ -410,7 +408,7 @@ export default function RoutineSettings() {
                 </span>
                 {editData.frequency === 'weekly' ? (
                   <span>
-                    {DAYS.find((d) => d.value === editData.days_to_add)?.label}
+                    {DAYS.find((d) => d.value === editData.day_of_week)?.label}
                   </span>
                 ) : editData.type === 'date' ? (
                   <div className="flex items-center gap-2">

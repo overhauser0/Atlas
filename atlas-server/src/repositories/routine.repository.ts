@@ -7,11 +7,13 @@ import {
 
 export const getAllRoutines = async (
   frequency?: string,
+  is_active?: boolean,
 ): Promise<RoutineTask[]> => {
   let query = db.selectFrom('routine_tasks').selectAll();
   if (frequency === 'weekly' || frequency === 'monthly') {
     query = query.where('frequency', '=', frequency);
   }
+  if (is_active != undefined) query = query.where('is_active', '=', is_active);
   return await query.orderBy('id', 'asc').execute();
 };
 

@@ -9,6 +9,8 @@ export const AiAgentSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
   name: z.string().min(1, '名前は必須です'),
   system_prompt: z.string().nullable().optional(),
+  temperature: z.number().min(0).max(2).default(0.7),
+  response_mime_type: z.string().nullable().optional(),
   sort_order: z.number().int().default(0),
 });
 
@@ -35,6 +37,8 @@ export interface AiAgentsTable {
   name: string;
   system_prompt: string | null;
   sort_order: Generated<number>;
+  temperature: Generated<number>;
+  response_mime_type: string | null;
   created_at: Generated<Date>;
 }
 
@@ -42,3 +46,11 @@ export interface AiAgentsTable {
 export type AiAgentRow = Selectable<AiAgentsTable>;
 export type NewAiAgentRow = Insertable<AiAgentsTable>;
 export type AiAgentUpdateRow = Updateable<AiAgentsTable>;
+export type SystemAgent = Omit<
+  AiAgentRow,
+  'sort_order' | 'created_at' | 'response_mime_type'
+> & {
+  sort_order?: number;
+  created_at?: Date;
+  response_mime_type?: string | null;
+};

@@ -6,7 +6,6 @@ export interface RoutineTaskTable {
   id: Generated<number>;
   title: string;
   frequency: 'weekly' | 'monthly';
-  days_to_add: number;
   type: 'date' | 'nthWeekday' | null;
   day: number | null;
   week: number | null;
@@ -26,7 +25,6 @@ export type UpdateRoutineTask = Updateable<RoutineTaskTable>;
 export const createRoutineSchema = z.object({
   title: z.string().min(1),
   frequency: z.enum(['weekly', 'monthly']),
-  days_to_add: z.number().int().default(0),
   type: z.enum(['date', 'nthWeekday']).nullable().optional(),
   day: z.number().int().min(1).max(31).nullable().optional(),
   week: z.number().int().min(1).max(5).nullable().optional(),
