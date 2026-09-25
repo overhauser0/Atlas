@@ -1,7 +1,7 @@
 'use client';
 import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '@/types';
-import { Plus, ArrowRight, ExternalLink, HardDrive, Award } from 'lucide-react';
+import { ArrowRight, ExternalLink, HardDrive, Award } from 'lucide-react';
 import {
   getStatusColor,
   sortTasksByStatus,

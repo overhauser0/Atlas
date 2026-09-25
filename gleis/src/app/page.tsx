@@ -333,11 +333,11 @@ export default function Home() {
           console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
         }
       } else if (gleisLink.type === 'task') {
-        const targetTask = [...tasks, ...completedTasks, ...wrapperTasks].find(
-          (t) => t.id === gleisLink.target,
-        );
+        const targetTask = allTasks.find((t) => t.id === gleisLink.target);
         if (targetTask) openTaskModal(targetTask);
       }
+    } else {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
 
     if (callback) callback();
@@ -543,6 +543,7 @@ export default function Home() {
               tasks={tasks}
               loading={isTasksLoading}
               openTaskModal={(task) => openTaskModal(task)}
+              onOpenStats={handleOpenStats}
             />
           )}
 

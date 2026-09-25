@@ -24,6 +24,7 @@ interface StatsViewProps {
   tasks: Task[];
   loading: boolean;
   openTaskModal: (task?: Partial<Task>) => void;
+  onOpenStats: (date: Date) => void;
 }
 
 export default function StatsView({
@@ -31,6 +32,7 @@ export default function StatsView({
   tasks,
   loading,
   openTaskModal,
+  onOpenStats,
 }: StatsViewProps) {
   // 表示中の月を管理（初期値は現在）
   const [targetDate, setTargetDate] = useState(new Date());
@@ -158,6 +160,8 @@ export default function StatsView({
         year: 'numeric',
       }),
       currentMonthNum: currentMonth + 1,
+      currentYear,
+      currentMonth,
       thisMonthTotal,
       diff,
       thisMonthTrend,
@@ -325,10 +329,16 @@ export default function StatsView({
                 const isToday =
                   stats.isCurrentMonth && dateNum === stats.todayDate;
                 const tooltipText = `${stats.currentMonthNum}/${dateNum}: ${count} tasks`;
+                const date = new Date(
+                  stats.currentYear,
+                  stats.currentMonth,
+                  dateNum,
+                );
                 return (
                   <Tooltip key={dateNum} content={tooltipText}>
                     <div
                       key={dateNum}
+                      onClick={() => onOpenStats(date)}
                       className={`w-full aspect-square rounded-[3px] transition-all hover:scale-110 relative group ${getContributionColor(count)} ${isToday ? 'ring-1 ring-white/50 ring-offset-1 ring-offset-[#111]' : ''}`}
                     />
                   </Tooltip>

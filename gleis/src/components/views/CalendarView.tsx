@@ -35,9 +35,6 @@ export default function CalendarView({
 
   // トグルの状態管理（設定に保存）
   const showCompleted = appSettings?.showCompletedInCalendar ?? false;
-  const handleToggleCompleted = (checked: boolean) => {
-    setAppSettings({ ...appSettings, showCompletedInCalendar: checked });
-  };
 
   // 表示するタスクの結合
   const displayTasks = showCompleted ? [...tasks, ...completedTasks] : tasks;

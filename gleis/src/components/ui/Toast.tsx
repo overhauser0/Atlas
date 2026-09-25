@@ -36,7 +36,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            onClick={() => t.url && window.open(t.url, '_blank')} // 💡 クリックでURLを開く
+            onClick={() =>
+              t.url && window.open(t.url, '_blank', 'noopener,noreferrer')
+            }
             className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 ${
               t.url ? 'cursor-pointer hover:border-white/30' : ''
             } ${
