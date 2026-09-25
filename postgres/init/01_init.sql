@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     prefs TEXT[] DEFAULT '{}',
     date TEXT,
     url TEXT,
+    parent_id VARCHAR(255) DEFAULT NULL,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
 );
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS local_pieces (
     prefs TEXT[] DEFAULT '{}',
     date TEXT,
     url TEXT,
+    parent_id VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     metadata JSONB DEFAULT '{}'        -- 廃止予定

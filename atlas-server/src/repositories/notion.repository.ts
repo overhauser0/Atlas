@@ -71,6 +71,11 @@ export const insertPiecePage = async (piece: DbPiece) => {
       multi_select: piece.fkw.map((f) => ({ name: f })),
     };
   }
+  if (piece.parent_id) {
+    properties.parent_id = {
+      rich_text: [{ text: { content: piece.parent_id } }],
+    };
+  }
 
   return await notionClient.pages.create({
     parent: { data_source_id: NOTION_PIECE_DS_ID },
@@ -116,6 +121,11 @@ export const updatePiecePage = async (
   if (piece.fkw !== undefined) {
     properties.FreeKeyWord = {
       multi_select: piece.fkw.map((f) => ({ name: f })),
+    };
+  }
+  if (piece.parent_id != undefined) {
+    properties.parent_id = {
+      rich_text: [{ text: { content: piece.parent_id } }],
     };
   }
 

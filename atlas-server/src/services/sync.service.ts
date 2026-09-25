@@ -2,6 +2,7 @@ import * as notionRepo from '../repositories/notion.repository';
 import * as pieceRepo from '../repositories/piece.repository';
 import * as diaryRepo from '../repositories/diary.repository';
 import * as metadataRepo from '../repositories/metadata.repository';
+import { extractParentIdFromNotionUrl } from '../utils/utils';
 import { DbPiece } from '../models/piece.model';
 import { broadcast } from '../utils/websocket';
 
@@ -35,6 +36,8 @@ export const syncNotionToLocal = async () => {
     notionPages.map(async (page: any) => {
       const props = page.properties;
 
+      const url = props.URL?.url || null;
+
       // 2. Notionの型を内部のPieceスキーマにマッピング
       // notion.repository.ts で定義したプロパティ名（_Area等）に準拠
       const pieceData: DbPiece = {
@@ -48,8 +51,11 @@ export const syncNotionToLocal = async () => {
         flags: props._Flags?.multi_select.map((f: any) => f.name) || [],
         fkw: props.FreeKeyWord?.multi_select.map((f: any) => f.name) || [],
         prefs: props.prefs?.multi_select.map((p: any) => p.name) || [],
-        url: props.URL?.url || null,
+        url,
         date: props.Date?.date?.start || null,
+        parent_id:
+          props.parent_id?.rich_text[0]?.plain_text ||
+          extractParentIdFromNotionUrl(url),
       };
 
       // 3. PostgresリポジトリのUpsert関数を呼び出し、キャッシュを更新

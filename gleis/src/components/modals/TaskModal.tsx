@@ -15,40 +15,58 @@ import {
   HardDrive,
   Copy,
   FileText,
+  ListTree,
+  CornerLeftUp,
+  Search,
+  FolderKanban,
 } from 'lucide-react';
-import { Task, TaskStatus, ViewType, isViewType } from '@/types';
+import { Task, TaskStatus } from '@/types';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import { getDateString } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
-import { parseGleisLink } from '@/utils/schemeUtils';
+import { useConfirm } from '@/hooks/useConfirm';
 
 interface TaskModalProps {
   isOpen: boolean;
   mode: 'create' | 'edit';
   task: Partial<Task> | null;
+  allTasks: Task[];
   onClose: () => void;
+  onSave: (taskId: string | null, payload: any) => Promise<void>;
   onSuccess: () => void;
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onSendToPC?: (url: string) => void;
-  onNavigate: (viewname: ViewType) => void;
   onShowContent: (id: string) => Promise<any[]>;
+  onOpenProjectModal: (task: Partial<Task>) => void;
+  getParentTask: (parentId: string) => Task | undefined;
+  getSubTasks: (parentId: string) => Task[] | undefined;
+  openTaskModal: (task: Task) => void;
+  handleGleisLink: (url: string, callback?: Function) => void;
 }
 
 export default function TaskModal({
   isOpen,
   mode,
   task,
+  allTasks,
   onClose,
+  onSave,
   onSuccess,
   onSyncStart,
   onSyncEnd,
   onSendToPC,
-  onNavigate,
   onShowContent,
+  onOpenProjectModal,
+  getParentTask,
+  getSubTasks,
+  openTaskModal,
+  handleGleisLink,
 }: TaskModalProps) {
   const { addToast } = useToast();
+  const { confirm, confirmProps } = useConfirm();
 
   const [editForm, setEditForm] = useState<{
     title: string;
@@ -61,6 +79,7 @@ export default function TaskModal({
     topics: string[];
     type: string;
     fkw: string[];
+    parent_id: string | null;
   }>({
     title: '',
     note: '',
@@ -72,15 +91,19 @@ export default function TaskModal({
     topics: [],
     type: 'Task',
     fkw: [],
+    parent_id: null,
   });
   const [isSaving, setIsSaving] = useState(false);
   const [internalMode, setInternalMode] = useState(mode);
 
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+
+  const [isParentSelectorOpen, setIsParentSelectorOpen] = useState(false);
+  const [parentSearchQuery, setParentSearchQuery] = useState('');
+
   const moreMenuRef = useRef<HTMLDivElement>(null);
   const statusMenuRef = useRef<HTMLDivElement>(null);
-
   const titleInputRef = useRef<HTMLInputElement>(null);
   const focusTitleInput = () => {
     setTimeout(() => {
@@ -91,6 +114,10 @@ export default function TaskModal({
   const [blocks, setBlocks] = useState<any[] | null>(null);
   const [showBlocks, setShowBlocks] = useState(false);
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
+
+  // サブタスク
+  const [subTasks, setSubTasks] = useState<Task[]>([]);
+  const [parentTask, setParentTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -106,12 +133,26 @@ export default function TaskModal({
         note: task?.note || '',
         url: task?.url || '',
         source: task?.source || 'LOCAL',
+        parent_id: task?.parent_id || null,
       });
       if ((task?.title || '') === '') focusTitleInput();
+
+      if (mode === 'edit' && task?.id) {
+        setSubTasks(getSubTasks(task.id) || []);
+        if (task.parent_id) {
+          setParentTask(getParentTask(task.parent_id) || null);
+        } else {
+          setParentTask(null);
+        }
+      } else {
+        setSubTasks([]);
+        setParentTask(null);
+      }
     }
     setIsMoreMenuOpen(false);
     setIsStatusMenuOpen(false);
     setShowBlocks(false);
+    setIsParentSelectorOpen(false);
   }, [isOpen, mode, task]);
 
   // ドロップダウンの外側をクリックした時に閉じる処理
@@ -142,8 +183,7 @@ export default function TaskModal({
     if (!editForm.title.trim()) return alert('タイトルを入力してください');
 
     const isEdit = internalMode === 'edit' && task;
-    const url = isEdit ? `/pieces/${task.id}` : '/pieces';
-    const method = isEdit ? 'PATCH' : 'POST';
+    const taskId = isEdit && task.id ? task.id : null;
 
     const payload = {
       title: editForm.title || 'No Title',
@@ -155,16 +195,14 @@ export default function TaskModal({
       note: editForm.note || '',
       url: editForm.url || null,
       source: isEdit ? task.source : editForm.source || 'LOCAL',
+      parent_id: editForm.parent_id,
     };
 
     onClose();
     onSyncStart();
+
     try {
-      const response = await atlasFetch(url, {
-        method,
-        body: JSON.stringify(payload),
-      });
-      if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
+      await onSave(taskId, payload);
       onSuccess();
       addToast('タスクを保存しました', 'info');
     } catch (e) {
@@ -175,9 +213,17 @@ export default function TaskModal({
     }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!task?.id) return;
-    if (!window.confirm('本当にこのタスクを削除しますか？')) return;
+    if (
+      !(await confirm(
+        'タスク削除確認',
+        <>タスクを削除しますか？</>,
+        '削除する',
+        'キャンセル',
+      ))
+    )
+      return;
 
     onClose();
     onSyncStart();
@@ -200,7 +246,15 @@ export default function TaskModal({
 
   const handlePromote = async () => {
     if (!task?.id) return;
-    if (!window.confirm('このタスクをNotionに昇格させますか？')) return;
+    if (
+      !!(await confirm(
+        'タスク昇格確認',
+        <>タスクをNotionに昇格させますか？</>,
+        '昇格する',
+        'キャンセル',
+      ))
+    )
+      return;
 
     onClose();
     onSyncStart();
@@ -233,24 +287,6 @@ export default function TaskModal({
       id: '',
     }));
     addToast('タスクを複製しました。編集して保存してください。', 'info');
-  };
-
-  const handleLinkClick = (url: string) => {
-    const gleisLink = parseGleisLink(url);
-
-    if (gleisLink) {
-      if (gleisLink.type === 'view') {
-        if (isViewType(gleisLink.target)) {
-          onNavigate?.(gleisLink.target);
-          onClose();
-        } else {
-          console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
-        }
-      }
-      return true;
-    }
-    window.open(url, '_blank', 'noopener,noreferrer');
-    return false;
   };
 
   // ブロック取得処理（2階層目まで再帰的に取得するよう改修）
@@ -300,7 +336,7 @@ export default function TaskModal({
   // ショートカットキー
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (!isOpen) return;
+      if (!isOpen || isParentSelectorOpen) return;
 
       const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
       const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
@@ -374,6 +410,19 @@ export default function TaskModal({
 
   if (!isOpen) return null;
 
+  // 動的な親タスクの取得 (編集フォームの parent_id を参照)
+  const currentParentTask = editForm.parent_id
+    ? allTasks.find((t) => t.id === editForm.parent_id)
+    : null;
+  const completedCount = subTasks.filter((t) => t.status === 'Done').length;
+
+  // プロジェクト検索用フィルタ（自分自身は除外）
+  const filteredPossibleParents = allTasks.filter((t) => {
+    if (t.id === task?.id) return false;
+    if (!parentSearchQuery) return true;
+    return t.title.toLowerCase().includes(parentSearchQuery.toLowerCase());
+  });
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
@@ -437,6 +486,16 @@ export default function TaskModal({
 
               {isMoreMenuOpen && (
                 <div className="noir-subglass absolute right-0 w-48 z-60 mt-2 py-1.5 rounded-xl">
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      setIsParentSelectorOpen(true);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-violet-400 hover:bg-white/10 flex items-center gap-3 transition-colors"
+                  >
+                    <FolderKanban className="w-4 h-4 text-violet-400" />
+                    プロジェクト設定
+                  </button>
                   <button
                     onClick={() => {
                       setIsMoreMenuOpen(false);
@@ -522,6 +581,23 @@ export default function TaskModal({
                   {src}
                 </button>
               ))}
+            </div>
+          )}
+          {currentParentTask && (
+            <div className="flex items-center -mb-2 pl-1">
+              <button
+                type="button"
+                onClick={() => {
+                  openTaskModal(currentParentTask);
+                }}
+                className="flex items-center gap-1.5 text-xs font-medium text-zinc-500 hover:text-zinc-200 transition-all group"
+                title="親プロジェクトを開く"
+              >
+                <CornerLeftUp className="w-3.5 h-3.5 text-orange-400 group-hover:-translate-y-0.5 group-hover:-translate-x-0.5 transition-transform duration-200" />
+                <span className="truncate max-w-70 underline-offset-4 group-hover:underline">
+                  {currentParentTask.title}
+                </span>
+              </button>
             </div>
           )}
 
@@ -648,7 +724,7 @@ export default function TaskModal({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  handleLinkClick(editForm.url);
+                  handleGleisLink(editForm.url, onClose);
                 }}
                 className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors shrink-0"
                 title="開く"
@@ -657,6 +733,38 @@ export default function TaskModal({
               </button>
             )}
           </div>
+
+          {/* プロジェクト */}
+          {internalMode === 'edit' && (
+            <div className="mt-6 border-t border-white/10 pt-4">
+              <button
+                type="button"
+                onClick={() => onOpenProjectModal(task as Task)}
+                className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group"
+              >
+                <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 group-hover:text-white transition-colors">
+                  <ListTree className="w-4 h-4 text-blue-400" />
+                  {task?.parent_id ? 'Sub Tasks' : 'Project Workspace'}
+                </div>
+
+                {subTasks.length > 0 ? (
+                  <div
+                    className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
+                      completedCount === subTasks.length
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-black/30 text-zinc-400 group-hover:text-zinc-300'
+                    }`}
+                  >
+                    {completedCount} / {subTasks.length} Done
+                  </div>
+                ) : (
+                  <div className="text-xs font-medium text-zinc-500 bg-white/5 px-2 py-1 rounded group-hover:bg-white/10 transition-colors">
+                    + Add Sub Tasks
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer Actions */}
@@ -701,6 +809,84 @@ export default function TaskModal({
           </div>
         </div>
       )}
+      {/* 親タスク検索モーダル (Command Palette) */}
+      {isParentSelectorOpen && (
+        <div
+          className="fixed inset-0 z-70 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200"
+          onClick={() => setIsParentSelectorOpen(false)}
+        >
+          <div
+            className="noir-glass w-full max-w-md rounded-2xl flex flex-col overflow-hidden border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()} // 中身のクリックで閉じないように
+          >
+            {/* 検索ヘッダー */}
+            <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-black/50">
+              <Search className="w-5 h-5 text-zinc-400 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={parentSearchQuery}
+                onChange={(e) => setParentSearchQuery(e.target.value)}
+                placeholder="プロジェクトを検索..."
+                className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder:text-zinc-600"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsParentSelectorOpen(false);
+                }}
+              />
+              <button
+                onClick={() => setIsParentSelectorOpen(false)}
+                className="text-zinc-500 hover:text-white transition-colors shrink-0 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* 検索結果リスト */}
+            <div className="max-h-75 overflow-y-auto p-2 noir-scrollbar bg-black/20">
+              {/* 設定解除ボタン */}
+              {editForm.parent_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditForm({ ...editForm, parent_id: null });
+                    setIsParentSelectorOpen(false);
+                  }}
+                  className="w-full text-left p-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-3 transition-colors mb-2"
+                >
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  プロジェクト設定を解除する
+                </button>
+              )}
+
+              {filteredPossibleParents.length === 0 ? (
+                <div className="p-6 text-center text-sm text-zinc-500">
+                  タスクが見つかりません
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredPossibleParents.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setEditForm({ ...editForm, parent_id: t.id });
+                        setIsParentSelectorOpen(false);
+                      }}
+                      className="w-full text-left p-3 text-sm text-zinc-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors group"
+                    >
+                      <FolderKanban
+                        className={`w-4 h-4 shrink-0 ${editForm.parent_id === t.id ? 'text-emerald-400' : 'text-violet-500/50 group-hover:text-violet-400'}`}
+                      />
+                      <span className="truncate flex-1">{t.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      <ConfirmModal {...confirmProps} />
     </div>
   );
 }

@@ -12,6 +12,7 @@ export const useTaskSync = (
 ) => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [completedTasks, setCompletedTasks] = useState<Task[]>([]);
+  const [wrapperTasks, setWrapperTasks] = useState<Task[]>([]);
   const [overdueTasks, setOverdueTasks] = useState<Task[]>([]);
   const [meetingTasks, setMeetingTasks] = useState<Task[]>([]);
   const [isTasksLoading, setIsTasksLoading] = useState(true);
@@ -60,6 +61,9 @@ export const useTaskSync = (
           ),
         );
         setCompletedTasks(data.pieces.filter((t: Task) => t.status === 'Done'));
+        setWrapperTasks(
+          data.pieces.filter((t: Task) => t.status === 'Wrapper'),
+        );
         setOverdueTasks(
           data.pieces.filter(
             (t: Task) =>
@@ -124,6 +128,30 @@ export const useTaskSync = (
     }
   }, [fetchTasks, onSyncStart, onSyncEnd]);
 
+  // タスクを保存する共通関数
+  const saveTask = async (taskId: string | null, payload: any) => {
+    const url = taskId ? `/pieces/${taskId}` : '/pieces';
+    const method = taskId ? 'PATCH' : 'POST';
+
+    const response = await atlasFetch(url, {
+      method,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
+
+    return response;
+  };
+
+  // 親タスクの期日だけを更新する関数
+  const updateTaskDate = async (taskId: string, newDate: string) => {
+    const response = await atlasFetch(`/pieces/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ date: newDate }),
+    });
+    if (!response.ok) throw new Error('Failed to update parent date');
+  };
+
   const fetchBlocks = useCallback(async (id: string) => {
     onSyncStart();
     try {
@@ -145,6 +173,7 @@ export const useTaskSync = (
     tasks,
     setTasks,
     completedTasks,
+    wrapperTasks,
     overdueTasks,
     meetingTasks,
     isTasksLoading,
@@ -152,6 +181,8 @@ export const useTaskSync = (
     fetchTasks,
     handleNotionSync,
     handleRescheduleOverdue,
+    saveTask,
+    updateTaskDate,
     fetchBlocks,
   };
 };

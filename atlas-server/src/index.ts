@@ -33,11 +33,12 @@ app.use('/api/v1/*', async (c, next) => {
 
   await next();
 });
-
 // ----------------------------------
 
 // Routes
 app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
+
+app.get('/migration/parentids', pieceController.migrateParentIds);
 
 app.post('/auth/verify', async (c) => {
   const body = await c.req.json();
@@ -64,6 +65,7 @@ api.post('/notifications/:id/read', pushController.markAsRead);
 // Piece
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createPiece);
+api.post('/pieces/bulk', pieceController.createPiecesBulk);
 api.post('/pieces/:id/promote', pieceController.promotePiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
 api.delete('/pieces/:id', pieceController.deletePiece);

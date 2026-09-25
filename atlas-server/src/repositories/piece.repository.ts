@@ -6,6 +6,7 @@ import {
   UpdatePieceInput,
   DbPiece,
 } from '../models/piece.model';
+import { extractParentIdFromNotionUrl } from '../utils/utils';
 
 export interface PieceFilters {
   area?: string;
@@ -16,6 +17,7 @@ export interface PieceFilters {
   excludeStatus?: string[];
   beforeDate?: string;
   afterDate?: string;
+  parentId?: string;
 }
 
 export const getPieces = async (filters: PieceFilters) => {
@@ -39,6 +41,7 @@ export const getPieces = async (filters: PieceFilters) => {
     if (filters.afterDate) {
       q = q.where('date', '>', filters.afterDate);
     }
+    if (filters.parentId) q = q.where('parent_id', '=', filters.parentId);
     return q;
   };
 
@@ -213,3 +216,29 @@ export const deleteOldDoneLocalPieces = async () => {
     .where('date', '<', thresholdDateStr)
     .execute();
 };
+
+export async function migrateParentIds() {
+  const piecesToUpdate = await db
+    .selectFrom('local_pieces')
+    .selectAll()
+    .where('parent_id', 'is', null)
+    .where('url', 'is not', null)
+    .execute();
+
+  let updateCount = 0;
+  for (const piece of piecesToUpdate) {
+    const parentId = extractParentIdFromNotionUrl(piece.url);
+
+    if (parentId) {
+      await db
+        .updateTable('local_pieces')
+        .set({ parent_id: parentId })
+        .where('id', '=', piece.id)
+        .execute();
+
+      updateCount++;
+    }
+  }
+
+  return `移行完了: ${updateCount} 件のタスクに parent_id を付与しました。`;
+}

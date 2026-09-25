@@ -18,6 +18,7 @@ export const getPieces = async (c: Context) => {
     const excludeStatus = c.req.query('excludeStatus');
     const beforeDate = c.req.query('beforeDate');
     const afterDate = c.req.query('afterDate');
+    const parentId = c.req.query('parentId');
 
     const pieces = await pieceService.getPiecesFromCache({
       area,
@@ -26,6 +27,7 @@ export const getPieces = async (c: Context) => {
       excludeStatus: excludeStatus ? excludeStatus.split(',') : undefined,
       beforeDate,
       afterDate,
+      parentId,
     });
 
     return c.json({ pieces: pieces || [] }, 200);
@@ -63,6 +65,34 @@ export const createPiece = async (c: Context) => {
   }
 };
 
+export const createPiecesBulk = async (c: Context) => {
+  try {
+    const { pieces } = await c.req.json();
+
+    // tasksが配列であるかチェック
+    if (!Array.isArray(pieces) || pieces.length === 0) {
+      return c.json(
+        { error: 'Pieces array is missing, empty, or invalid' },
+        400,
+      );
+    }
+
+    const insertedPieces = await pieceService.createPiecesBulk(pieces);
+
+    return c.json(
+      {
+        success: true,
+        count: insertedPieces.length,
+        data: insertedPieces,
+      },
+      201,
+    );
+  } catch (error) {
+    console.error('Bulk Create Pieces Error:', error);
+    return c.json({ error: 'Failed to create pieces in bulk' }, 500);
+  }
+};
+
 export const updatePiece = async (c: Context) => {
   try {
     const id = c.req.param('id');
@@ -90,6 +120,8 @@ export const updatePiece = async (c: Context) => {
 
     const updatedPiece = await pieceService.updatePiece(id, validation.data);
 
+    await pieceService.checkSiblingTaskState(id);
+
     return c.json({ piece: updatedPiece }, 200);
   } catch (error: any) {
     console.error(`❌ Update Piece Error (${c.req.param('id')}):`, error);
@@ -103,6 +135,9 @@ export const deletePiece = async (c: Context) => {
     if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
     const result = await pieceService.deletePiece(id);
+
+    await pieceService.checkSiblingTaskState(id);
+
     return c.json(result, 200);
   } catch (error: any) {
     console.error(`❌ Delete Piece Error (${c.req.param('id')}):`, error);
@@ -206,5 +241,14 @@ export const getLastSyncTime = async (c: Context) => {
       { message: error.message || 'Failed to get last sync time' },
       500,
     );
+  }
+};
+
+export const migrateParentIds = async (c: Context) => {
+  try {
+    const result = await pieceService.migrateParentIds();
+    return c.json({ result }, 200);
+  } catch (error: any) {
+    return c.json({ message: error.message || 'Failed to migration' }, 500);
   }
 };

@@ -18,6 +18,7 @@ export interface Task {
   topics: string[];
   url: string;
   fkw: string[];
+  parent_id?: string | null;
 }
 
 export const VALID_VIEWS = [

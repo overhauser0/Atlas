@@ -1,5 +1,5 @@
 export interface GleisLinkAction {
-  type: 'view' | 'action' | 'unknown';
+  type: 'view' | 'action' | 'task' | 'unknown';
   target: string; // 'review', 'calendar', 'sync' など
   rawUrl: string;
 }
@@ -15,7 +15,7 @@ export const parseGleisLink = (url: string): GleisLinkAction | null => {
     const type = urlObj.hostname; // 'view' や 'action'
     const target = urlObj.pathname.replace('/', ''); // '/review' -> 'review'
 
-    if (type === 'view' || type === 'action') {
+    if (type === 'view' || type === 'action' || type === 'task') {
       return {
         type: type as 'view' | 'action',
         target,

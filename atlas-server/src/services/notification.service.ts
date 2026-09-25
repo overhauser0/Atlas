@@ -5,7 +5,7 @@ import * as notificationRepo from '../repositories/notification.repository';
 import * as pieceService from './piece.service';
 import { broadcast } from '../utils/websocket';
 
-// 💡 追加: 検索パラメータの型定義
+// 検索パラメータの型定義
 export interface GetNotificationHistoryParams {
   limit: number;
   offset: number;

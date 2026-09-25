@@ -17,12 +17,14 @@ interface Props {
   notifications: any[];
   onMarkAsRead: (id: string) => void;
   openTaskModal: (task?: Partial<Task>) => void;
+  handleGleisLink: (url: string, callback?: Function) => void;
 }
 
 export default function NotificationsView({
   notifications,
   onMarkAsRead,
   openTaskModal,
+  handleGleisLink,
 }: Props) {
   // 詳細アコーディオン用状態
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
@@ -70,7 +72,7 @@ export default function NotificationsView({
                   key={n.id}
                   className={`group relative rounded-xl border transition-all duration-200 overflow-hidden ${
                     n.is_read
-                      ? 'bg-white/[0.02] border-white/5 text-zinc-400'
+                      ? 'bg-white/2 border-white/5 text-zinc-400'
                       : 'bg-white/[0.07] border-white/10 shadow-sm text-zinc-100'
                   }`}
                 >
@@ -125,16 +127,15 @@ export default function NotificationsView({
                           <Check className="w-3.5 h-3.5" />
                         </button>
                       )}
-                      {n.url && n.url.startsWith('http') && (
-                        <a
-                          href={n.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                      {n.url && (
+                        <button
+                          type="button"
+                          onClick={() => handleGleisLink(n.url)}
                           className="p-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                           title="リンクを開く"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
-                        </a>
+                        </button>
                       )}
                       <button
                         onClick={() =>

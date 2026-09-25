@@ -1,7 +1,7 @@
 // src/app/page.tsx
 
 'use client';
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   LayoutDashboard,
   Columns2,
@@ -34,20 +34,24 @@ import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import TaskModal from '@/components/modals/TaskModal';
+import ProjectModal from '@/components/modals/ProjectModal';
 import StatsModal from '@/components/modals/StatsModal';
 import QuickAlarmModal from '@/components/modals/QuickAlarmModal';
 import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
+import ConfirmModal from '@/components/modals/ConfirmModal';
 import ActionPanel from '@/components/panels/ActionPanel';
 import CommandPalette from '@/components/modals/CommandPalette';
 import NotificationsView from '@/components/views/NotificationsView';
 
 // --- Types & Utils & Hooks ---
-import { Task, ViewType } from '@/types';
+import { Task, ViewType, isViewType } from '@/types';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
+import { useConfirm } from '@/hooks/useConfirm';
+import { parseGleisLink } from '@/utils/schemeUtils';
 
 export default function Home() {
   // ============================================================================
@@ -87,11 +91,17 @@ export default function Home() {
     task: Partial<Task> | null;
   }>({ isOpen: false, mode: 'create', task: null });
 
+  const [projectModalConfig, setProjectModalConfig] = useState<{
+    isOpen: boolean;
+    parentTask: Partial<Task> | null;
+  }>({ isOpen: false, parentTask: null });
+
   // ============================================================================
   // 2. Custom Hooks (データ・同期・システム操作)
   // ============================================================================
 
   const { addToast } = useToast();
+  const { confirm, confirmProps } = useConfirm();
 
   const incrementRequest = useCallback(
     () => setActiveRequests((prev) => prev + 1),
@@ -106,6 +116,7 @@ export default function Home() {
     tasks,
     setTasks,
     completedTasks,
+    wrapperTasks,
     overdueTasks,
     meetingTasks,
     isTasksLoading,
@@ -113,6 +124,8 @@ export default function Home() {
     fetchTasks,
     handleNotionSync,
     handleRescheduleOverdue,
+    saveTask,
+    updateTaskDate,
     fetchBlocks,
   } = useTaskSync(
     isAuthenticated,
@@ -120,6 +133,17 @@ export default function Home() {
     decrementRequest,
     appSettings.syncInterval,
   );
+
+  const allTasks = useMemo(() => {
+    return [...tasks, ...completedTasks, ...wrapperTasks];
+  }, [tasks, completedTasks, wrapperTasks]);
+
+  const currentSubTasks = useMemo(() => {
+    if (!projectModalConfig.parentTask?.id) return [];
+    return allTasks.filter(
+      (t) => t.parent_id === projectModalConfig.parentTask!.id,
+    );
+  }, [allTasks, projectModalConfig.parentTask?.id]);
 
   const { notifications, markAsRead, fetchNotifications } =
     useNotificationSync(isAuthenticated);
@@ -152,14 +176,37 @@ export default function Home() {
     setIsAuthenticated(false);
   }, []);
 
-  const openTaskModal = useCallback((task?: Partial<Task>) => {
-    const mode = task?.id ? 'edit' : 'create';
-    setTaskModalConfig({ isOpen: true, mode, task: task || null });
-  }, []);
-
   const closeTaskModal = useCallback(() => {
     setTaskModalConfig((prev) => ({ ...prev, isOpen: false }));
   }, []);
+  const closeProjectModal = useCallback(() => {
+    setProjectModalConfig({
+      isOpen: false,
+      parentTask: null,
+    });
+  }, []);
+
+  const openTaskModal = useCallback((task?: Partial<Task>) => {
+    const mode = task?.id ? 'edit' : 'create';
+    setTaskModalConfig({ isOpen: true, mode, task: task || null });
+    // closeProjectModal();
+  }, []);
+
+  const openProjectModal = (task: Partial<Task>) => {
+    if (!task) return;
+    setProjectModalConfig({
+      isOpen: true,
+      parentTask: task,
+    });
+    closeTaskModal();
+  };
+
+  const handleGetParentTask = (parentId: string) => {
+    return allTasks.find((t) => t.id === parentId);
+  };
+  const handleGetSubTasks = (parentId: string) => {
+    return allTasks.filter((t) => t.parent_id === parentId);
+  };
 
   const handleOpenStats = useCallback((date: Date) => {
     setStatsTargetDate(date);
@@ -177,6 +224,42 @@ export default function Home() {
     },
     [wsRef, addToast],
   );
+  // 日付チェック付きの保存関数
+  const handleSaveTaskWithCheck = async (
+    taskId: string | null,
+    payload: any,
+  ) => {
+    try {
+      // 1. 親が設定されていて、かつ日付が入力されている場合
+      if (payload.parent_id && payload.date) {
+        const parentTask = allTasks.find((t) => t.id === payload.parent_id);
+
+        // 2. 子タスクの日付が、親タスクの日付より「未来」の場合
+        if (parentTask && parentTask.date && payload.date > parentTask.date) {
+          const shouldUpdateParent = await confirm(
+            '親タスク期日調整',
+            <>
+              子タスクの期日が、親プロジェクト「
+              {parentTask.title}」の期日 ({parentTask.date}) を超えています。
+              <br />
+              <br />
+              親プロジェクトの期日も延長しますか？
+            </>,
+            '延長する',
+            'そのままにする',
+          );
+
+          if (shouldUpdateParent) {
+            await updateTaskDate(parentTask.id, payload.date);
+            addToast('親プロジェクトの期日を延長しました', 'info');
+          }
+        }
+      }
+      await saveTask(taskId, payload);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   // ============================================================================
   // 5. Effects (ライフサイクル・イベント監視)
@@ -238,6 +321,29 @@ export default function Home() {
     onOpenActionPanel: () => setIsActionPanelOpen((p) => !p),
     onNavigate: handleViewChange,
   });
+
+  const handleGleisLink = (url: string, callback?: Function) => {
+    const gleisLink = parseGleisLink(url);
+
+    if (gleisLink) {
+      if (gleisLink.type === 'view') {
+        if (isViewType(gleisLink.target)) {
+          handleViewChange(gleisLink.target);
+        } else {
+          console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
+        }
+      } else if (gleisLink.type === 'task') {
+        const targetTask = [...tasks, ...completedTasks, ...wrapperTasks].find(
+          (t) => t.id === gleisLink.target,
+        );
+        if (targetTask) openTaskModal(targetTask);
+      }
+    }
+
+    if (callback) callback();
+
+    return gleisLink;
+  };
 
   // ============================================================================
   // 7. Render (UI描画)
@@ -445,6 +551,9 @@ export default function Home() {
               notifications={notifications}
               onMarkAsRead={markAsRead}
               openTaskModal={(task) => openTaskModal(task)}
+              handleGleisLink={(url, callback) =>
+                handleGleisLink(url, callback)
+              }
             />
           )}
           {currentView === 'settings' && (
@@ -471,17 +580,33 @@ export default function Home() {
             openTaskModal={(task) => openTaskModal(task)}
             onClose={() => setIsStatsOpen(false)}
           />
+          <ProjectModal
+            isOpen={projectModalConfig.isOpen}
+            onClose={closeProjectModal}
+            onSuccess={() => fetchTasks(true)}
+            parentTask={projectModalConfig.parentTask as Task}
+            subTasks={currentSubTasks}
+            openTaskModal={(task) => openTaskModal(task)}
+            allTasks={allTasks}
+            handleGleisLink={(url, callback) => handleGleisLink(url, callback)}
+          />
           <TaskModal
             isOpen={taskModalConfig.isOpen}
             mode={taskModalConfig.mode}
             task={taskModalConfig.task}
             onClose={closeTaskModal}
+            onSave={handleSaveTaskWithCheck}
             onSuccess={() => fetchTasks(true)}
             onSyncStart={incrementRequest}
             onSyncEnd={decrementRequest}
             onSendToPC={hasExtension ? handleSendToPC : undefined}
-            onNavigate={handleViewChange}
             onShowContent={fetchBlocks}
+            onOpenProjectModal={(task) => openProjectModal(task)}
+            getParentTask={(parentId) => handleGetParentTask(parentId)}
+            getSubTasks={(parentId) => handleGetSubTasks(parentId)}
+            openTaskModal={(task) => openTaskModal(task)}
+            handleGleisLink={(url, callback) => handleGleisLink(url, callback)}
+            allTasks={allTasks}
           />
           <ActionPanel
             isOpen={isActionPanelOpen}
@@ -500,6 +625,7 @@ export default function Home() {
             wsStatus={wsStatus}
             connectedDevicesCount={connectedDevices.length}
           />
+          <ConfirmModal {...confirmProps} />
         </main>
       </div>
     </ToastProvider>

@@ -72,6 +72,7 @@ export const PieceSchema = z.object({
     .optional()
     .or(z.literal(''))
     .transform((v) => v || null),
+  parent_id: z.string().nullable().optional(),
 });
 
 // 作成時のスキーマ（IDなどはバックエンドで生成・付与するため基本スキーマを利用）
@@ -109,6 +110,7 @@ export interface LocalPiecesTable {
   prefs: string[];
   url: string | null;
   date: string | null;
+  parent_id: string | null;
   created_at: Generated<Date>;
 }
 
@@ -125,6 +127,7 @@ export interface NotionPiecesCacheTable {
   prefs: string[];
   date: Date | null;
   url: string | null;
+  parent_id: string | null;
   last_edited_time: Date;
   synced_at: Generated<Date>;
 }
