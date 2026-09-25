@@ -203,7 +203,11 @@ export default function ProjectModal({
                 {parentTask.url && (
                   <button
                     type="button"
-                    onClick={() => handleGleisLink(parentTask.url)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleGleisLink(parentTask.url, onClose);
+                    }}
                     className="flex items-center gap-1.5 text-xs font-bold text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 px-2.5 py-1.5 rounded-lg transition-colors"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
