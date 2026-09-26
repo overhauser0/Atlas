@@ -1,6 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ExternalLink, HardDrive } from 'lucide-react';
+import { ExternalLink, HardDrive, ListChecks } from 'lucide-react';
 import { Task } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast';
 interface Props {
   appSettings: { shrinkEmptyPastDays: boolean };
   tasks: Task[];
+  subTaskMap: Record<string, { total: number; done: number }>;
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
@@ -32,6 +33,7 @@ interface Props {
 export default function WeeklyView({
   appSettings,
   tasks,
+  subTaskMap,
   loading,
   setTasks,
   openTaskModal,
@@ -203,68 +205,91 @@ export default function WeeklyView({
                   </span>
                 </div>
                 <div className="flex-1 overflow-y-auto pr-2 pb-12 flex flex-col gap-3 noir-scrollbar">
-                  {colTasks.map((task) => (
-                    <Card
-                      key={task.id}
-                      draggable
-                      hoverable
-                      onDragStart={() => setDraggingTaskId(task.id)}
-                      className={`cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : 'opacity-100'}`}
-                    >
-                      <div
-                        className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-full ${getStatusColor(task.status)} opacity-50`}
-                      />
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex items-center justify-center shrink-0">
-                          <span
-                            className={`noir-dot ${getStatusColor(task.status)}`}
-                          />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-snug truncate">
-                            {task.title}
-                          </p>
-                        </div>
-                        {task.source === 'NOTION' && (
-                          <a
-                            href={getNotionLinkById(task.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                        {task.source === 'LOCAL' && (
-                          <span
-                            className="rounded-lg text-gray-500 p-1.5 shrink-0"
-                            title="Local Task"
-                          >
-                            <HardDrive className="w-4 h-4" />
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center justify-between mt-auto h-6">
-                        <div className="flex flex-wrap gap-1.5">
-                          {task.topics?.map((t: any) => (
+                  {colTasks.map((task) => {
+                    const countData = subTaskMap[task.id];
+                    const isAllDone =
+                      countData &&
+                      countData.total > 0 &&
+                      countData.done === countData.total;
+                    return (
+                      <Card
+                        key={task.id}
+                        draggable
+                        hoverable
+                        onDragStart={() => setDraggingTaskId(task.id)}
+                        className={`cursor-grab active:cursor-grabbing group flex flex-col gap-3 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : 'opacity-100'}`}
+                      >
+                        <div
+                          className={`absolute left-0 top-2 bottom-2 w-0.5 rounded-full ${getStatusColor(task.status)} opacity-50`}
+                        />
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex items-center justify-center shrink-0">
                             <span
-                              key={t}
-                              className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400"
+                              className={`noir-dot ${getStatusColor(task.status)}`}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium leading-snug truncate">
+                              {task.title}
+                            </p>
+                          </div>
+                          {task.source === 'NOTION' && (
+                            <a
+                              href={getNotionLinkById(task.id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
                             >
-                              {t}
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                          {task.source === 'LOCAL' && (
+                            <span
+                              className="rounded-lg text-gray-500 p-1.5 shrink-0"
+                              title="Local Task"
+                            >
+                              <HardDrive className="w-4 h-4" />
                             </span>
-                          ))}
+                          )}
                         </div>
-                        <button
-                          onClick={() => openTaskModal(task)}
-                          className="text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
-                        >
-                          Detail
-                        </button>
-                      </div>
-                    </Card>
-                  ))}
+                        <div className="flex items-center justify-between mt-auto h-6">
+                          <div className="flex flex-wrap items-center gap-1.5 overflow-hidden">
+                            {countData && (
+                              <div
+                                className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
+                                  isAllDone
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                                    : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                                }`}
+                                title="Subtasks progress"
+                              >
+                                <ListChecks className="w-3 h-3" />
+                                <span>
+                                  {countData.done}/{countData.total}
+                                </span>
+                              </div>
+                            )}
+
+                            {task.topics?.map((t: any) => (
+                              <span
+                                key={t}
+                                className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 truncate max-w-[80px]"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                          <button
+                            onClick={() => openTaskModal(task)}
+                            className="text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white shrink-0"
+                          >
+                            Detail
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             );

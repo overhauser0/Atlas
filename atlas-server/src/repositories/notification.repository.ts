@@ -1,21 +1,9 @@
+// atlas-server/src/repositories/notification.repository.ts
+
 import { db } from '../db/client';
 import { PushNotificationInput } from '../models/push.model';
 
-export const insertNotification = async (data: PushNotificationInput) => {
-  return await db
-    .insertInto('notifications')
-    .values({
-      title: data.title,
-      note: data.note || '',
-      url: data.url || '',
-      category: data.category || 'INFO',
-      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-      is_read: false,
-    })
-    .returningAll()
-    .executeTakeFirst();
-};
-
+/** 通知履歴を取得する。 */
 export const getNotifications = async (
   limit = 50,
   offset = 1,
@@ -34,6 +22,23 @@ export const getNotifications = async (
     .execute();
 };
 
+/** 通知を作成する。 */
+export const insertNotification = async (data: PushNotificationInput) => {
+  return await db
+    .insertInto('notifications')
+    .values({
+      title: data.title,
+      note: data.note || '',
+      url: data.url || '',
+      category: data.category || 'INFO',
+      metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+      is_read: false,
+    })
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/** 指定した通知を既読にする。 */
 export const markNotificationAsRead = async (id: string) => {
   return await db
     .updateTable('notifications')
@@ -43,6 +48,7 @@ export const markNotificationAsRead = async (id: string) => {
     .executeTakeFirst();
 };
 
+/** 未読通知をすべて既読にする。 */
 export const markAllNotificationsAsRead = async () => {
   return await db
     .updateTable('notifications')

@@ -1,7 +1,9 @@
+// atlas-server/src/repositories/agent.repository.ts
+
 import { db } from '../db/client';
 import { NewAiAgentRow, AiAgentUpdateRow } from '../models/agent.model';
 
-// すべてのエージェントを取得 (並び順通り)
+/** すべてのエージェントを並び順で取得する。 */
 export const getAllAgents = async () => {
   return await db
     .selectFrom('ai_agents')
@@ -10,7 +12,7 @@ export const getAllAgents = async () => {
     .execute();
 };
 
-// 特定のエージェントを取得
+/** IDでエージェントを取得する。 */
 export const getAgentById = async (id: string) => {
   return await db
     .selectFrom('ai_agents')
@@ -19,7 +21,7 @@ export const getAgentById = async (id: string) => {
     .executeTakeFirst();
 };
 
-// エージェントの作成
+/** エージェントを作成する。 */
 export const createAgent = async (data: NewAiAgentRow) => {
   return await db
     .insertInto('ai_agents')
@@ -28,7 +30,7 @@ export const createAgent = async (data: NewAiAgentRow) => {
     .executeTakeFirst();
 };
 
-// エージェントの更新
+/** エージェントを更新する。 */
 export const updateAgent = async (id: string, data: AiAgentUpdateRow) => {
   return await db
     .updateTable('ai_agents')
@@ -38,7 +40,7 @@ export const updateAgent = async (id: string, data: AiAgentUpdateRow) => {
     .executeTakeFirst();
 };
 
-// エージェントの削除
+/** エージェントを削除する。 */
 export const deleteAgent = async (id: string) => {
   return await db.deleteFrom('ai_agents').where('id', '=', id).execute();
 };

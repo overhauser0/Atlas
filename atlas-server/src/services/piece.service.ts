@@ -1,3 +1,5 @@
+// atlas-server/src/services/piece.service.ts
+
 import { Piece, DbPiece, DbPieceSchema } from '../models/piece.model';
 import * as notionRepository from '../repositories/notion.repository';
 import * as pieceRepository from '../repositories/piece.repository';
@@ -5,9 +7,7 @@ import * as notificationServive from './notification.service';
 import { syncNotionToLocal } from './sync.service';
 import { broadcast } from '../utils/websocket';
 
-/**
- * Pieceを作成し、適切に振り分ける
- */
+/** Pieceを作成し、保存先に応じて処理を振り分ける。 */
 export const createNewPiece = async (piece: Piece) => {
   const { source, ...dbPiece } = piece;
 
@@ -32,14 +32,13 @@ export const createNewPiece = async (piece: Piece) => {
 };
 
 /**
- * 複数のタスク（Piece）を一括生成する
+ * 複数の Piece を一括作成する。
  */
 export const createPiecesBulk = async (pieces: Piece[]) => {
   if (!pieces || pieces.length === 0) {
     return [];
   }
 
-  // DbPiece 型に合わせてオブジェクトを生成
   const piecesToCreate: Partial<DbPiece>[] = pieces.map((piece) => ({
     title: piece.title,
     area: piece.area || 'Work',
@@ -51,7 +50,6 @@ export const createPiecesBulk = async (pieces: Piece[]) => {
     status: piece.status || ('INBOX' as const),
   }));
 
-  // バッチ挿入を実行
   const insertedPieces = await pieceRepository.insertBatchLocalPieces(
     piecesToCreate as DbPiece[],
   );
@@ -102,7 +100,6 @@ export const getPieceBlocks = async (id: string) => {
 };
 
 export const deletePiece = async (id: string) => {
-  // sourceの判定
   const piece = await pieceRepository.getPieceById(id);
 
   if (!piece) {
@@ -167,7 +164,7 @@ export const rescheduleOverduePiecesToToday = async () => {
   return updatedPieces;
 };
 
-// 子タスクが全て完了しているかチェックし、親を更新する関数
+/** 子タスクがすべて完了しているか確認する。 */
 export async function checkSiblingTaskState(childId: string): Promise<boolean> {
   if (!childId) return false;
 
@@ -211,6 +208,35 @@ export async function checkSiblingTaskState(childId: string): Promise<boolean> {
   return false;
 }
 
+/**
+ * 孤児 Piece を検出し、NotionとローカルDBの親子関係を解消する。
+ */
+export async function cleanUpOrphanedTasks(): Promise<void> {
+  const orphans = await pieceRepository.findOrphanedPieces();
+
+  if (orphans.local.length === 0 && orphans.notion.length === 0) {
+    return;
+  }
+
+  if (orphans.notion.length > 0) {
+    for (const orphanId of orphans.notion) {
+      try {
+        await notionRepository.updatePiecePage(orphanId, {
+          parent_id: null,
+        });
+      } catch (error) {
+        console.error(
+          `[Notion Cleanup Error] タスク(ID: ${orphanId})の更新に失敗:`,
+          error,
+        );
+      }
+    }
+  }
+
+  await pieceRepository.clearParentIds(orphans.local, orphans.notion);
+}
+
+/** Pieceの親IDを移行する。 */
 export const migrateParentIds = async () => {
   return await pieceRepository.migrateParentIds();
 };

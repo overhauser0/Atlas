@@ -224,6 +224,7 @@ export const rescheduleOverduePiecesToToday = async (c: Context) => {
 export const syncPieces = async (c: Context) => {
   try {
     const result = await syncService.syncNotionToLocal();
+    await pieceService.cleanUpOrphanedTasks();
     return c.json({ ok: 'SYNC_SUCCESS', ...result }, 200);
   } catch (error: any) {
     console.error('❌ Sync Piece Error:', error);

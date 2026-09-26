@@ -1,3 +1,5 @@
+// atlas-server/src/services/sync.service.ts
+
 import * as notionRepo from '../repositories/notion.repository';
 import * as pieceRepo from '../repositories/piece.repository';
 import * as diaryRepo from '../repositories/diary.repository';
@@ -6,14 +8,12 @@ import { extractParentIdFromNotionUrl } from '../utils/utils';
 import { DbPiece } from '../models/piece.model';
 import { broadcast } from '../utils/websocket';
 
-// 最終同期時刻を取得する関数
+/** Notionの最終同期時刻を取得する。 */
 export const getLastSyncTime = async () => {
   return await metadataRepo.getLastSyncTimeByKey('last_notion_sync_time');
 };
 
-/**
- * Notionの全データを取得し、ローカルのPostgresキャッシュを最新状態にする
- */
+/** Notionの全データを取得し、ローカルキャッシュを更新する。 */
 export const syncNotionToLocal = async () => {
   // 0. 連続同期のガード（前回の同期から60秒以内ならスキップ）
   const lastSyncStr = await metadataRepo.getLastSyncTimeByKey(
@@ -23,7 +23,6 @@ export const syncNotionToLocal = async () => {
   const now = new Date();
 
   if (now.getTime() - lastSyncDate.getTime() < 60000) {
-    console.log('Sync skipped: Synced less than 60 seconds ago.');
     return;
   }
 
@@ -84,18 +83,14 @@ export const syncNotionToLocal = async () => {
   };
 };
 
-// ==========================================
-// Diary 同期関連の操作
-// ==========================================
+// Diary synchronization
 
-// 日記の最終同期時刻を取得する関数
+/** 日記の最終同期時刻を取得する。 */
 export const getLastDiarySyncTime = async () => {
   return await metadataRepo.getLastSyncTimeByKey('last_diary_sync_time');
 };
 
-/**
- * Notionから日記データを取得し、ローカルのPostgresキャッシュを最新状態にする
- */
+/** Notionから日記データを取得し、ローカルキャッシュを更新する。 */
 export const syncDiariesNotionToLocal = async () => {
   try {
     // 1. 前回の同期時刻を取得 (差分同期用)

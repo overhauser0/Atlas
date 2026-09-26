@@ -138,6 +138,25 @@ export default function Home() {
     return [...tasks, ...completedTasks, ...wrapperTasks];
   }, [tasks, completedTasks, wrapperTasks]);
 
+  const subTaskMap = useMemo(() => {
+    const map: Record<string, { total: number; done: number }> = {};
+
+    allTasks.forEach((task) => {
+      if (task.parent_id) {
+        if (!map[task.parent_id]) {
+          map[task.parent_id] = { total: 0, done: 0 };
+        }
+
+        map[task.parent_id].total += 1;
+        if (task.status === 'Done') {
+          map[task.parent_id].done += 1;
+        }
+      }
+    });
+
+    return map;
+  }, [allTasks]);
+
   const currentSubTasks = useMemo(() => {
     if (!projectModalConfig.parentTask?.id) return [];
     return allTasks.filter(
@@ -199,13 +218,6 @@ export default function Home() {
       parentTask: task,
     });
     closeTaskModal();
-  };
-
-  const handleGetParentTask = (parentId: string) => {
-    return allTasks.find((t) => t.id === parentId);
-  };
-  const handleGetSubTasks = (parentId: string) => {
-    return allTasks.filter((t) => t.parent_id === parentId);
   };
 
   const handleOpenStats = useCallback((date: Date) => {
@@ -480,6 +492,7 @@ export default function Home() {
             <HomeView
               tasks={tasks}
               completedTasks={completedTasks}
+              subTaskMap={subTaskMap}
               openTaskModal={(task) => openTaskModal(task)}
               onOpenStats={() => handleOpenStats(new Date())}
             />
@@ -488,6 +501,7 @@ export default function Home() {
             <WeeklyView
               appSettings={appSettings}
               tasks={tasks}
+              subTaskMap={subTaskMap}
               loading={isTasksLoading}
               setTasks={setTasks}
               openTaskModal={(task) => openTaskModal(task)}
@@ -499,6 +513,7 @@ export default function Home() {
           {currentView === 'kanban' && (
             <KanbanView
               tasks={tasks}
+              subTaskMap={subTaskMap}
               loading={isTasksLoading}
               setTasks={setTasks}
               openTaskModal={(task) => openTaskModal(task)}
@@ -595,6 +610,7 @@ export default function Home() {
             isOpen={taskModalConfig.isOpen}
             mode={taskModalConfig.mode}
             task={taskModalConfig.task}
+            subTaskMap={subTaskMap}
             onClose={closeTaskModal}
             onSave={handleSaveTaskWithCheck}
             onSuccess={() => fetchTasks(true)}
@@ -603,8 +619,7 @@ export default function Home() {
             onSendToPC={hasExtension ? handleSendToPC : undefined}
             onShowContent={fetchBlocks}
             onOpenProjectModal={(task) => openProjectModal(task)}
-            getParentTask={(parentId) => handleGetParentTask(parentId)}
-            getSubTasks={(parentId) => handleGetSubTasks(parentId)}
+            /*getSubTasks={(parentId) => handleGetSubTasks(parentId)}*/
             openTaskModal={(task) => openTaskModal(task)}
             handleGleisLink={(url, callback) => handleGleisLink(url, callback)}
             allTasks={allTasks}

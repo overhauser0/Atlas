@@ -1,7 +1,13 @@
 'use client';
 import React, { useMemo, useState, useEffect } from 'react';
 import { Task } from '@/types';
-import { ArrowRight, ExternalLink, HardDrive, Award } from 'lucide-react';
+import {
+  ArrowRight,
+  ExternalLink,
+  HardDrive,
+  Award,
+  ListChecks,
+} from 'lucide-react';
 import {
   getStatusColor,
   sortTasksByStatus,
@@ -14,6 +20,7 @@ import Card from '@/components/ui/Card';
 
 interface HomeViewProps {
   tasks: Task[];
+  subTaskMap: Record<string, { total: number; done: number }>;
   openTaskModal: (task?: Partial<Task>) => void;
   completedTasks: Task[];
   onOpenStats: () => void;
@@ -21,6 +28,7 @@ interface HomeViewProps {
 
 export default function HomeView({
   tasks,
+  subTaskMap,
   completedTasks,
   openTaskModal,
   onOpenStats,
@@ -140,42 +148,66 @@ export default function HomeView({
               No tasks for this day. Take a rest!
             </div>
           ) : (
-            sortedTargetTasks.map((task) => (
-              <Card
-                key={task.id}
-                size="sm"
-                hoverable
-                onClick={() => openTaskModal(task)}
-                className="flex items-center justify-between group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`noir-dot ${getStatusColor(task.status)}`} />
-                  <div className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">
-                    {task.title}
-                    {task.source === 'LOCAL' && (
-                      <HardDrive className="w-4 h-4 inline-block ml-2 text-white/20 group-hover:text-white/40 transition-colors align-text-bottom" />
-                    )}
+            sortedTargetTasks.map((task) => {
+              const countData = subTaskMap[task.id];
+              const isAllDone =
+                countData &&
+                countData.total > 0 &&
+                countData.done === countData.total;
+              return (
+                <Card
+                  key={task.id}
+                  size="sm"
+                  hoverable
+                  onClick={() => openTaskModal(task)}
+                  className="flex items-center justify-between group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`noir-dot ${getStatusColor(task.status)}`}
+                    />
+                    <div className="text-base font-medium text-gray-200 group-hover:text-white transition-colors">
+                      {task.title}
+                      {task.source === 'LOCAL' && (
+                        <HardDrive className="w-4 h-4 inline-block ml-2 text-white/20 group-hover:text-white/40 transition-colors align-text-bottom" />
+                      )}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-1 md:gap-2">
-                  {task.source === 'NOTION' && (
-                    <a
-                      href={getNotionLinkById(task.id)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
-                    >
-                      <ExternalLink className="w-5 h-5" />
-                    </a>
-                  )}
-                  <div className="p-2">
-                    <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:-translate-x-2 group-hover:translate-x-0" />
+                  <div className="flex items-center gap-1 md:gap-2">
+                    {task.source === 'NOTION' && (
+                      <a
+                        href={getNotionLinkById(task.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
+                    )}
+                    {countData && (
+                      <div
+                        className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
+                          isAllDone
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                            : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                        }`}
+                        title="Subtasks progress"
+                      >
+                        <ListChecks className="w-3 h-3" />
+                        <span>
+                          {countData.done}/{countData.total}
+                        </span>
+                      </div>
+                    )}
+                    <div className="p-2">
+                      <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:-translate-x-2 group-hover:translate-x-0" />
+                    </div>
                   </div>
-                </div>
-              </Card>
-            ))
+                </Card>
+              );
+            })
           )}
         </div>
       </section>

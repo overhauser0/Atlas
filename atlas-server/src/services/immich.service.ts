@@ -1,4 +1,5 @@
-// src/services/immich.service.ts
+// atlas-server/src/services/immich.service.ts
+
 import * as immichRepository from '../repositories/immich.repository';
 
 const IMMICH_API_URL =
@@ -41,7 +42,7 @@ const getDateFullString = (
   }
 };
 
-// 共通で自分を特定するためのヘルパー
+/** Immich APIから現在ユーザーを取得する。 */
 async function getMyUserId() {
   const meRes = await fetch(`${IMMICH_API_URL}/users/me`, {
     headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
@@ -50,13 +51,12 @@ async function getMyUserId() {
   return (await meRes.json()) as any;
 }
 
+/** Immichから統計を取得し、キャッシュを更新する。 */
 export async function syncImmichStatsCache() {
   try {
     // 1. 自分のユーザー情報を取得
     const me = await getMyUserId();
     const myUserId = me.id;
-
-    console.log(`👤 Authenticated User: ${me.name} (${myUserId})`);
 
     // 2. 基本統計の取得 (/server/statistics)
     const statsRes = await fetch(`${IMMICH_API_URL}/server/statistics`, {
@@ -86,7 +86,6 @@ export async function syncImmichStatsCache() {
     let page = 1;
     const pageSize = 1000;
     const maxPages = 50;
-    let totalParsed = 0;
 
     while (page <= maxPages) {
       const searchRes = await fetch(`${IMMICH_API_URL}/search/metadata`, {
@@ -116,8 +115,6 @@ export async function syncImmichStatsCache() {
       }
 
       if (items.length === 0) break;
-
-      totalParsed += items.length;
 
       // EXIF & 撮影日解析
       for (const asset of items) {
@@ -168,10 +165,6 @@ export async function syncImmichStatsCache() {
       page++;
     }
 
-    console.log(
-      `📊 Filtered by User (${me.name}): ${totalParsed} assets parsed.`,
-    );
-
     const formatTop10 = (obj: Record<string, number>) => {
       return Object.entries(obj)
         .sort((a, b) => b[1] - a[1])
@@ -214,6 +207,7 @@ export async function syncImmichStatsCache() {
   }
 }
 
+/** キャッシュ済みのImmich統計を取得する。 */
 export async function getImmichStatsFromCache() {
   const cached = await immichRepository.getImmichCacheFromDb('stats');
 
@@ -226,9 +220,7 @@ export async function getImmichStatsFromCache() {
     : cached.data;
 }
 
-/**
- * 撮影日時が欠損しているアセット（自分のもの）を取得する
- */
+/** 撮影日時が欠損しているアセットを取得する。 */
 export async function getMissingDateAssets() {
   const meRes = await fetch(`${IMMICH_API_URL}/users/me`, {
     method: 'GET',
@@ -290,10 +282,7 @@ export async function getMissingDateAssets() {
   return missingAssets;
 }
 
-/**
- * 複数アセットの撮影日時を一括更新する
- * @param updates [{ id: string, dateTimeOriginal: string (ISO 8601) }]
- */
+/** 複数アセットの撮影日時を一括更新する。 */
 export async function updateAssetsDate(
   updates: { id: string; dateTimeOriginal: string }[],
 ) {
@@ -332,9 +321,7 @@ export async function updateAssetsDate(
   return results;
 }
 
-/**
- * 【汎用検索】条件を受け取って自分のアセットを返す
- */
+/** 条件に一致する自分のアセットを検索する。 */
 export async function searchMyAssets(filters: { date?: string }) {
   const me = await getMyUserId();
   const myUserId = me.id;
@@ -389,9 +376,7 @@ export async function searchMyAssets(filters: { date?: string }) {
     }));
 }
 
-/**
- * 【画像プロキシ】フロントエンドから安全にサムネイルを取得する
- */
+/** Immichからサムネイルを取得する。 */
 export async function getThumbnailProxy(id: string) {
   return fetch(`${IMMICH_API_URL}/assets/${id}/thumbnail?size=thumbnail`, {
     method: 'GET',

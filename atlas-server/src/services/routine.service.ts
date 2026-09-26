@@ -1,3 +1,5 @@
+// atlas-server/src/services/routine.service.ts
+
 import * as routineRepository from '../repositories/routine.repository';
 import * as pieceRepository from '../repositories/piece.repository';
 import { broadcast } from '../utils/websocket';
@@ -8,28 +10,32 @@ import {
 } from '../models/routine.model';
 import { DbPiece } from '../models/piece.model';
 
+/** 条件に一致するルーチンを取得する。 */
 export const getRoutines = async (
   frequency?: string,
 ): Promise<RoutineTask[]> => {
   return await routineRepository.getAllRoutines(frequency);
 };
 
+/** 入力を検証してルーチンを作成する。 */
 export const createRoutine = async (input: unknown): Promise<RoutineTask> => {
   const validatedData = createRoutineSchema.parse(input);
   return await routineRepository.createRoutine(validatedData);
 };
 
-export const deleteRoutine = async (id: number): Promise<boolean> => {
-  return await routineRepository.deleteRoutine(id);
-};
-
+/** 入力を検証してルーチンを更新する。 */
 export const updateRoutine = async (id: number, input: unknown) => {
   const validatedData = updateRoutineSchema.parse(input);
   return await routineRepository.updateRoutine(id, validatedData);
 };
 
+/** ルーチンを削除する。 */
+export const deleteRoutine = async (id: number): Promise<boolean> => {
+  return await routineRepository.deleteRoutine(id);
+};
+
 /**
- * アクティブなルーチンタスクを作成する
+ * アクティブなルーチンからタスクを作成する。
  */
 export const generateRoutineTasks = async () => {
   const activeRoutines = await routineRepository.getAllRoutines(
@@ -58,9 +64,6 @@ export const generateRoutineTasks = async () => {
   const piecesToCreate: Partial<DbPiece>[] = [];
 
   for (const routine of activeRoutines) {
-    // --------------------------------------------------
-    // 1. Weekly Tasks
-    // --------------------------------------------------
     if (routine.frequency === 'weekly') {
       const targetDayOfWeek = routine.day_of_week ?? 1;
       const offsetFromMonday = targetDayOfWeek === 0 ? 6 : targetDayOfWeek - 1;
@@ -77,9 +80,6 @@ export const generateRoutineTasks = async () => {
         status: 'INBOX',
       });
     }
-    // --------------------------------------------------
-    // 2. Monthly Tasks
-    // --------------------------------------------------
     else if (routine.frequency === 'monthly' && isFourthMonday) {
       let dueDate = new Date(nextMonthYear, nextMonth, 1);
 
@@ -107,7 +107,6 @@ export const generateRoutineTasks = async () => {
     }
   }
 
-  // バッチ挿入を実行
   let insertedPieces = [] as any;
   if (piecesToCreate.length > 0) {
     insertedPieces = await pieceRepository.insertBatchLocalPieces(

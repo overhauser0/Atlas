@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { ExternalLink, HardDrive, Calendar } from 'lucide-react';
+import { ExternalLink, HardDrive, Calendar, ListChecks } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
@@ -13,6 +13,7 @@ const KANBAN_COLUMNS = ['INBOX', 'Waiting', 'Going', 'Done'] as const;
 
 interface Props {
   tasks: Task[];
+  subTaskMap: Record<string, { total: number; done: number }>;
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
@@ -20,6 +21,7 @@ interface Props {
 
 export default function KanbanView({
   tasks,
+  subTaskMap,
   loading,
   setTasks,
   openTaskModal,
@@ -107,62 +109,86 @@ export default function KanbanView({
                     </div>
                   )}
 
-                  {colTasks.map((task) => (
-                    <Card
-                      key={task.id}
-                      draggable
-                      onDragStart={() => setDraggingTaskId(task.id)}
-                      className={`cursor-grab active:cursor-grabbing group flex flex-col gap-3 z-10 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : ''}`}
-                    >
-                      {/* --- 1行目: ステータスドット + タイトル + Notionリンク --- */}
-                      <div className="flex items-center gap-2.5">
-                        <div className="flex items-center justify-center shrink-0">
-                          <span
-                            className={`noir-dot ${getStatusColor(task.status)}`}
-                          />
+                  {colTasks.map((task) => {
+                    const countData = subTaskMap[task.id];
+                    const isAllDone =
+                      countData &&
+                      countData.total > 0 &&
+                      countData.done === countData.total;
+                    return (
+                      <Card
+                        key={task.id}
+                        draggable
+                        onDragStart={() => setDraggingTaskId(task.id)}
+                        className={`cursor-grab active:cursor-grabbing group flex flex-col gap-3 z-10 ${draggingTaskId === task.id ? 'opacity-30 scale-95' : ''}`}
+                      >
+                        {/* --- 1行目: ステータスドット + タイトル + Notionリンク --- */}
+                        <div className="flex items-center gap-2.5">
+                          <div className="flex items-center justify-center shrink-0">
+                            <span
+                              className={`noir-dot ${getStatusColor(task.status)}`}
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium leading-snug truncate">
+                              {task.title}
+                            </p>
+                          </div>
+                          {task.source === 'NOTION' && (
+                            <a
+                              href={getNotionLinkById(task.id)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={(e) => e.stopPropagation()}
+                              className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </a>
+                          )}
+                          {task.source === 'LOCAL' && (
+                            <span
+                              className="rounded-lg text-gray-500 p-1.5 shrink-0"
+                              title="Local Task"
+                            >
+                              <HardDrive className="w-4 h-4" />
+                            </span>
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium leading-snug truncate">
-                            {task.title}
-                          </p>
-                        </div>
-                        {task.source === 'NOTION' && (
-                          <a
-                            href={getNotionLinkById(task.id)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white"
-                          >
-                            <ExternalLink className="w-4 h-4" />
-                          </a>
-                        )}
-                        {task.source === 'LOCAL' && (
-                          <span
-                            className="rounded-lg text-gray-500 p-1.5 shrink-0"
-                            title="Local Task"
-                          >
-                            <HardDrive className="w-4 h-4" />
-                          </span>
-                        )}
-                      </div>
 
-                      {/* --- 2行目: 日付 + Detailボタン --- */}
-                      <div className="flex items-center justify-between mt-auto h-6">
-                        <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
-                          <Calendar className="w-3 h-3" />
-                          <span>{getDateShortString(task.date)}</span>
-                        </div>
+                        {/* --- 2行目: 日付 + Detailボタン --- */}
+                        <div className="flex items-center justify-between mt-auto h-6">
+                          <div className="flex gap-1.5">
+                            <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                              <Calendar className="w-3 h-3" />
+                              <span>{getDateShortString(task.date)}</span>
+                            </div>
+                            {countData && (
+                              <div
+                                className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
+                                  isAllDone
+                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+                                    : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
+                                }`}
+                                title="Subtasks progress"
+                              >
+                                <ListChecks className="w-3 h-3" />
+                                <span>
+                                  {countData.done}/{countData.total}
+                                </span>
+                              </div>
+                            )}
+                          </div>
 
-                        <button
-                          onClick={() => openTaskModal(task)}
-                          className="shrink-0 text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
-                        >
-                          Detail
-                        </button>
-                      </div>
-                    </Card>
-                  ))}
+                          <button
+                            onClick={() => openTaskModal(task)}
+                            className="shrink-0 text-[10px] font-medium uppercase px-2 py-1 rounded bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white"
+                          >
+                            Detail
+                          </button>
+                        </div>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
             );

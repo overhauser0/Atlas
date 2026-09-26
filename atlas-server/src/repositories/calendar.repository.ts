@@ -1,5 +1,17 @@
+// atlas-server/src/repositories/calendar.repository.ts
+
 import { db } from '../db/client';
 
+/** Google Calendarのイベントを取得する。 */
+export const getGoogleEvents = async () => {
+  return await db
+    .selectFrom('google_events')
+    .selectAll()
+    .orderBy('date', 'asc')
+    .execute();
+};
+
+/** Google Calendarのイベントを追加または更新する。 */
 export const upsertGoogleEvents = async (events: any[]) => {
   if (!events || events.length === 0) return;
 
@@ -27,14 +39,7 @@ export const upsertGoogleEvents = async (events: any[]) => {
     .execute();
 };
 
-export const getGoogleEvents = async () => {
-  return await db
-    .selectFrom('google_events')
-    .selectAll()
-    .orderBy('date', 'asc')
-    .execute();
-};
-
+/** Google Calendarのイベントを同期し、不要なイベントを削除する。 */
 export const syncGoogleEvents = async (events: any[]) => {
   if (!events || events.length === 0) {
     return;

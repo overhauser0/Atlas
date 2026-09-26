@@ -33,6 +33,7 @@ interface TaskModalProps {
   mode: 'create' | 'edit';
   task: Partial<Task> | null;
   allTasks: Task[];
+  subTaskMap: Record<string, { total: number; done: number }>;
   onClose: () => void;
   onSave: (taskId: string | null, payload: any) => Promise<void>;
   onSuccess: () => void;
@@ -41,8 +42,7 @@ interface TaskModalProps {
   onSendToPC?: (url: string) => void;
   onShowContent: (id: string) => Promise<any[]>;
   onOpenProjectModal: (task: Partial<Task>) => void;
-  getParentTask: (parentId: string) => Task | undefined;
-  getSubTasks: (parentId: string) => Task[] | undefined;
+  /*getSubTasks: (parentId: string) => Task[] | undefined;*/
   openTaskModal: (task: Task) => void;
   handleGleisLink: (url: string, callback?: Function) => void;
 }
@@ -52,6 +52,7 @@ export default function TaskModal({
   mode,
   task,
   allTasks,
+  subTaskMap,
   onClose,
   onSave,
   onSuccess,
@@ -60,8 +61,7 @@ export default function TaskModal({
   onSendToPC,
   onShowContent,
   onOpenProjectModal,
-  getParentTask,
-  getSubTasks,
+  /*getSubTasks,*/
   openTaskModal,
   handleGleisLink,
 }: TaskModalProps) {
@@ -116,7 +116,7 @@ export default function TaskModal({
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   // サブタスク
-  const [subTasks, setSubTasks] = useState<Task[]>([]);
+  //const [subTasks, setSubTasks] = useState<Task[]>([]);
   const [parentTask, setParentTask] = useState<Task | null>(null);
 
   useEffect(() => {
@@ -138,15 +138,15 @@ export default function TaskModal({
       if ((task?.title || '') === '') focusTitleInput();
 
       if (mode === 'edit' && task?.id) {
-        setSubTasks(getSubTasks(task.id) || []);
+        //setSubTasks(getSubTasks(task.id) || []);
         if (task.parent_id) {
-          setParentTask(getParentTask(task.parent_id) || null);
+          //setParentTask(getParentTask(task.parent_id) || null);
         } else {
-          setParentTask(null);
+          //setParentTask(null);
         }
       } else {
-        setSubTasks([]);
-        setParentTask(null);
+        //setSubTasks([]);
+        //setParentTask(null);
       }
     }
     setIsMoreMenuOpen(false);
@@ -414,7 +414,11 @@ export default function TaskModal({
   const currentParentTask = editForm.parent_id
     ? allTasks.find((t) => t.id === editForm.parent_id)
     : null;
-  const completedCount = subTasks.filter((t) => t.status === 'Done').length;
+  //const completedCount = subTasks.filter((t) => t.status === 'Done').length;
+
+  const countData = task?.id ? subTaskMap[task.id] : null;
+  const completedCount = countData?.done || 0;
+  const totalCount = countData?.total || 0;
 
   // プロジェクト検索用フィルタ（自分自身は除外）
   const filteredPossibleParents = allTasks.filter((t) => {
@@ -747,15 +751,15 @@ export default function TaskModal({
                   {task?.parent_id ? 'Sub Tasks' : 'Project Workspace'}
                 </div>
 
-                {subTasks.length > 0 ? (
+                {totalCount > 0 ? (
                   <div
                     className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
-                      completedCount === subTasks.length
+                      completedCount === totalCount
                         ? 'bg-emerald-500/20 text-emerald-400'
                         : 'bg-black/30 text-zinc-400 group-hover:text-zinc-300'
                     }`}
                   >
-                    {completedCount} / {subTasks.length} Done
+                    {completedCount} / {totalCount} Done
                   </div>
                 ) : (
                   <div className="text-xs font-medium text-zinc-500 bg-white/5 px-2 py-1 rounded group-hover:bg-white/10 transition-colors">

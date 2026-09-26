@@ -77,88 +77,97 @@ export default function ReviewView() {
               {/* 2. 左ペイン (メインコンテンツ: Monthly & Weekly) */}
               <div className="flex-1 w-full space-y-6">
                 {/* Monthly Focus */}
-                <section className="noir-glass p-6 rounded-2xl border border-white/10 space-y-6">
-                  <div className="flex justify-between items-center">
+                <section className="noir-glass rounded-2xl border border-white/10">
+                  <div className="px-6 py-4 border-b border-white/10 bg-white/2">
                     <h3 className="text-xs font-bold text-gray-500 uppercase">
                       Monthly Focus
                     </h3>
                   </div>
-                  <div className="space-y-4">
+                  <div className="divide-y divide-white/5">
                     {/* Business Goal */}
-                    <div className="group">
-                      <h4 className="text-[10px] font-bold text-neon uppercase mb-1">
-                        Business Goal
-                      </h4>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-gray-300">
-                          {data.monthly?.business || '-'}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setEditing({
-                              isOpen: true,
-                              pageId: data.monthly.id,
-                              propName: 'Business',
-                              title: 'Business Goal',
-                              value: data.monthly?.business || '',
-                            })
-                          }
-                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
+                    <div className="p-6 flex gap-4 transition-all group hover:bg-white/2">
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase">
+                          Business Goal
+                        </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-gray-300">
+                            {data.monthly?.business || '-'}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setEditing({
+                                isOpen: true,
+                                pageId: data.monthly.id,
+                                propName: 'Business',
+                                title: 'Business Goal',
+                                value: data.monthly?.business || '',
+                              })
+                            }
+                            aria-label="Edit Business Goal"
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Life Goal */}
-                    <div className="group">
-                      <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">
-                        Life Goal
-                      </h4>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-gray-300">
-                          {data.monthly?.life || '-'}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setEditing({
-                              isOpen: true,
-                              pageId: data.monthly.id,
-                              propName: 'Life',
-                              title: 'Life Goal',
-                              value: data.monthly?.life || '',
-                            })
-                          }
-                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
+                    <div className="p-6 flex gap-4 transition-all group hover:bg-white/2">
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-[10px] font-bold text-gray-500 uppercase">
+                          Life Goal
+                        </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-gray-300">
+                            {data.monthly?.life || '-'}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setEditing({
+                                isOpen: true,
+                                pageId: data.monthly.id,
+                                propName: 'Life',
+                                title: 'Life Goal',
+                                value: data.monthly?.life || '',
+                              })
+                            }
+                            aria-label="Edit Life Goal"
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
 
                     {/* Summary */}
-                    <div className="group">
-                      <h4 className="text-[10px] font-bold text-gray-500 uppercase mb-1">
-                        Summary
-                      </h4>
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm text-gray-300 italic">
-                          {data.monthly?.summary || '-'}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setEditing({
-                              isOpen: true,
-                              pageId: data.monthly.id,
-                              propName: 'Summary',
-                              title: 'Monthly Summary',
-                              value: data.monthly?.summary || '',
-                            })
-                          }
-                          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 text-gray-500 hover:text-neon"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </button>
+                    <div className="p-6 flex gap-4 transition-all group hover:bg-white/2">
+                      <div className="flex-1 space-y-1">
+                        <h4 className="text-[10px] font-bold text-neon uppercase">
+                          Summary
+                        </h4>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm text-gray-300 italic">
+                            {data.monthly?.summary || '-'}
+                          </p>
+                          <button
+                            onClick={() =>
+                              setEditing({
+                                isOpen: true,
+                                pageId: data.monthly.id,
+                                propName: 'Summary',
+                                title: 'Monthly Summary',
+                                value: data.monthly?.summary || '',
+                              })
+                            }
+                            aria-label="Edit Monthly Summary"
+                            className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity text-gray-500 hover:text-neon self-start mt-1"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

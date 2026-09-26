@@ -1,3 +1,5 @@
+// atlas-server/src/repositories/notion.repository.ts
+
 import { Client } from '@notionhq/client';
 import { DbPiece, UpdatePieceInput } from '../models/piece.model';
 import {
@@ -6,9 +8,7 @@ import {
   DiaryTable,
 } from '../models/diary.model';
 
-// ==========================================
-// 1. 接続・環境設定
-// ==========================================
+// Notion API configuration
 
 const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
 const NOTION_PIECE_DS_ID = process.env.NOTION_PIECE_DS_ID!;
@@ -16,10 +16,9 @@ const NOTION_MONTHLY_DS_ID = process.env.NOTION_MONTHLY_DS_ID!;
 const NOTION_WEEKLY_DS_ID = process.env.NOTION_WEEKLY_DS_ID!;
 const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
 
-// ==========================================
-// 2. Piece (Task/LifeLog) 関連の操作
-// ==========================================
+// Piece operations
 
+/** Notionの Piece ページをすべて取得する。 */
 export const getPiecePages = async () => {
   let allPages: any[] = [];
   let hasMore = true;
@@ -41,6 +40,7 @@ export const getPiecePages = async () => {
   return allPages;
 };
 
+/** Notionに Piece ページを作成する。 */
 export const insertPiecePage = async (piece: DbPiece) => {
   const properties: any = {
     Name: { title: [{ text: { content: piece.title } }] },
@@ -83,10 +83,7 @@ export const insertPiecePage = async (piece: DbPiece) => {
   });
 };
 
-/**
- * [Update] Notionの既存Pieceページを更新する
- * 💡 Partial<CreatePieceInput> の代わりに UpdatePieceInput を使用
- */
+/** Notionの既存 Piece ページを更新する。 */
 export const updatePiecePage = async (
   pageId: string,
   piece: UpdatePieceInput,
@@ -123,9 +120,11 @@ export const updatePiecePage = async (
       multi_select: piece.fkw.map((f) => ({ name: f })),
     };
   }
-  if (piece.parent_id != undefined) {
+  if (piece.parent_id !== undefined) {
     properties.parent_id = {
-      rich_text: [{ text: { content: piece.parent_id } }],
+      rich_text: piece.parent_id
+        ? [{ text: { content: piece.parent_id } }]
+        : [],
     };
   }
 
@@ -142,10 +141,9 @@ export const archivePiecePage = async (pageId: string) => {
   });
 };
 
-// ==========================================
-// 3. Blocks (ページ本文) 関連の操作
-// ==========================================
+// Block operations
 
+/** Notionページの本文ブロックをすべて取得する。 */
 export const getPageBlocks = async (pageId: string) => {
   let allBlocks: any[] = [];
   let cursor: string | undefined = undefined;
@@ -165,10 +163,9 @@ export const getPageBlocks = async (pageId: string) => {
   return allBlocks;
 };
 
-// ==========================================
-// 4. Review (Monthly / Weekly) 関連の操作
-// ==========================================
+// Review operations
 
+/** 指定した月の Monthly ページを取得する。 */
 export const getMonthlyPage = async (yearMonth: string) => {
   const res = await notionClient.dataSources.query({
     data_source_id: NOTION_MONTHLY_DS_ID,
@@ -177,6 +174,7 @@ export const getMonthlyPage = async (yearMonth: string) => {
   return res.results.length > 0 ? res.results[0] : null;
 };
 
+/** Monthly ページを作成する。 */
 export const insertMonthlyPage = async (
   yearMonth: string,
   startDate: string,
@@ -190,6 +188,7 @@ export const insertMonthlyPage = async (
   });
 };
 
+/** 指定した週の Weekly ページを取得する。 */
 export const getWeeklyPage = async (weekName: string) => {
   const res = await notionClient.dataSources.query({
     data_source_id: NOTION_WEEKLY_DS_ID,
@@ -198,6 +197,7 @@ export const getWeeklyPage = async (weekName: string) => {
   return res.results.length > 0 ? res.results[0] : null;
 };
 
+/** Weekly ページを作成する。 */
 export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   return await notionClient.pages.create({
     parent: { data_source_id: NOTION_WEEKLY_DS_ID },
@@ -208,6 +208,7 @@ export const insertWeeklyPage = async (weekName: string, startDate: string) => {
   });
 };
 
+/** Notionページのテキストプロパティを更新する。 */
 export const updatePageTextProperty = async (
   pageId: string,
   propertyName: string,
@@ -221,9 +222,7 @@ export const updatePageTextProperty = async (
   });
 };
 
-// ==========================================
-// 5. Diary 関連の操作
-// ==========================================
+// Diary operations
 
 export const getDiaryPages = async (
   lastSyncTime?: Date,
@@ -269,10 +268,7 @@ export const getDiaryPages = async (
   });
 };
 
-/**
- * [Update] Notionの既存Diaryページを更新する
- * 💡 DbDiary 依存を解消し UpdateDiaryInput を使用
- */
+/** Notionの既存 Diary ページを更新する。 */
 export const updateDiaryPage = async (
   pageId: string,
   diary: UpdateDiaryInput,
@@ -298,10 +294,7 @@ export const updateDiaryPage = async (
   });
 };
 
-/**
- * [Create] NotionのDiaryデータベースに新しいページを作成する
- * 💡 CreateDiaryInput を使用
- */
+/** Notionの Diary ページを作成する。 */
 export const insertDiaryPage = async (diary: CreateDiaryInput) => {
   const properties: any = {
     Name: { title: [{ text: { content: diary.name } }] },

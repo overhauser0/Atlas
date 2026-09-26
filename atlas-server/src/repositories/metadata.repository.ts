@@ -1,5 +1,8 @@
+// atlas-server/src/repositories/metadata.repository.ts
+
 import { db } from '../db/client';
 
+/** キーに紐づく最終同期時刻を取得する。 */
 export const getLastSyncTimeByKey = async (key: string): Promise<string> => {
   const record = await db
     .selectFrom('app_metadata')
@@ -10,6 +13,7 @@ export const getLastSyncTimeByKey = async (key: string): Promise<string> => {
   return record?.value || '1970-01-01T00:00:00Z';
 };
 
+/** キーに紐づく最終同期時刻を保存する。 */
 export const updateSyncTimeByKey = async (key: string, nowISO: string) => {
   await db
     .insertInto('app_metadata')
@@ -26,7 +30,7 @@ export const updateSyncTimeByKey = async (key: string, nowISO: string) => {
     .execute();
 };
 
-// 互換性のためのラッパー関数
+/** 既存の同期処理向けの互換ラッパー。 */
 export const getLastNotionSyncTime = () =>
   getLastSyncTimeByKey('last_notion_sync_time');
 export const updateLastNotionSyncTime = (nowISO: string) =>

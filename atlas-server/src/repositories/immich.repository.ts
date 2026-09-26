@@ -1,7 +1,9 @@
-// src/repositories/immich.repository.ts
+// atlas-server/src/repositories/immich.repository.ts
+
 import { db } from '../db/client';
 import { ImmichStatsData } from '../models/immich.model';
 
+/** Immichのキャッシュを取得する。 */
 export const getImmichCacheFromDb = async (key: string = 'stats') => {
   const result = await db
     .selectFrom('immich_cache')
@@ -12,7 +14,7 @@ export const getImmichCacheFromDb = async (key: string = 'stats') => {
   return result || null;
 };
 
-// 引数データに Zod から生成した型 `ImmichStatsData` を指定
+/** Immichの統計キャッシュを追加または更新する。 */
 export const upsertImmichCacheToDb = async (
   key: string = 'stats',
   data: ImmichStatsData,

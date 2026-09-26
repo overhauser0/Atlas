@@ -1,4 +1,4 @@
-// src/repository/piece.repository.ts
+// atlas-server/src/repositories/piece.repository.ts
 
 import { db } from '../db/client';
 import {
@@ -7,6 +7,7 @@ import {
   DbPiece,
 } from '../models/piece.model';
 import { extractParentIdFromNotionUrl } from '../utils/utils';
+import { sql } from 'kysely';
 
 export interface PieceFilters {
   area?: string;
@@ -20,6 +21,7 @@ export interface PieceFilters {
   parentId?: string;
 }
 
+/** 条件に一致する Piece を NotionキャッシュとローカルDBから取得する。 */
 export const getPieces = async (filters: PieceFilters) => {
   const applyCommonFilters = (qb: any) => {
     let q = qb;
@@ -72,6 +74,7 @@ export const getPieces = async (filters: PieceFilters) => {
   return combined.sort((a, b) => pickDate(b) - pickDate(a));
 };
 
+/** IDで Piece を取得する。 */
 export const getPieceById = async (id: string) => {
   const local = await db
     .selectFrom('local_pieces')
@@ -90,6 +93,7 @@ export const getPieceById = async (id: string) => {
   return null;
 };
 
+/** Notion由来の Piece キャッシュを追加または更新する。 */
 export const upsertNotionPieceCache = async (
   piece: DbPiece,
   lastEditedTime: Date,
@@ -110,6 +114,7 @@ export const upsertNotionPieceCache = async (
   return upsertedPiece;
 };
 
+/** Notion由来の Piece キャッシュを更新する。 */
 export const updateNotionPieceCache = async (
   id: string,
   updates: UpdatePieceInput,
@@ -130,6 +135,7 @@ export const updateNotionPieceCache = async (
   return updatedPiece;
 };
 
+/** 同期対象から外れた Notionキャッシュを削除する。 */
 export const deleteStaleNotionCache = async (activeIds: string[]) => {
   if (activeIds.length === 0) return;
   return await db
@@ -138,6 +144,7 @@ export const deleteStaleNotionCache = async (activeIds: string[]) => {
     .execute();
 };
 
+/** Notion由来の Piece キャッシュを削除する。 */
 export const deleteNotionPieceCache = async (id: string) => {
   return await db
     .deleteFrom('notion_pieces_cache')
@@ -145,6 +152,7 @@ export const deleteNotionPieceCache = async (id: string) => {
     .executeTakeFirst();
 };
 
+/** ローカル Piece を作成する。 */
 export const insertLocalPiece = async (dbPiece: DbPiece) => {
   const insertedPiece = await db
     .insertInto('local_pieces')
@@ -157,7 +165,7 @@ export const insertLocalPiece = async (dbPiece: DbPiece) => {
 };
 
 /**
- * 複数の Piece (LOCAL) を一括でデータベースに挿入する
+ * 複数のローカル Piece を一括で作成する。
  */
 export const insertBatchLocalPieces = async (dbPieces: DbPiece[]) => {
   if (dbPieces.length === 0) return [];
@@ -174,6 +182,7 @@ export const insertBatchLocalPieces = async (dbPieces: DbPiece[]) => {
   }));
 };
 
+/** ローカル Piece を更新する。 */
 export const updateLocalPiece = async (
   id: string,
   updates: UpdatePieceInput,
@@ -189,6 +198,7 @@ export const updateLocalPiece = async (
   return updatedPiece;
 };
 
+/** ローカル Piece を削除する。 */
 export const deleteLocalPiece = async (id: string) => {
   return await db
     .deleteFrom('local_pieces')
@@ -196,6 +206,7 @@ export const deleteLocalPiece = async (id: string) => {
     .executeTakeFirst();
 };
 
+/** 60日より前に完了したローカル Piece を削除する。 */
 export const deleteOldDoneLocalPieces = async () => {
   const thresholdDate = new Date();
   thresholdDate.setDate(thresholdDate.getDate() - 60);
@@ -216,6 +227,99 @@ export const deleteOldDoneLocalPieces = async () => {
     .where('date', '<', thresholdDateStr)
     .execute();
 };
+
+/**
+ * 親が存在しない Piece のIDを取得する。
+ */
+export async function findOrphanedPieces(): Promise<{
+  local: string[];
+  notion: string[];
+}> {
+  const localOrphans = await db
+    .selectFrom('local_pieces as child')
+    .select('child.id')
+    .where('child.parent_id', 'is not', null)
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom('local_pieces as p1').where(
+            sql`p1.id::text`,
+            '=',
+            sql`child.parent_id::text`,
+          ),
+        ),
+      ),
+    )
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom('notion_pieces_cache as p2').where(
+            sql`p2.id::text`,
+            '=',
+            sql`child.parent_id::text`,
+          ),
+        ),
+      ),
+    )
+    .execute();
+
+  const notionOrphans = await db
+    .selectFrom('notion_pieces_cache as child')
+    .select('child.id')
+    .where('child.parent_id', 'is not', null)
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom('local_pieces as p1').where(
+            sql`p1.id::text`,
+            '=',
+            sql`child.parent_id::text`,
+          ),
+        ),
+      ),
+    )
+    .where(({ not, exists, selectFrom }) =>
+      not(
+        exists(
+          selectFrom('notion_pieces_cache as p2').where(
+            sql`p2.id::text`,
+            '=',
+            sql`child.parent_id::text`,
+          ),
+        ),
+      ),
+    )
+    .execute();
+
+  return {
+    local: localOrphans.map((o) => o.id),
+    notion: notionOrphans.map((o) => o.id),
+  };
+}
+
+/**
+ * 指定された Piece の parent_id をDB上で null にする。
+ */
+export async function clearParentIds(
+  localIds: string[],
+  notionIds: string[],
+): Promise<void> {
+  if (localIds.length > 0) {
+    await db
+      .updateTable('local_pieces')
+      .set({ parent_id: null })
+      .where('id', 'in', localIds)
+      .execute();
+  }
+
+  if (notionIds.length > 0) {
+    await db
+      .updateTable('notion_pieces_cache')
+      .set({ parent_id: null })
+      .where('id', 'in', notionIds)
+      .execute();
+  }
+}
 
 export async function migrateParentIds() {
   const piecesToUpdate = await db

@@ -1,5 +1,8 @@
+// atlas-server/src/repositories/diary.repository.ts
+
 import { db } from '../db/client';
 
+/** 日記を日付の降順で取得する。 */
 export const getDiaries = async () => {
   return await db
     .selectFrom('diaries')
@@ -8,6 +11,7 @@ export const getDiaries = async () => {
     .execute();
 };
 
+/** 日記を追加または更新する。 */
 export const upsertDiary = async (diary: any, last_edited_time: Date) => {
   const values = {
     ...diary,
@@ -24,6 +28,7 @@ export const upsertDiary = async (diary: any, last_edited_time: Date) => {
   return upsertedDiary;
 };
 
+/** 日記を更新する。 */
 export const updateDiary = async (id: string, updates: any) => {
   const dbUpdates = {
     ...updates,

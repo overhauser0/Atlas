@@ -1,5 +1,8 @@
+// atlas-server/src/repositories/note.repository.ts
+
 import { db } from '../db/client';
 
+/** ローカルノートをピン留めと更新日時の順で取得する。 */
 export const getLocalNotes = async () => {
   return await db
     .selectFrom('local_notes')
@@ -9,6 +12,7 @@ export const getLocalNotes = async () => {
     .execute();
 };
 
+/** ローカルノートを作成する。 */
 export const createLocalNote = async (data: {
   title: string;
   content?: string;
@@ -25,6 +29,7 @@ export const createLocalNote = async (data: {
     .executeTakeFirstOrThrow();
 };
 
+/** ローカルノートを更新する。 */
 export const updateLocalNote = async (
   id: string,
   data: Partial<{
@@ -45,6 +50,7 @@ export const updateLocalNote = async (
     .executeTakeFirstOrThrow();
 };
 
+/** ローカルノートを削除する。 */
 export const deleteLocalNote = async (id: string) => {
   return await db
     .deleteFrom('local_notes')

@@ -1,15 +1,17 @@
+// atlas-server/src/services/note.service.ts
+
 import * as noteRepo from '../repositories/note.repository';
 import { broadcast } from '../utils/websocket';
 
 /**
- * ノート一覧を取得
+ * ノート一覧を取得する。
  */
 export const getNotes = async () => {
   return await noteRepo.getLocalNotes();
 };
 
 /**
- * ノートを作成し、変更を通知
+ * ノートを作成し、変更を通知する。
  */
 export const createNote = async (data: {
   title: string;
@@ -18,14 +20,13 @@ export const createNote = async (data: {
 }) => {
   const result = await noteRepo.createLocalNote(data);
 
-  // スマホやPCのクライアントにリストの再取得を促す
   broadcast(JSON.stringify({ type: 'REFRESH_NOTES' }));
 
   return result;
 };
 
 /**
- * ノートを更新し、変更を通知
+ * ノートを更新し、変更を通知する。
  */
 export const updateNote = async (
   id: string,
@@ -44,7 +45,7 @@ export const updateNote = async (
 };
 
 /**
- * ノートを削除し、変更を通知
+ * ノートを削除し、変更を通知する。
  */
 export const deleteNote = async (id: string) => {
   const result = await noteRepo.deleteLocalNote(id);
