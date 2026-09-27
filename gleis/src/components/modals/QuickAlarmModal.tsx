@@ -46,8 +46,8 @@ export default function QuickAlarmModal({
       {/* 背後をクリックで閉じる（透明なレイヤー） */}
       <div className="fixed inset-0 z-70" onClick={onClose} />
 
-      {/* ポップオーバー本体：時計の真下に来るように配置 */}
-      <div className="absolute top-12 right-0 z-80 animate-in fade-in zoom-in-95 duration-200">
+      {/* ポップオーバー本体 */}
+      <div className="absolute top-0 right-0 z-80 animate-in fade-in zoom-in-95 duration-200">
         <div className="noir-glass p-2 rounded-xl border border-white/20 shadow-2xl flex items-center gap-2">
           <input
             type="time"

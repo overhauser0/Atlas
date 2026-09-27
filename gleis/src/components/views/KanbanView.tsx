@@ -1,6 +1,12 @@
 'use client';
 import { useState } from 'react';
-import { ExternalLink, HardDrive, Calendar, ListChecks } from 'lucide-react';
+import {
+  ExternalLink,
+  HardDrive,
+  Calendar,
+  ListChecks,
+  CornerDownRight,
+} from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
@@ -162,6 +168,14 @@ export default function KanbanView({
                               <Calendar className="w-3 h-3" />
                               <span>{getDateShortString(task.date)}</span>
                             </div>
+                            {task.parent_id && (
+                              <div
+                                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-orange-400/10 border-orange-400/20"
+                                title="Has Parent Project"
+                              >
+                                <CornerDownRight className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                              </div>
+                            )}
                             {countData && (
                               <div
                                 className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${

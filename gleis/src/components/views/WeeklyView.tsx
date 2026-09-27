@@ -1,6 +1,11 @@
 'use client';
 import { useState, useMemo } from 'react';
-import { ExternalLink, HardDrive, ListChecks } from 'lucide-react';
+import {
+  ExternalLink,
+  HardDrive,
+  ListChecks,
+  CornerDownRight,
+} from 'lucide-react';
 import { Task } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
@@ -255,6 +260,14 @@ export default function WeeklyView({
                         </div>
                         <div className="flex items-center justify-between mt-auto h-6">
                           <div className="flex flex-wrap items-center gap-1.5 overflow-hidden">
+                            {task.parent_id && (
+                              <div
+                                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-orange-400/10 border-orange-400/20"
+                                title="Has Parent Project"
+                              >
+                                <CornerDownRight className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                              </div>
+                            )}
                             {countData && (
                               <div
                                 className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${

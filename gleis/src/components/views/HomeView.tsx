@@ -7,6 +7,7 @@ import {
   HardDrive,
   Award,
   ListChecks,
+  CornerDownRight,
 } from 'lucide-react';
 import {
   getStatusColor,
@@ -175,16 +176,13 @@ export default function HomeView({
                   </div>
 
                   <div className="flex items-center gap-1 md:gap-2">
-                    {task.source === 'NOTION' && (
-                      <a
-                        href={getNotionLinkById(task.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
+                    {task.parent_id && (
+                      <div
+                        className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-orange-400/10 border-orange-400/20"
+                        title="Has Parent Project"
                       >
-                        <ExternalLink className="w-5 h-5" />
-                      </a>
+                        <CornerDownRight className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                      </div>
                     )}
                     {countData && (
                       <div
@@ -200,6 +198,17 @@ export default function HomeView({
                           {countData.done}/{countData.total}
                         </span>
                       </div>
+                    )}
+                    {task.source === 'NOTION' && (
+                      <a
+                        href={getNotionLinkById(task.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
+                      >
+                        <ExternalLink className="w-5 h-5" />
+                      </a>
                     )}
                     <div className="p-2">
                       <ArrowRight className="w-5 h-5 text-gray-600 group-hover:text-neon transition-all md:-translate-x-2 group-hover:translate-x-0" />
