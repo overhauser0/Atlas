@@ -61,10 +61,10 @@ services:
       NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
     #command: npm run dev #開発モードではこのコマンドをオーバーライドする
-    volumes:
-      #  - ./gleis:/app #開発モードにするときはマウントする
-      - /app/node_modules
-      - /app/.next
+    #volumes:
+    #- ./gleis:/app #開発モードにするときはマウントする
+    #- /app/node_modules
+    #- /app/.next
     ports:
       - '5676:5676'
     depends_on:
@@ -72,7 +72,12 @@ services:
     networks:
       - atlas-net
   trails:
-    build: ./trails
+    build:
+      context: ./trails
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}
+        - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
     container_name: trails
     restart: always
     environment:
@@ -80,9 +85,9 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
-    volumes:
-      - ./trails:/app
-      - /app/node_modules # NASとの同期から除外（高速化）
+    #volumes:
+    #  - ./trails:/app
+    #  - /app/node_modules # NASとの同期から除外（高速化）
     ports:
       - '5677:5677'
     depends_on:
@@ -91,7 +96,12 @@ services:
       - atlas-net
 
   vista:
-    build: ./vista
+    build:
+      context: ./vista
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+        - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}
+        - NEXT_PUBLIC_WS_URL=${NEXT_PUBLIC_WS_URL}
     container_name: vista
     restart: always
     environment:
@@ -99,9 +109,9 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
       NEXT_PUBLIC_WS_URL: ${NEXT_PUBLIC_WS_URL}
       NEXT_PUBLIC_API_KEY: ${NEXT_PUBLIC_API_KEY}
-    volumes:
-      - ./vista:/app
-      - /app/node_modules # NASとの同期から除外（高速化）
+    #volumes:
+    #  - ./vista:/app
+    #  - /app/node_modules # NASとの同期から除外（高速化）
     ports:
       - '5673:5673'
     depends_on:

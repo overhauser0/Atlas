@@ -20,6 +20,7 @@ import SimpleList from '../ui/SimpleList';
 import { useToast } from '@/components/ui/Toast';
 import { atlasFetch } from '@/utils/api';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
+import Card from '@/components/ui/Card';
 
 interface Props {
   isOpen: boolean;
@@ -259,7 +260,7 @@ export default function ProjectModal({
         </section>
 
         {/* 2. 新規追加 UI (Staging Area) */}
-        <section className="overflow-y-auto relative rounded-2xl bg-linear-to-b from-white/3 to-transparent border border-white/10 p-5 md:p-6 shadow-2xl">
+        <Card size="lg" className="overflow-y-auto relative">
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
 
           <h3 className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-5 flex items-center gap-2">
@@ -281,7 +282,7 @@ export default function ProjectModal({
               {drafts.map((draft, idx) => (
                 <div
                   key={idx}
-                  className="flex items-center justify-between group py-2.5 px-3 bg-black/40 border border-white/5 rounded-lg hover:border-white/10 transition-colors animate-in fade-in slide-in-from-left-2 duration-200"
+                  className="flex items-center justify-between group py-2.5 px-3 border border-white/10 rounded-lg hover:border-white/20 transition-colors animate-in fade-in slide-in-from-left-2 duration-200"
                 >
                   <div className="flex items-center gap-3 text-sm text-blue-100 flex-1 min-w-0 pr-4">
                     <div className="w-1 h-4 rounded-full bg-violet-500/50 shrink-0" />
@@ -290,12 +291,12 @@ export default function ProjectModal({
 
                   <div className="flex items-center gap-2 md:gap-3 shrink-0">
                     <div className="relative flex items-center">
-                      <Calendar className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 pointer-events-none" />
+                      <Calendar className="hidden md:inline w-3.5 h-3.5 text-zinc-500 absolute left-2.5 pointer-events-none" />
                       <input
                         type="date"
                         value={draft.date}
                         onChange={(e) => updateDraftDate(idx, e.target.value)}
-                        className="bg-white/5 border border-white/10 rounded-md py-1.5 pl-8 pr-2 text-xs md:text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-colors cursor-pointer"
+                        className="border border-white/5 rounded-md py-1.5 pl-2 md:pl-8 pr-2 text-xs md:text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer"
                       />
                     </div>
                     <button
@@ -318,7 +319,7 @@ export default function ProjectModal({
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="新しいタスクを入力して Enter..."
-              className="w-full bg-black/60 border border-white/10 rounded-xl py-4 pl-4 pr-16 text-sm text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:bg-black/80 transition-all shadow-inner"
+              className="w-full bg-black/60 border border-white/10 rounded-xl py-4 pl-4 pr-16 text-sm text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:border-blue-500/50 focus:bg-black/80 transition-all shadow-inner"
             />
             {inputValue.trim() !== '' && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none animate-in fade-in">
@@ -349,7 +350,7 @@ export default function ProjectModal({
               </button>
             </div>
           )}
-        </section>
+        </Card>
       </div>
       {/* 既存タスクリンク用モーダル (Command Palette) */}
       {isLinkSelectorOpen && (
