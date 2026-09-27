@@ -142,10 +142,12 @@ ON CONFLICT DO NOTHING;
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_area ON notion_pieces_cache(area);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_status ON notion_pieces_cache(status);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_date ON notion_pieces_cache(date);
+CREATE INDEX IF NOT EXISTS idx_notion_pieces_parent_id ON notion_pieces_cache(parent_id);
 
 CREATE INDEX IF NOT EXISTS idx_local_pieces_area ON local_pieces(area);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_status ON local_pieces(status);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_date ON local_pieces(date);
+CREATE INDEX IF NOT EXISTS idx_local_pieces_parent_id ON local_pieces(parent_id);
 -- JSONB内部を検索したい場合（上級者向け・必要に応じて）
 -- metadata内の特定のキーをよく検索するなら、GINインデックスが最強
 -- CREATE INDEX IF NOT EXISTS idx_local_pieces_metadata ON local_pieces USING GIN (metadata);

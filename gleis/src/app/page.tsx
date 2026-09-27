@@ -188,6 +188,8 @@ export default function Home() {
   const handleViewChange = useCallback((view: ViewType) => {
     setCurrentView(view);
     setIsMobileMenuOpen(false);
+    closeProjectModal();
+    closeTaskModal();
   }, []);
 
   const handleLogout = useCallback(() => {
@@ -476,7 +478,7 @@ export default function Home() {
         </aside>
 
         {/* --- Main Content Area --- */}
-        <main className="flex-1 flex flex-col m-2 md:m-4 md:ml-0 min-w-0">
+        <div className="flex-1 flex flex-col m-2 md:m-4 md:ml-0 min-w-0 min-h-0">
           <HeaderView
             currentTime={currentTime}
             hasNotifications={unreadCount > 0 || overdueTasks.length > 0}
@@ -488,161 +490,169 @@ export default function Home() {
             isSyncing={activeRequests > 0}
           />
 
-          {currentView === 'home' && (
-            <HomeView
-              tasks={tasks}
-              completedTasks={completedTasks}
-              subTaskMap={subTaskMap}
-              openTaskModal={(task) => openTaskModal(task)}
-              onOpenStats={() => handleOpenStats(new Date())}
-            />
-          )}
-          {currentView === 'weekly' && (
-            <WeeklyView
-              appSettings={appSettings}
-              tasks={tasks}
-              subTaskMap={subTaskMap}
-              loading={isTasksLoading}
-              setTasks={setTasks}
-              openTaskModal={(task) => openTaskModal(task)}
-              onOpenStats={handleOpenStats}
-              onSyncStart={incrementRequest}
-              onSyncEnd={decrementRequest}
-            />
-          )}
-          {currentView === 'kanban' && (
-            <KanbanView
-              tasks={tasks}
-              subTaskMap={subTaskMap}
-              loading={isTasksLoading}
-              setTasks={setTasks}
-              openTaskModal={(task) => openTaskModal(task)}
-            />
-          )}
-          {currentView === 'calendar' && (
-            <CalendarView
-              appSettings={appSettings}
-              setAppSettings={setAppSettings}
-              tasks={tasks}
-              completedTasks={completedTasks}
-              loading={isTasksLoading}
-              setTasks={setTasks}
-              openTaskModal={(task) => openTaskModal(task)}
-              onOpenStats={handleOpenStats}
-            />
-          )}
-          {currentView === 'meeting' && (
-            <MeetingView
-              meetingTasks={meetingTasks}
-              openTaskModal={(task) => openTaskModal(task)}
-            />
-          )}
-          {currentView === 'review' && <ReviewView />}
-          {currentView === 'note' && (
-            <NoteView
-              onSyncStart={incrementRequest}
-              onSyncEnd={decrementRequest}
-            />
-          )}
-          {currentView === 'aiagent' && (
-            <AiAgentView
-              appSettings={appSettings}
-              setAppSettings={setAppSettings}
-              onSyncStart={incrementRequest}
-              onSyncEnd={decrementRequest}
-            />
-          )}
-          {currentView === 'stats' && (
-            <StatsView
-              completedTasks={completedTasks}
-              tasks={tasks}
-              loading={isTasksLoading}
-              openTaskModal={(task) => openTaskModal(task)}
-              onOpenStats={handleOpenStats}
-            />
-          )}
+          <main className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+            {currentView === 'home' && (
+              <HomeView
+                tasks={tasks}
+                completedTasks={completedTasks}
+                subTaskMap={subTaskMap}
+                openTaskModal={(task) => openTaskModal(task)}
+                onOpenStats={() => handleOpenStats(new Date())}
+              />
+            )}
+            {currentView === 'weekly' && (
+              <WeeklyView
+                appSettings={appSettings}
+                tasks={tasks}
+                subTaskMap={subTaskMap}
+                loading={isTasksLoading}
+                setTasks={setTasks}
+                openTaskModal={(task) => openTaskModal(task)}
+                onOpenStats={handleOpenStats}
+                onSyncStart={incrementRequest}
+                onSyncEnd={decrementRequest}
+              />
+            )}
+            {currentView === 'kanban' && (
+              <KanbanView
+                tasks={tasks}
+                subTaskMap={subTaskMap}
+                loading={isTasksLoading}
+                setTasks={setTasks}
+                openTaskModal={(task) => openTaskModal(task)}
+              />
+            )}
+            {currentView === 'calendar' && (
+              <CalendarView
+                appSettings={appSettings}
+                setAppSettings={setAppSettings}
+                tasks={tasks}
+                completedTasks={completedTasks}
+                loading={isTasksLoading}
+                setTasks={setTasks}
+                openTaskModal={(task) => openTaskModal(task)}
+                onOpenStats={handleOpenStats}
+              />
+            )}
+            {currentView === 'meeting' && (
+              <MeetingView
+                meetingTasks={meetingTasks}
+                openTaskModal={(task) => openTaskModal(task)}
+              />
+            )}
+            {currentView === 'review' && <ReviewView />}
+            {currentView === 'note' && (
+              <NoteView
+                onSyncStart={incrementRequest}
+                onSyncEnd={decrementRequest}
+              />
+            )}
+            {currentView === 'aiagent' && (
+              <AiAgentView
+                appSettings={appSettings}
+                setAppSettings={setAppSettings}
+                onSyncStart={incrementRequest}
+                onSyncEnd={decrementRequest}
+              />
+            )}
+            {currentView === 'stats' && (
+              <StatsView
+                completedTasks={completedTasks}
+                tasks={tasks}
+                loading={isTasksLoading}
+                openTaskModal={(task) => openTaskModal(task)}
+                onOpenStats={handleOpenStats}
+              />
+            )}
 
-          {currentView === 'notifications' && (
-            <NotificationsView
-              notifications={notifications}
-              onMarkAsRead={markAsRead}
+            {currentView === 'notifications' && (
+              <NotificationsView
+                notifications={notifications}
+                onMarkAsRead={markAsRead}
+                openTaskModal={(task) => openTaskModal(task)}
+                handleGleisLink={(url, callback) =>
+                  handleGleisLink(url, callback)
+                }
+              />
+            )}
+            {currentView === 'settings' && (
+              <SettingsView
+                appSettings={appSettings}
+                setAppSettings={setAppSettings}
+                wsStatus={wsStatus}
+                connectedDevices={connectedDevices}
+                ownDeviceId={ownDeviceId}
+              />
+            )}
+
+            {/* --- Contextual Modals --- */}
+            <QuickAlarmModal
+              isOpen={isQuickAlarmOpen}
+              onClose={() => setIsQuickAlarmOpen(false)}
+              appSettings={appSettings}
+              setAppSettings={setAppSettings}
+            />
+            <StatsModal
+              isOpen={isStatsOpen}
+              completedTasks={completedTasks}
+              targetDate={statsTargetDate}
               openTaskModal={(task) => openTaskModal(task)}
+              onClose={() => setIsStatsOpen(false)}
+            />
+            <ProjectModal
+              isOpen={projectModalConfig.isOpen}
+              onClose={closeProjectModal}
+              onSuccess={() => fetchTasks(true)}
+              parentTask={projectModalConfig.parentTask as Task}
+              subTasks={currentSubTasks}
+              openTaskModal={(task) => openTaskModal(task)}
+              allTasks={allTasks}
               handleGleisLink={(url, callback) =>
                 handleGleisLink(url, callback)
               }
             />
-          )}
-          {currentView === 'settings' && (
-            <SettingsView
-              appSettings={appSettings}
-              setAppSettings={setAppSettings}
-              wsStatus={wsStatus}
-              connectedDevices={connectedDevices}
-              ownDeviceId={ownDeviceId}
+            <TaskModal
+              isOpen={taskModalConfig.isOpen}
+              mode={taskModalConfig.mode}
+              task={taskModalConfig.task}
+              subTaskMap={subTaskMap}
+              onClose={closeTaskModal}
+              onSave={handleSaveTaskWithCheck}
+              onSuccess={() => fetchTasks(true)}
+              onSyncStart={incrementRequest}
+              onSyncEnd={decrementRequest}
+              onSendToPC={hasExtension ? handleSendToPC : undefined}
+              onShowContent={fetchBlocks}
+              onOpenProjectModal={(task) => openProjectModal(task)}
+              /*getSubTasks={(parentId) => handleGetSubTasks(parentId)}*/
+              openTaskModal={(task) => openTaskModal(task)}
+              handleGleisLink={(url, callback) =>
+                handleGleisLink(url, callback)
+              }
+              allTasks={allTasks}
             />
-          )}
-
-          {/* --- Contextual Modals --- */}
-          <QuickAlarmModal
-            isOpen={isQuickAlarmOpen}
-            onClose={() => setIsQuickAlarmOpen(false)}
-            appSettings={appSettings}
-            setAppSettings={setAppSettings}
-          />
-          <StatsModal
-            isOpen={isStatsOpen}
-            completedTasks={completedTasks}
-            targetDate={statsTargetDate}
-            openTaskModal={(task) => openTaskModal(task)}
-            onClose={() => setIsStatsOpen(false)}
-          />
-          <ProjectModal
-            isOpen={projectModalConfig.isOpen}
-            onClose={closeProjectModal}
-            onSuccess={() => fetchTasks(true)}
-            parentTask={projectModalConfig.parentTask as Task}
-            subTasks={currentSubTasks}
-            openTaskModal={(task) => openTaskModal(task)}
-            allTasks={allTasks}
-            handleGleisLink={(url, callback) => handleGleisLink(url, callback)}
-          />
-          <TaskModal
-            isOpen={taskModalConfig.isOpen}
-            mode={taskModalConfig.mode}
-            task={taskModalConfig.task}
-            subTaskMap={subTaskMap}
-            onClose={closeTaskModal}
-            onSave={handleSaveTaskWithCheck}
-            onSuccess={() => fetchTasks(true)}
-            onSyncStart={incrementRequest}
-            onSyncEnd={decrementRequest}
-            onSendToPC={hasExtension ? handleSendToPC : undefined}
-            onShowContent={fetchBlocks}
-            onOpenProjectModal={(task) => openProjectModal(task)}
-            /*getSubTasks={(parentId) => handleGetSubTasks(parentId)}*/
-            openTaskModal={(task) => openTaskModal(task)}
-            handleGleisLink={(url, callback) => handleGleisLink(url, callback)}
-            allTasks={allTasks}
-          />
-          <ActionPanel
-            isOpen={isActionPanelOpen}
-            isWakeLockActive={isWakeLockActive}
-            notifications={notifications}
-            lastSyncTime={lastSyncTime}
-            overdueTasks={overdueTasks}
-            onClose={() => setIsActionPanelOpen(false)}
-            onNavigateToNotifications={() => handleViewChange('notifications')}
-            onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
-            onRescheduleOverdue={handleRescheduleOverdue}
-            onSyncStart={incrementRequest}
-            onSyncEnd={decrementRequest}
-            onNotionSync={() => handleNotionSync(true)}
-            onMarkAsRead={markAsRead}
-            wsStatus={wsStatus}
-            connectedDevicesCount={connectedDevices.length}
-          />
-          <ConfirmModal {...confirmProps} />
-        </main>
+            <ActionPanel
+              isOpen={isActionPanelOpen}
+              isWakeLockActive={isWakeLockActive}
+              notifications={notifications}
+              lastSyncTime={lastSyncTime}
+              overdueTasks={overdueTasks}
+              onClose={() => setIsActionPanelOpen(false)}
+              onNavigateToNotifications={() =>
+                handleViewChange('notifications')
+              }
+              onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
+              onRescheduleOverdue={handleRescheduleOverdue}
+              onSyncStart={incrementRequest}
+              onSyncEnd={decrementRequest}
+              onNotionSync={() => handleNotionSync(true)}
+              onMarkAsRead={markAsRead}
+              wsStatus={wsStatus}
+              connectedDevicesCount={connectedDevices.length}
+            />
+            <ConfirmModal {...confirmProps} />
+          </main>
+        </div>
       </div>
     </ToastProvider>
   );

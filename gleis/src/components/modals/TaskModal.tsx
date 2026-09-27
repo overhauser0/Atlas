@@ -247,7 +247,7 @@ export default function TaskModal({
   const handlePromote = async () => {
     if (!task?.id) return;
     if (
-      !!(await confirm(
+      !(await confirm(
         'タスク昇格確認',
         <>タスクをNotionに昇格させますか？</>,
         '昇格する',
@@ -256,7 +256,7 @@ export default function TaskModal({
     )
       return;
 
-    onClose();
+    // onClose();
     onSyncStart();
 
     try {

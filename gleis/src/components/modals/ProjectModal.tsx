@@ -141,7 +141,7 @@ export default function ProjectModal({
   });
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="absolute inset-0 z-40 flex min-h-0 min-w-0 flex-col overflow-hidden bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       {/* Header */}
       <header className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/60 sticky top-0 z-10 shadow-xl">
         <div className="flex items-center gap-4 min-w-0">
@@ -165,7 +165,7 @@ export default function ProjectModal({
         </button>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 noir-scrollbar px-4 py-6 pb-32">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 noir-scrollbar px-4 py-6 pb-32">
         {/* 1. 既存タスク一覧 */}
         <section className="overflow-y-auto space-y-2">
           <div className="relative bg-black/40 border border-white/5 rounded-2xl p-5 shadow-lg">
