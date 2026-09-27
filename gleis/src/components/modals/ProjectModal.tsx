@@ -165,10 +165,10 @@ export default function ProjectModal({
         </button>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 noir-scrollbar px-4 py-6 pb-32">
+      <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-6 overflow-hidden px-4 py-6 lg:grid-cols-2 lg:grid-rows-1">
         {/* 1. 既存タスク一覧 */}
-        <section className="overflow-y-auto space-y-2">
-          <div className="relative bg-black/40 border border-white/5 rounded-2xl p-5 shadow-lg">
+        <section className="flex min-h-0 flex-col gap-2">
+          <div className="relative shrink-0 bg-black/40 border border-white/5 rounded-2xl p-5 shadow-lg">
             {/* プロジェクトタスク自体を開くボタン */}
             <button
               onClick={() => openTaskModal(parentTask)}
@@ -249,7 +249,7 @@ export default function ProjectModal({
           )}
 
           {/* SimpleListコンポーネント */}
-          <div className="bg-black/40 rounded-xl border border-white/5 p-1">
+          <div className="min-h-0 flex-1 overflow-y-auto bg-black/40 rounded-xl border border-white/5 p-1 noir-scrollbar">
             <SimpleList
               tasks={subTasks}
               onTaskClick={(task) => {
@@ -260,7 +260,10 @@ export default function ProjectModal({
         </section>
 
         {/* 2. 新規追加 UI (Staging Area) */}
-        <Card size="lg" className="overflow-y-auto relative">
+        <Card
+          size="lg"
+          className="min-h-0 overflow-y-auto relative noir-scrollbar"
+        >
           <div className="absolute top-0 left-1/2 -translate-x-1/2 w-3/4 h-px bg-linear-to-r from-transparent via-violet-500/50 to-transparent" />
 
           <h3 className="text-xs font-bold text-violet-400 uppercase tracking-widest mb-5 flex items-center gap-2">

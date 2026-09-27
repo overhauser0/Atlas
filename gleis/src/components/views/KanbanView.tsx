@@ -163,7 +163,7 @@ export default function KanbanView({
 
                         {/* --- 2行目: 日付 + Detailボタン --- */}
                         <div className="flex items-center justify-between mt-auto h-6">
-                          <div className="flex gap-1.5">
+                          <div className="flex gap-1.5 overflow-hidden">
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
                               <Calendar className="w-3 h-3" />
                               <span>{getDateShortString(task.date)}</span>

@@ -287,7 +287,7 @@ export default function WeeklyView({
                             {task.topics?.map((t: any) => (
                               <span
                                 key={t}
-                                className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 truncate max-w-[80px]"
+                                className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 truncate max-w-20"
                               >
                                 {t}
                               </span>
