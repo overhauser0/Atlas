@@ -11,6 +11,7 @@ import { LocalNotesTable } from '../models/note.model';
 import { RoutineTaskTable } from '../models/routine.model';
 import { ImmichCacheTable } from '../models/immich.model';
 import { AppMetadataTable } from '../models/metadata.model';
+import { PaperlessDocumentsTable } from '../models/paperless.model';
 
 // ==========================================
 // Database インターフェース (Kysely全体スキーマ)
@@ -25,5 +26,6 @@ export interface Database {
   local_notes: LocalNotesTable;
   routine_tasks: RoutineTaskTable;
   immich_cache: ImmichCacheTable;
+  paperless_documents: PaperlessDocumentsTable;
   app_metadata: AppMetadataTable;
 }

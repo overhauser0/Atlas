@@ -17,6 +17,7 @@ import Card from '@/components/ui/Card';
 import SimpleList from '@/components/ui/SimpleList';
 import MonthSelector from '@/components/ui/MonthSelector';
 import Tooltip from '@/components/ui/Tooltip';
+import ProgressBar from '@/components/ui/ProgressBar';
 import { Task } from '@/types';
 
 interface StatsViewProps {
@@ -474,12 +475,13 @@ export default function StatsView({
                   <span className="w-8 font-mono text-gray-500 text-[11px]">
                     {day}
                   </span>
-                  <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden border border-white/5">
-                    <div
-                      className="h-full bg-neon shadow-[0_0_6px_rgba(0,112,243,0.6)] transition-all duration-500 rounded-full"
-                      style={{ width: `${percent}%` }}
-                    />
-                  </div>
+                  <ProgressBar
+                    percent={percent}
+                    fromColor="var(--color-neon)"
+                    toColor="var(--color-neon)"
+                    className="flex-1"
+                    fillClassName="rounded-full shadow-[0_0_6px_rgba(0,112,243,0.6)] duration-500"
+                  />
                   <span className="w-6 text-right font-mono text-gray-400 text-[10px]">
                     {count}
                   </span>
@@ -505,12 +507,13 @@ export default function StatsView({
           </div>
 
           {/* 全体プログレスバー */}
-          <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden flex border border-white/5">
-            <div
-              className="h-full bg-neon shadow-[0_0_8px_rgba(0,112,243,0.6)] transition-all duration-700"
-              style={{ width: `${stats.completionRate}%` }}
-            />
-          </div>
+          <ProgressBar
+            percent={stats.completionRate}
+            fromColor="var(--color-neon)"
+            toColor="var(--color-neon)"
+            className="h-2"
+            fillClassName="shadow-[0_0_8px_rgba(0,112,243,0.6)] duration-1000 ease-out"
+          />
 
           {/* ステータス別の内訳グリッド */}
           <div className="grid grid-cols-2 gap-2 pt-2">

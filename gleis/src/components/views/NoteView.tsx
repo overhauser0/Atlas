@@ -115,7 +115,7 @@ export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
               <div
                 key={note.id}
                 onClick={() => setActiveNote(note)}
-                // 🌟 工夫1: border-l-[3px] と微妙な色付けで「付箋・メモ帳の背表紙」感を出す
+                // border-l-[3px] と微妙な色付けで「付箋・メモ帳の背表紙」感を出す
                 className="w-full text-left p-4 rounded-xl border border-white/5 border-l-[3px] border-l-amber-500/40 bg-white/5 hover:bg-white/10 hover:border-white/10 hover:border-l-amber-500/80 transition-all group flex gap-3 cursor-pointer relative shadow-sm"
               >
                 <div className="flex flex-1 items-center min-w-0 gap-4">
@@ -373,7 +373,7 @@ function EditorView({
           className="w-full bg-transparent border-none text-2xl font-bold text-white focus:outline-none placeholder:text-gray-600 mt-4 z-10"
         />
 
-        {/* 🌟 工夫3: CSSグラデーションで「ノートの罫線」を描画する */}
+        {/* CSSグラデーションで「ノートの罫線」を描画する */}
         <textarea
           value={content}
           onChange={(e) => setContent(e.target.value)}

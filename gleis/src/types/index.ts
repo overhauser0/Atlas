@@ -32,6 +32,7 @@ export const VALID_VIEWS = [
   'note',
   'aiagent',
   'stats',
+  'documents',
   'settings',
 ] as const;
 

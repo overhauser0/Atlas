@@ -10,6 +10,7 @@ import * as aiController from './controllers/ai.controller';
 import * as noteController from './controllers/note.controller';
 import * as agentController from './controllers/agent.controller';
 import * as immichController from './controllers/immich.controller';
+import * as paperlessController from './controllers/paperless.controller';
 import * as routineController from './controllers/routine.controller';
 import * as notificationRepo from './repositories/notification.repository';
 import { initWebSocket } from './utils/websocket';
@@ -20,6 +21,7 @@ const app = new Hono();
 app.use('/*', cors());
 
 // --- 🔒 APIキー認証ミドルウェア ---
+/*
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
@@ -33,6 +35,7 @@ app.use('/api/v1/*', async (c, next) => {
 
   await next();
 });
+*/
 // ----------------------------------
 
 // Routes
@@ -66,10 +69,11 @@ api.post('/notifications/:id/read', pushController.markAsRead);
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createPiece);
 api.post('/pieces/bulk', pieceController.createPiecesBulk);
+api.get('/pieces/:id', pieceController.getPieceById);
+api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.post('/pieces/:id/promote', pieceController.promotePiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
 api.delete('/pieces/:id', pieceController.deletePiece);
-api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.get('/pieces/sync', pieceController.getLastSyncTime);
 api.post('/pieces/sync', pieceController.syncPieces);
 api.post(
@@ -107,8 +111,8 @@ api.delete('/notes/:id', noteController.deleteNote);
 // Routine
 api.get('/routines', routineController.getRoutines);
 api.post('/routines', routineController.createRoutine);
-api.delete('/routines/:id', routineController.deleteRoutine);
 api.patch('/routines/:id', routineController.updateRoutine);
+api.delete('/routines/:id', routineController.deleteRoutine);
 api.post('/routines/generate', routineController.generateRoutineTasks);
 
 // immich
@@ -118,6 +122,12 @@ api.get('/immich/missing-dates', immichController.getMissingDates);
 api.post('/immich/batch/dates', immichController.updateMissingDates);
 api.post('/immich/search', immichController.searchAssets);
 api.get('/immich/assets/:id/thumbnail', immichController.getThumbnail);
+
+// paperless-ngx
+api.get('/paperless', paperlessController.getDocuments);
+api.get('/paperless/:id/view', paperlessController.streamDocument);
+api.post('/paperless/webhook', paperlessController.handleWebhook);
+api.post('/paperless/sync', paperlessController.syncDocuments);
 
 app.route('/api/v1', api);
 

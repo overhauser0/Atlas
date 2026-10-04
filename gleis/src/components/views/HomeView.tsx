@@ -18,6 +18,7 @@ import { getDateFullString } from '@/utils/dateUtils';
 import DateSelector from '@/components/ui/DateSelector';
 import FAB from '@/components/ui/FAB';
 import Card from '@/components/ui/Card';
+import ProgressBar from '@/components/ui/ProgressBar';
 
 interface HomeViewProps {
   tasks: Task[];
@@ -93,12 +94,12 @@ export default function HomeView({
             <span>{targetDate.getFullYear()} Progress</span>
             <span className="text-neon">{yearProgress}%</span>
           </div>
-          <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-            <div
-              className="h-full bg-neon shadow-[0_0_10px_rgba(0,112,243,0.5)] transition-all duration-1000 ease-out"
-              style={{ width: `${animatedProgress}%` }}
-            />
-          </div>
+          <ProgressBar
+            percent={animatedProgress}
+            fromColor="var(--color-neon)"
+            toColor="var(--color-neon)"
+            fillClassName="shadow-[0_0_10px_rgba(0,112,243,0.5)] duration-1000 ease-out"
+          />
         </Card>
 
         {/* 完了タスク数カード（クリックでStatsViewへ） */}

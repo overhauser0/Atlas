@@ -37,6 +37,19 @@ export const getPieces = async (c: Context) => {
   }
 };
 
+export const getPieceById = async (c: Context) => {
+  try {
+    const id = c.req.param('id');
+    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+    const cachedPiece = await pieceService.getPieceById(id);
+    if (!cachedPiece) return c.json({ message: 'Piece not found' }, 404);
+
+    return c.json({ piece: cachedPiece }, 200);
+  } catch (err) {
+    return c.json({ error: 'Getting Piece failed' }, 500);
+  }
+};
+
 export const createPiece = async (c: Context) => {
   try {
     const rawData = await c.req.json();

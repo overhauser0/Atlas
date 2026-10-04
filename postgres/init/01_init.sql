@@ -126,6 +126,19 @@ CREATE TABLE IF NOT EXISTS immich_cache (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- paperless-ngxのテーブル
+CREATE TABLE paperless_documents (
+  id SERIAL PRIMARY KEY,
+  paperless_id INTEGER UNIQUE NOT NULL, -- Paperless側のID（必須）
+  title TEXT NOT NULL,                  -- 書類タイトル（必須）
+  asn INTEGER,                          -- 物理ファイリング番号（Nullable）
+  document_type TEXT,                   -- 書類の種類（Nullable）
+  correspondent TEXT,                   -- 対象者・送信元（Nullable）
+  tags TEXT[],                          -- タグの配列（デフォルトは空配列）
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- アプリのメタデータ（最終同期時刻など）を保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
@@ -156,4 +169,6 @@ CREATE INDEX IF NOT EXISTS idx_local_pieces_parent_id ON local_pieces(parent_id)
 CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
 
-CREATE INDEX idx_local_notes_sort ON local_notes(is_pinned DESC, updated_at DESC);
+CREATE INDEX IF NOT EXISTS idx_local_notes_sort ON local_notes(is_pinned DESC, updated_at DESC);
+
+CREATE INDEX IF NOT EXISTS paperless_documents_title_idx ON paperless_documents (title);

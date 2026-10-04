@@ -21,6 +21,7 @@ import { useToast } from '@/components/ui/Toast';
 import { atlasFetch } from '@/utils/api';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
 import Card from '@/components/ui/Card';
+import ProgressBar from '@/components/ui/ProgressBar';
 
 interface Props {
   isOpen: boolean;
@@ -240,12 +241,12 @@ export default function ProjectModal({
 
           {/* Progress Bar */}
           {totalCount > 0 && (
-            <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
-              <div
-                className="h-full bg-linear-to-r from-violet-500 to-emerald-400 transition-all duration-700 ease-out"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+            <ProgressBar
+              percent={progressPercent}
+              fromColor="#8b5cf6"
+              toColor="#34d399"
+              fillClassName="duration-1000 ease-out"
+            />
           )}
 
           {/* SimpleListコンポーネント */}

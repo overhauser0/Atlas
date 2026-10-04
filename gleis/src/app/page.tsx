@@ -15,6 +15,7 @@ import {
   FileText,
   Bot,
   ChartNoAxesCombined,
+  FileStack,
 } from 'lucide-react';
 
 // --- Components ---
@@ -29,6 +30,7 @@ import ReviewView from '@/components/views/ReviewView';
 import NoteView from '@/components/views/NoteView';
 import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
+import { DocumentsView } from '@/components/views/DocumentsView';
 import SettingsView from '@/components/views/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
@@ -49,6 +51,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
+import { usePaperless } from '@/hooks/usePaperless';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useConfirm } from '@/hooks/useConfirm';
 import { parseGleisLink } from '@/utils/schemeUtils';
@@ -431,6 +434,7 @@ export default function Home() {
               { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
               { id: 'review', icon: ClipboardPenLine, label: 'Review' },
               { id: 'note', icon: FileText, label: 'Note' },
+              { id: 'documents', icon: FileStack, label: 'Document' },
               { id: 'aiagent', icon: Bot, label: 'Agent' },
               {
                 id: 'stats',
@@ -584,6 +588,7 @@ export default function Home() {
                 ownDeviceId={ownDeviceId}
               />
             )}
+            {currentView === 'documents' && <DocumentsView />}
 
             {/* --- Contextual Modals --- */}
             <QuickAlarmModal
