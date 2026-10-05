@@ -170,15 +170,7 @@ export default function Home() {
   const { notifications, markAsRead, fetchNotifications } =
     useNotificationSync(isAuthenticated);
 
-  const {
-    documents,
-    isLoading,
-    isUploading,
-    syncDocuments,
-    searchDocuments,
-    getDocumentViewUrl,
-    uploadDocuments,
-  } = usePaperless();
+  const { syncDocuments } = usePaperless();
 
   const { wsRef, wsStatus, connectedDevices, ownDeviceId } = useAtlasWebSocket(
     fetchTasks,
