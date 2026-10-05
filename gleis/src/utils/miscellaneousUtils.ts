@@ -48,5 +48,5 @@ export const sortTasksByStatus = (tasks: any[]) => {
 };
 
 export const getNotionLinkById = (id: string) => {
-  return `https://notion.so/${id.replace(/-/g, '')}`;
+  return `notion://notion.so/${id.replace(/-/g, '')}`;
 };
