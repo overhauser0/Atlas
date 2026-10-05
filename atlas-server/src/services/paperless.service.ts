@@ -65,6 +65,7 @@ export const handleWebhookUpsert = async (payload: any) => {
     document_type: payload.document_type || null,
     correspondent: payload.correspondent || null,
     tags: payload.tags || [],
+    document_date: payload.created ? new Date(payload.created) : undefined,
   };
 
   const result =
@@ -140,19 +141,16 @@ export const syncAllDocuments = async () => {
           paperless_id: doc.id,
           title: doc.title,
           asn: doc.archive_serial_number || null,
-
-          // 💡 辞書を使ってIDをStringに変換（存在しなければnull）
           document_type: doc.document_type
             ? docTypesMap[doc.document_type] || null
             : null,
           correspondent: doc.correspondent
             ? correspondentsMap[doc.correspondent] || null
             : null,
-
-          // 💡 配列内のタグIDを名前に変換し、undefinedを除外する
           tags: doc.tags
             ? doc.tags.map((id: number) => tagsMap[id]).filter(Boolean)
             : [],
+          document_date: doc.created ? new Date(doc.created) : undefined,
         };
 
         await paperlessRepository.upsertPaperlessDocument(documentInput);
@@ -172,4 +170,36 @@ export const syncAllDocuments = async () => {
     console.error('❌ 全件同期中にエラーが発生しました:', error);
     throw error;
   }
+};
+
+/**
+ * 7. ドキュメントのアップロード（プロキシ）
+ * Gleisから受け取ったファイルをPaperless-ngxへ転送する
+ */
+export const uploadDocumentToPaperless = async (file: File) => {
+  const formData = new FormData();
+
+  // 💡 Paperless-ngxのAPI仕様上、フィールド名は必ず 'document' にする必要があります
+  formData.append('document', file);
+
+  const url = `${PAPERLESS_API_URL}/api/documents/post_document/`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Token ${PAPERLESS_API_TOKEN}`,
+      // 注意: FormDataを送る際、Content-Typeはブラウザ/fetchが自動で境界(boundary)を
+      // 設定するため、手動で 'Content-Type': 'multipart/form-data' と書いてはいけません
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('Paperless upload error response:', errorText);
+    throw new Error(`Paperless upload failed: ${response.statusText}`);
+  }
+
+  // Paperless側での非同期処理タスクID（UUID）が返ってきます
+  return await response.text();
 };

@@ -1,6 +1,7 @@
 // src/controllers/paperless.controller.ts
 
 import { Context } from 'hono';
+import crypto from 'crypto';
 import * as paperlessService from '../services/paperless.service';
 
 // ==========================================
@@ -36,28 +37,78 @@ export const getDocuments = async (c: Context) => {
 // ==========================================
 // 2. プロキシ中継 (PDFストリーミング)
 // ==========================================
-export const streamDocument = async (c: Context) => {
+// 💡 チケットを保存するインメモリキャッシュ（サーバー再起動で消える一時データ）
+// 構造: { 'ランダムな文字列': paperless_id }
+const ticketCache = new Map<string, number>();
+
+/**
+ * 1. チケット発行エンドポイント（X-API-KEY 必須）
+ * POST /api/paperless/:id/ticket
+ */
+export const generateViewTicket = async (c: Context) => {
   try {
-    const idParam = c.req.param('id');
-    const typeParam =
-      c.req.query('type') === 'download' ? 'download' : 'preview';
+    const paperlessId = parseInt(c.req.param('id') as string, 10);
 
-    if (!idParam) return c.json({ message: 'Document ID is required' }, 400);
+    // ランダムなUUIDを生成
+    const ticket = crypto.randomUUID();
 
-    const paperlessId = parseInt(idParam, 10);
-    const { stream, contentType, contentDisposition } =
-      await paperlessService.getDocumentStream(paperlessId, typeParam);
+    // メモリに保存
+    ticketCache.set(ticket, paperlessId);
 
-    // HonoのレスポンスヘッダーにPaperlessから受け取ったMIMEタイプ等をそのまま横流しする
-    if (contentType) c.header('Content-Type', contentType as string);
-    if (contentDisposition)
-      c.header('Content-Disposition', contentDisposition as string);
+    // 60秒後に自動でチケットを無効化（削除）する
+    setTimeout(() => {
+      ticketCache.delete(ticket);
+    }, 60 * 1000);
 
-    // Node.jsのストリームをそのままボディに渡す（メモリを消費しない）
-    return c.body(stream as any);
-  } catch (error: any) {
-    console.error('❌ Stream Document Error:', error);
-    return c.json({ message: 'Failed to stream document from Paperless' }, 500);
+    return c.json({ ticket }, 200);
+  } catch (error) {
+    console.error('Ticket generation error:', error);
+    return c.json({ message: 'Failed to generate ticket' }, 500);
+  }
+};
+
+/**
+ * 2. PDF表示エンドポイント（X-API-KEY 不要、URLパラメータのチケットで認証）
+ * GET /api/paperless/view?ticket=xxxx-xxxx...
+ */
+export const viewDocumentWithTicket = async (c: Context) => {
+  try {
+    const ticket = c.req.query('ticket');
+
+    // チケットが存在しない、または期限切れ/使用済みの場合は弾く
+    if (!ticket || !ticketCache.has(ticket)) {
+      return c.text('Forbidden: Invalid or expired ticket', 403);
+    }
+
+    // キャッシュからIDを取り出し、すぐにチケットを削除（ワンタイム化）
+    const paperlessId = ticketCache.get(ticket)!;
+    ticketCache.delete(ticket);
+
+    // ここでPaperless-ngxからPDF本体を取得する処理
+    const response = await fetch(
+      `${process.env.PAPERLESS_API_URL}/api/documents/${paperlessId}/preview/`,
+      {
+        headers: {
+          Authorization: `Token ${process.env.PAPERLESS_API_TOKEN}`,
+        },
+      },
+    );
+
+    if (!response.ok) {
+      return c.text('Document not found in Paperless', 404);
+    }
+
+    // PDFをブラウザにストリーミング
+    const arrayBuffer = await response.arrayBuffer();
+
+    // ヘッダーを適切に設定してPDFをインライン表示
+    c.header('Content-Type', 'application/pdf');
+    c.header('Content-Disposition', 'inline; filename="document.pdf"');
+
+    return c.body(arrayBuffer);
+  } catch (error) {
+    console.error('Document view error:', error);
+    return c.text('Internal Server Error', 500);
   }
 };
 
@@ -66,14 +117,14 @@ export const streamDocument = async (c: Context) => {
 // ==========================================
 export const handleWebhook = async (c: Context) => {
   try {
-    // 💡 1. どんなデータが来ているか、まずはテキストとしてそのまま受け取ってログに出す
+    // 1. どんなデータが来ているか、まずはテキストとしてそのまま受け取ってログに出す
     const rawBody = await c.req.text();
     console.log('📦 Webhook Raw Payload:', rawBody);
 
-    // 💡 2. 手動でJSONに変換
+    // 2. 手動でJSONに変換
     const payload = rawBody ? JSON.parse(rawBody) : null;
 
-    // 💡 3. idが入っているかチェック
+    // 3. idが入っているかチェック
     if (!payload || !payload.id) {
       console.error(
         '❌ ID is missing in payload. 実際のデータ構造を確認してください。',
@@ -104,6 +155,36 @@ export const syncDocuments = async (c: Context) => {
     console.error('❌ Sync Documents Error:', error);
     return c.json(
       { message: error.message || 'Failed to sync documents' },
+      500,
+    );
+  }
+};
+
+// ==========================================
+// 5. ファイルアップロードの受付
+// ==========================================
+export const uploadDocument = async (c: Context) => {
+  try {
+    // 💡 Honoの parseBody で FormData を解析
+    const body = await c.req.parseBody();
+    const file = body['file']; // フロントエンドから 'file' という名前で送られてきます
+
+    if (!file || !(file instanceof File)) {
+      return c.json({ message: 'Valid file is required' }, 400);
+    }
+
+    // Serviceへ丸投げ
+    const taskId = await paperlessService.uploadDocumentToPaperless(file);
+
+    // 202 Accepted: 「受け付けました（裏でPaperlessが処理中です）」という意味のステータスコード
+    return c.json(
+      { message: 'Upload started successfully', task: taskId },
+      202,
+    );
+  } catch (error: any) {
+    console.error('❌ Upload Document Error:', error);
+    return c.json(
+      { message: error.message || 'Failed to upload document' },
       500,
     );
   }

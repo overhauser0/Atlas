@@ -170,6 +170,16 @@ export default function Home() {
   const { notifications, markAsRead, fetchNotifications } =
     useNotificationSync(isAuthenticated);
 
+  const {
+    documents,
+    isLoading,
+    isUploading,
+    syncDocuments,
+    searchDocuments,
+    getDocumentViewUrl,
+    uploadDocuments,
+  } = usePaperless();
+
   const { wsRef, wsStatus, connectedDevices, ownDeviceId } = useAtlasWebSocket(
     fetchTasks,
     fetchNotifications,
@@ -652,6 +662,7 @@ export default function Home() {
               onSyncEnd={decrementRequest}
               onNotionSync={() => handleNotionSync(true)}
               onMarkAsRead={markAsRead}
+              onPaperlessSync={syncDocuments}
               wsStatus={wsStatus}
               connectedDevicesCount={connectedDevices.length}
             />

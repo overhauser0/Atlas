@@ -385,7 +385,7 @@ function EditorView({
             lineHeight: '26px',
             backgroundAttachment: 'local', // スクロール時に線も一緒に動くようにする
           }}
-          className="noir-scrollbar w-full flex-1 bg-transparent border-t border-white-300 text-gray-300 text-base focus:outline-none placeholder:text-gray-600 resize-none z-10 pt-[2px]"
+          className="noir-scrollbar w-full flex-1 bg-transparent border-t border-white-300 text-gray-300 text-base focus:outline-none placeholder:text-gray-600 resize-none z-10 pt-0.5"
         />
 
         <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-xl p-2 focus-within:border-white/20 transition-colors z-10">

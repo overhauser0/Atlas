@@ -21,7 +21,6 @@ const app = new Hono();
 app.use('/*', cors());
 
 // --- 🔒 APIキー認証ミドルウェア ---
-/*
 app.use('/api/v1/*', async (c, next) => {
   // リクエストヘッダーからAPIキーを取得
   const apiKey = c.req.header('X-API-KEY');
@@ -35,7 +34,6 @@ app.use('/api/v1/*', async (c, next) => {
 
   await next();
 });
-*/
 // ----------------------------------
 
 // Routes
@@ -125,9 +123,11 @@ api.get('/immich/assets/:id/thumbnail', immichController.getThumbnail);
 
 // paperless-ngx
 api.get('/paperless', paperlessController.getDocuments);
-api.get('/paperless/:id/view', paperlessController.streamDocument);
+api.post('/paperless/:id/ticket', paperlessController.generateViewTicket);
 api.post('/paperless/webhook', paperlessController.handleWebhook);
 api.post('/paperless/sync', paperlessController.syncDocuments);
+api.post('/paperless/upload', paperlessController.uploadDocument);
+app.get('/paperless/view', paperlessController.viewDocumentWithTicket); // 認証不要
 
 app.route('/api/v1', api);
 

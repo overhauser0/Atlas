@@ -135,6 +135,7 @@ CREATE TABLE paperless_documents (
   document_type TEXT,                   -- 書類の種類（Nullable）
   correspondent TEXT,                   -- 対象者・送信元（Nullable）
   tags TEXT[],                          -- タグの配列（デフォルトは空配列）
+  document_date TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );

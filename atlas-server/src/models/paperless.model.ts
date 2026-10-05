@@ -15,6 +15,7 @@ export const PaperlessDocumentSchema = z.object({
   document_type: z.string().nullable().optional(),
   correspondent: z.string().nullable().optional(),
   tags: z.array(z.string()).default([]),
+  document_date: z.date().nullable().optional(),
   created_at: z.date().optional(),
   updated_at: z.date().optional(),
 });
@@ -47,6 +48,7 @@ export interface PaperlessDocumentsTable {
   document_type: string | null;
   correspondent: string | null;
   tags: string[] | null; // Kyselyの配列マッピング用
+  document_date: Date | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
 }

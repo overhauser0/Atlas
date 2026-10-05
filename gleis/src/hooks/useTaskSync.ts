@@ -102,7 +102,6 @@ export const useTaskSync = (
             method: 'POST',
           });
         }
-        // await fetchTasks(true); → WebSocketに
       } catch (e) {
         console.warn(e);
       } finally {

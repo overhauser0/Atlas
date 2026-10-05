@@ -1,6 +1,7 @@
 // src/hooks/usePaperless.ts
 import { useState, useCallback } from 'react';
 import { atlasFetch } from '@/utils/api';
+import { fileURLToPath } from 'url';
 
 export interface PaperlessDocument {
   id: number;
@@ -10,11 +11,13 @@ export interface PaperlessDocument {
   document_type: string | null;
   correspondent: string | null;
   tags: string[];
+  document_date: string | null;
 }
 
 export const usePaperless = () => {
   const [documents, setDocuments] = useState<PaperlessDocument[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // ドキュメントの検索処理
   const searchDocuments = useCallback(async (query: string) => {
@@ -42,16 +45,73 @@ export const usePaperless = () => {
     }
   }, []);
 
-  // プレビューURLの生成処理
-  const getDocumentViewUrl = useCallback((paperlessId: number) => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    return `${baseUrl}/api/v1/paperless/${paperlessId}/view`;
+  const openDocument = useCallback(async (paperlessId: number) => {
+    try {
+      // 1. X-API-KEY を使ってワンタイムチケットを発行
+      const res = await atlasFetch(`/paperless/${paperlessId}/ticket`, {
+        method: 'POST',
+      });
+
+      if (!res.ok) throw new Error('Failed to get view ticket');
+
+      const { ticket } = await res.json();
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+
+      // 2. チケット付きのURLを別タブで開く
+      const viewUrl = `${baseUrl}/paperless/view?ticket=${ticket}`;
+      window.open(viewUrl, '_blank');
+    } catch (e) {
+      console.error('Open Document Error:', e);
+      // 必要であればトーストでエラーを表示
+    }
+  }, []);
+
+  // アップロード処理
+  const uploadDocuments = useCallback(async (files: File[]) => {
+    setIsUploading(true);
+    try {
+      await Promise.all(
+        files.map(async (file) => {
+          const formData = new FormData();
+          formData.append('file', file);
+
+          const res = await atlasFetch(`/paperless/upload`, {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!res.ok) throw new Error(`Failed to upload ${file.name}`);
+        }),
+      );
+      return true;
+    } catch (e) {
+      console.warn('Upload Documents Error:', e);
+      return false;
+    } finally {
+      setIsUploading(false);
+    }
+  }, []);
+
+  const syncDocuments = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await atlasFetch('/paperless/sync', {
+        method: 'POST',
+      });
+    } catch (e) {
+      console.warn(e);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
 
   return {
     documents,
     isLoading,
+    isUploading,
+    syncDocuments,
     searchDocuments,
-    getDocumentViewUrl,
+    openDocument,
+    uploadDocuments,
   };
 };

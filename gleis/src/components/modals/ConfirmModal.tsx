@@ -1,4 +1,7 @@
+// gleis/src/components/modals/ConfirmModal.tsx
+
 'use client';
+import { useEffect } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 
 export interface ConfirmModalProps {
@@ -20,6 +23,30 @@ export default function ConfirmModal({
   onConfirm,
   onCancel,
 }: ConfirmModalProps) {
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onConfirm();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        onCancel();
+      }
+    };
+
+    // capture: true を指定することで、DOMツリーの「下から上」ではなく「上から下」へ降りてくる
+    // イベントを最速でキャッチし、背面モーダルより先に処理を奪い取ります
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
+    };
+  }, [isOpen, onConfirm, onCancel]);
+
   if (!isOpen) return null;
 
   return (

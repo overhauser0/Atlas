@@ -41,7 +41,7 @@ export const getPaperlessDocuments = async (filters: PaperlessFilters) => {
   }
 
   // 最新のドキュメントから順に返す
-  return await q.orderBy('updated_at', 'desc').execute();
+  return await q.orderBy('document_date', 'desc').execute();
 };
 
 /**

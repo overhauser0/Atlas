@@ -1,3 +1,5 @@
+// gleis/src/components/panels/ActionPanel.tsx
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -17,6 +19,7 @@ import {
   Activity,
   ServerCrash,
   Check,
+  FileStack,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
@@ -33,6 +36,7 @@ interface Props {
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onNotionSync: () => void;
+  onPaperlessSync: () => Promise<void>;
   onMarkAsRead: (id: string) => void;
   wsStatus?: 'connected' | 'connecting' | 'disconnected';
   connectedDevicesCount?: number;
@@ -51,8 +55,8 @@ export default function ActionPanel({
   onSyncStart,
   onSyncEnd,
   onNotionSync,
+  onPaperlessSync,
   onMarkAsRead,
-  // デフォルト値を設定
   wsStatus = 'connecting',
   connectedDevicesCount = 0,
 }: Props) {
@@ -60,15 +64,14 @@ export default function ActionPanel({
   const [isVisible, setIsVisible] = useState(false);
   const { addToast } = useToast();
 
-  // 未読の通知を新しい順にソートし、最大2件まで抽出
   const recentUnreadNotifications = useMemo(() => {
     return [...notifications]
-      .filter((n) => !n.is_read) // 未読のみ
+      .filter((n) => !n.is_read)
       .sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-      ) // 新しい順
-      .slice(0, 2); // 最大2件
+      )
+      .slice(0, 2);
   }, [notifications]);
 
   useEffect(() => {
@@ -82,7 +85,6 @@ export default function ActionPanel({
     }
   }, [isOpen]);
 
-  // Escキーでモーダルを閉じる関数
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && isOpen) {
@@ -93,13 +95,10 @@ export default function ActionPanel({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
-  // 期限切れタスクを一括更新するハンドラー
   const handleRescheduleClick = async () => {
     if (!onRescheduleOverdue) return;
-
     onSyncStart();
     onClose();
-
     try {
       await onRescheduleOverdue();
       addToast(
@@ -119,7 +118,21 @@ export default function ActionPanel({
     onClose();
   };
 
-  // 最終同期日時のフォーマット関数
+  // Paperlessの強制同期ハンドラー
+  const handlePaperlessSync = async () => {
+    onSyncStart();
+    onClose();
+    try {
+      await onPaperlessSync();
+      addToast('Paperless Documents Synced.', 'info');
+    } catch (error) {
+      console.error('Failed to sync paperless:', error);
+      addToast('ドキュメントの同期に失敗しました', 'info');
+    } finally {
+      onSyncEnd();
+    }
+  };
+
   const formatSyncTime = (dateStr?: number | null | undefined) => {
     if (!dateStr) return 'Never synced';
     const d = new Date(dateStr);
@@ -138,7 +151,6 @@ export default function ActionPanel({
 
   return (
     <div className="fixed inset-0 z-50 overflow-hidden pointer-events-none">
-      {/* バックドロップ */}
       <div
         className={`absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-400 pointer-events-auto ${
           isVisible ? 'opacity-100' : 'opacity-0'
@@ -146,13 +158,11 @@ export default function ActionPanel({
         onClick={onClose}
       />
 
-      {/* パネル本体（ダークガラス） */}
       <div
         className={`noir-glass border-none! absolute top-0 right-0 h-full w-full max-w-sm flex flex-col transition-transform duration-400 ease-[cubic-bezier(0.32,0.72,0,1)] pointer-events-auto ${
           isVisible ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
-        {/* ヘッダー */}
         <div className="flex items-center justify-between p-6 pb-4">
           <div className="flex items-center gap-2 text-white">
             <Zap className="w-5 h-5 text-primary-500 fill-primary-500" />
@@ -169,9 +179,8 @@ export default function ActionPanel({
         </div>
 
         <div className="flex-1 overflow-y-auto p-6 pt-2 space-y-6 no-scrollbar">
-          {/* システムステータス */}
+          {/* システムステータス（Wake Lock & Remote Sync）省略せずに残しています */}
           <div className="grid grid-cols-2 gap-3">
-            {/* 1. Wake Lock */}
             <div
               className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
                 isWakeLockActive
@@ -204,7 +213,6 @@ export default function ActionPanel({
               </div>
             </div>
 
-            {/* 2. Remote Sync (WebSocket) */}
             <div
               className={`p-3 rounded-xl border flex items-center gap-3 transition-colors ${
                 wsStatus === 'connected'
@@ -262,8 +270,8 @@ export default function ActionPanel({
             </div>
 
             <div className="flex flex-col gap-3">
-              {/* 同期ステータス＆期限切れタスクのカード */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm flex flex-col gap-4 relative overflow-hidden">
+                {/* 1. Notion Sync */}
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
@@ -285,7 +293,29 @@ export default function ActionPanel({
                   </button>
                 </div>
 
-                {/* 期限切れタスクがある場合のみ表示されるセクション */}
+                {/* 💡 2. Paperless Sync */}
+                <div className="h-px w-full bg-white/10" />
+                <div className="flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <FileStack className="w-4 h-4 text-zinc-400" />
+                      <span className="text-sm font-bold text-zinc-300">
+                        Paperless Sync
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-zinc-500 font-medium pl-6">
+                      Sync all documents & tags
+                    </p>
+                  </div>
+                  <button
+                    onClick={handlePaperlessSync}
+                    className="bg-white/5 hover:bg-white/10 border border-white/10 text-zinc-300 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5 active:scale-95"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Sync Now</span>
+                  </button>
+                </div>
+
                 {overdueTasks.length > 0 && (
                   <>
                     <div className="h-px w-full bg-white/10" />
@@ -308,13 +338,12 @@ export default function ActionPanel({
                 )}
               </div>
 
-              {/* 通知リストのカード */}
+              {/* 通知リスト（省略せずに残しています） */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col gap-4">
                 {recentUnreadNotifications.length > 0 ? (
                   <div className="flex flex-col gap-5">
                     {recentUnreadNotifications.map((n) => {
                       const isAlert = n.category === 'ALERT';
-
                       return (
                         <div
                           key={n.id}
@@ -324,17 +353,11 @@ export default function ActionPanel({
                             onNavigateToNotifications();
                           }}
                         >
-                          {/* 左側のアクセントライン */}
                           <div
                             className={`absolute -left-5 top-0 w-1 h-full rounded-r-md ${isAlert ? 'bg-red-500' : 'bg-blue-500'}`}
                           />
-
                           <div
-                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
-                              isAlert
-                                ? 'bg-red-500/20 text-red-400'
-                                : 'bg-blue-500/20 text-blue-400'
-                            }`}
+                            className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${isAlert ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}
                           >
                             {isAlert ? (
                               <AlertTriangle className="w-5 h-5" />
@@ -342,7 +365,6 @@ export default function ActionPanel({
                               <Bell className="w-5 h-5" />
                             )}
                           </div>
-
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-bold text-zinc-100 mb-1 truncate">
                               {n.title}
@@ -376,7 +398,6 @@ export default function ActionPanel({
                     })}
                   </div>
                 ) : (
-                  /* 未読通知がない場合の表示 */
                   <div
                     className="py-2 flex flex-col items-center justify-center text-zinc-500"
                     onClick={() => {
@@ -392,7 +413,6 @@ export default function ActionPanel({
             </div>
           </section>
 
-          {/* クイックアクション */}
           <section>
             <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-widest mb-3 px-1">
               Actions
@@ -404,7 +424,6 @@ export default function ActionPanel({
                 </div>
                 <span className="text-xs font-bold text-zinc-300">Scan QR</span>
               </button>
-
               <button
                 onClick={() => {
                   onClose();
