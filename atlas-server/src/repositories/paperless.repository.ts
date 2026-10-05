@@ -87,3 +87,17 @@ export const deletePaperlessDocument = async (paperlessId: number) => {
     .returningAll()
     .executeTakeFirst();
 };
+
+// 存在するIDのリストを受け取り、それに含まれないものを全削除する
+export const deleteDocumentsNotIn = async (validIds: number[]) => {
+  // もしPaperless側が空っぽ（0件）なら、キャッシュも全削除
+  if (validIds.length === 0) {
+    return await db.deleteFrom('paperless_documents').execute();
+  }
+
+  // validIds に含まれない（not in）paperless_id を一括削除
+  return await db
+    .deleteFrom('paperless_documents')
+    .where('paperless_id', 'not in', validIds)
+    .execute();
+};

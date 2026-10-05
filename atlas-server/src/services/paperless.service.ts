@@ -130,6 +130,8 @@ export const syncAllDocuments = async () => {
   let nextUrl: string | null = '/api/documents/';
   let totalSynced = 0;
 
+  const syncedIds: number[] = [];
+
   try {
     while (nextUrl) {
       const response: AxiosResponse<PaperlessListResponse> =
@@ -154,11 +156,14 @@ export const syncAllDocuments = async () => {
         };
 
         await paperlessRepository.upsertPaperlessDocument(documentInput);
+        syncedIds.push(doc.id);
         totalSynced++;
       }
 
       nextUrl = data.next;
     }
+
+    await paperlessRepository.deleteDocumentsNotIn(syncedIds);
 
     console.log(
       `✅ 同期完了: ${totalSynced} 件のドキュメントをキャッシュしました。`,
