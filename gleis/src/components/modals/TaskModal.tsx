@@ -452,7 +452,7 @@ export default function TaskModal({
           {editForm.source === 'NOTION' && task?.id && (
             <a
               href={getNotionLinkById(task.id)}
-              target="_blank"
+              target="_self"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="noir-icon-btn"

@@ -241,7 +241,7 @@ export default function WeeklyView({
                           {task.source === 'NOTION' && (
                             <a
                               href={getNotionLinkById(task.id)}
-                              target="_blank"
+                              target="_self"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}
                               className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"

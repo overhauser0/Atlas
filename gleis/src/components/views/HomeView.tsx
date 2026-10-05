@@ -203,7 +203,7 @@ export default function HomeView({
                     {task.source === 'NOTION' && (
                       <a
                         href={getNotionLinkById(task.id)}
-                        target="_blank"
+                        target="_self"
                         rel="noopener noreferrer"
                         onClick={(e) => e.stopPropagation()}
                         className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100"
