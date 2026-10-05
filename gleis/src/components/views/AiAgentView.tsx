@@ -180,7 +180,7 @@ export default function AiAgentView({
             onChange={handleInput}
             onKeyDown={handleKeyDown}
             placeholder="プロンプトを入力... (Cmd/Ctrl + Enter で送信)"
-            className="w-full bg-transparent border-none text-gray-200 text-base placeholder:text-gray-600 focus:outline-none resize-none px-4 pt-4 pb-2 min-h-[80px] noir-scrollbar relative z-10"
+            className="w-full bg-transparent border-none text-gray-200 text-base placeholder:text-gray-600 focus:outline-none resize-none px-4 pt-4 pb-2 min-h-20 noir-scrollbar relative z-10"
             rows={2}
           />
 
