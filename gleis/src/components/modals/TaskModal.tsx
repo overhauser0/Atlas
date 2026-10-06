@@ -451,7 +451,7 @@ export default function TaskModal({
           {/* Notion Link */}
           {editForm.source === 'NOTION' && task?.id && (
             <a
-              href={getNotionLinkById(task.id)}
+              href={getNotionLinkById(task.id, 'notion')}
               target="_self"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -467,7 +467,7 @@ export default function TaskModal({
             <button
               onClick={(e) => {
                 e.preventDefault();
-                if (task.id) onSendToPC(getNotionLinkById(task.id));
+                if (task.id) onSendToPC(getNotionLinkById(task.id, 'https'));
                 onClose();
               }}
               className="noir-icon-btn"

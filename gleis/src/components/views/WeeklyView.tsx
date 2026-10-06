@@ -240,7 +240,7 @@ export default function WeeklyView({
                           </div>
                           {task.source === 'NOTION' && (
                             <a
-                              href={getNotionLinkById(task.id)}
+                              href={getNotionLinkById(task.id, 'notion')}
                               target="_self"
                               rel="noopener noreferrer"
                               onClick={(e) => e.stopPropagation()}

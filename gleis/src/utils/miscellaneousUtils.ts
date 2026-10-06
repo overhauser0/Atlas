@@ -47,6 +47,8 @@ export const sortTasksByStatus = (tasks: any[]) => {
   });
 };
 
-export const getNotionLinkById = (id: string) => {
-  return `notion://notion.so/${id.replace(/-/g, '')}`;
+type scheme = 'notion' | 'https';
+export const getNotionLinkById = (id: string, scheme?: scheme) => {
+  const returnScheme = scheme || 'https';
+  return `${returnScheme}://notion.so/${id.replace(/-/g, '')}`;
 };
