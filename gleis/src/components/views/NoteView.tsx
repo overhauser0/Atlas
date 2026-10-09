@@ -122,7 +122,7 @@ export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
                   {note.is_pinned && (
                     <Pin className="w-3.5 h-3.5 text-amber-500/80 shrink-0" />
                   )}
-                  <div className="flex flex-col justify-center gap-1.5">
+                  <div className="flex flex-col justify-center gap-1.5 min-w-0">
                     <h3 className="text-sm font-bold text-gray-200 truncate group-hover:text-white transition-colors">
                       {note.title || 'Untitled'}
                     </h3>
