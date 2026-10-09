@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
+import * as errorController from './controllers/error.controller';
 import * as notificationController from './controllers/notification.controller';
 import * as pieceController from './controllers/piece.controller';
 import * as reviewController from './controllers/review.controller';
@@ -12,7 +13,6 @@ import * as agentController from './controllers/agent.controller';
 import * as immichController from './controllers/immich.controller';
 import * as paperlessController from './controllers/paperless.controller';
 import * as routineController from './controllers/routine.controller';
-import * as notificationRepo from './repositories/notification.repository';
 import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
@@ -131,27 +131,7 @@ app.get('/paperless/view', paperlessController.viewDocumentWithTicket); // 認�
 
 app.route('/api/v1', api);
 
-// エラー通知
-app.onError(async (err, c) => {
-  console.warn(`[Server Error]: ${err.message}`);
-
-  // エラーを通知履歴に保存する
-  try {
-    await notificationRepo.insertNotification({
-      title: '🚫 System Internal Error',
-      note: `A server-side error occurred: ${err.message}`,
-      category: 'ALERT',
-      url: '',
-      storageTarget: '',
-      metadata: null,
-      timestamp: null,
-    });
-  } catch (e) {
-    console.warn('Failed to archive error notification', e);
-  }
-
-  return c.json({ success: false, error: 'Internal Server Error' }, 500);
-});
+app.onError(errorController.handleServerError);
 
 const port = 5675;
 console.log(`🚀 Atlas Server (Hono) running on port ${port}`);

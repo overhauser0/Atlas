@@ -58,3 +58,16 @@ export const markAllNotificationsAsRead = async () => {
   broadcast(JSON.stringify({ type: 'REFRESH_NOTIFICATIONS' }));
   return await notificationRepo.markAllNotificationsAsRead();
 };
+
+/** サーバーエラーを通知履歴に保存する。 */
+export const archiveServerError = async (error: Error) => {
+  return await notificationRepo.insertNotification({
+    title: '🚫 System Internal Error',
+    note: `A server-side error occurred: ${error.message}`,
+    category: 'ALERT',
+    url: '',
+    storageTarget: '',
+    metadata: null,
+    timestamp: null,
+  });
+};
