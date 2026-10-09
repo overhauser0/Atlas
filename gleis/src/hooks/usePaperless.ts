@@ -1,7 +1,6 @@
 // src/hooks/usePaperless.ts
 import { useState, useCallback } from 'react';
 import { atlasFetch } from '@/utils/api';
-import { fileURLToPath } from 'url';
 
 export interface PaperlessDocument {
   id: number;
@@ -19,14 +18,11 @@ export const usePaperless = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
-  // ドキュメントの検索処理
-  const searchDocuments = useCallback(async (query: string) => {
+  // 起動時にWorkのドキュメント一覧を一括取得する
+  const fetchDocuments = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      if (query) params.append('title', query);
-
-      // Gleisからのリクエストは常にWorkに固定する
       params.append('correspondent', 'Work');
 
       const res = await atlasFetch(`/paperless?${params.toString()}`, {
@@ -37,9 +33,10 @@ export const usePaperless = () => {
 
       const data = await res.json();
       setDocuments(data.documents || []);
+      return true;
     } catch (e) {
-      console.warn('Search Documents Error:', e);
-      setDocuments([]); // エラー時は空にする
+      console.warn('Fetch Documents Error:', e);
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -95,22 +92,24 @@ export const usePaperless = () => {
   const syncDocuments = useCallback(async () => {
     setIsLoading(true);
     try {
-      await atlasFetch('/paperless/sync', {
+      const res = await atlasFetch('/paperless/sync', {
         method: 'POST',
       });
+      if (!res.ok) throw new Error('Failed to sync documents');
+      await fetchDocuments();
     } catch (e) {
       console.warn(e);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [fetchDocuments]);
 
   return {
     documents,
     isLoading,
     isUploading,
     syncDocuments,
-    searchDocuments,
+    fetchDocuments,
     openDocument,
     uploadDocuments,
   };

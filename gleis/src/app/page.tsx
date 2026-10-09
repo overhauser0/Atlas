@@ -31,7 +31,7 @@ import NoteView from '@/components/views/NoteView';
 import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
 import { DocumentsView } from '@/components/views/DocumentsView';
-import SettingsView from '@/components/views/SettingsView';
+import SettingsView, { SettingsTab } from '@/components/views/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
@@ -43,7 +43,6 @@ import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import ActionPanel from '@/components/panels/ActionPanel';
 import CommandPalette from '@/components/modals/CommandPalette';
-import NotificationsView from '@/components/views/NotificationsView';
 
 // --- Types & Utils & Hooks ---
 import { Task, ViewType, isViewType } from '@/types';
@@ -74,6 +73,7 @@ export default function Home() {
 
   // Global UI & View
   const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('general');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
@@ -170,7 +170,15 @@ export default function Home() {
   const { notifications, markAsRead, fetchNotifications } =
     useNotificationSync(isAuthenticated);
 
-  const { syncDocuments } = usePaperless();
+  const {
+    documents,
+    isLoading: isDocumentsLoading,
+    isUploading: isDocumentsUploading,
+    fetchDocuments,
+    syncDocuments,
+    openDocument,
+    uploadDocuments,
+  } = usePaperless();
 
   const { wsRef, wsStatus, connectedDevices, ownDeviceId } = useAtlasWebSocket(
     fetchTasks,
@@ -191,7 +199,13 @@ export default function Home() {
   // ============================================================================
 
   const handleViewChange = useCallback((view: ViewType) => {
-    setCurrentView(view);
+    if (view === 'notifications') {
+      setSettingsTab('notifications');
+      setCurrentView('settings');
+    } else {
+      if (view === 'settings') setSettingsTab('general');
+      setCurrentView(view);
+    }
     setIsMobileMenuOpen(false);
     closeProjectModal();
     closeTaskModal();
@@ -306,9 +320,10 @@ export default function Home() {
     if (isAuthenticated && !hasFetchedInitial.current) {
       fetchTasks(false);
       fetchNotifications();
+      fetchDocuments();
       hasFetchedInitial.current = true;
     }
-  }, [isAuthenticated, fetchTasks]);
+  }, [isAuthenticated, fetchTasks, fetchDocuments]);
 
   // 時計と自動同期のタイマー
   useEffect(() => {
@@ -405,6 +420,8 @@ export default function Home() {
           onNewTask={(task) => openTaskModal(task)}
           tasks={tasks}
           onTaskClick={(task) => openTaskModal(task)}
+          documents={documents}
+          onDocumentClick={openDocument}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
           onLock={handleLogout}
         />
@@ -427,7 +444,7 @@ export default function Home() {
               Gleis
             </div>
           </div>
-          <nav className="flex flex-col gap-2 flex-1 overflow-y-auto overflow-x-hidden noir-scrollbar">
+          <nav className="flex flex-col gap-2 flex-1 overflow-y-auto overflow-x-hidden noir-scrollbar-hidden">
             {[
               { id: 'home', icon: LayoutDashboard, label: 'Home' },
               { id: 'weekly', icon: Columns2, label: 'WeeklyTask' },
@@ -571,16 +588,6 @@ export default function Home() {
               />
             )}
 
-            {currentView === 'notifications' && (
-              <NotificationsView
-                notifications={notifications}
-                onMarkAsRead={markAsRead}
-                openTaskModal={(task) => openTaskModal(task)}
-                handleGleisLink={(url, callback) =>
-                  handleGleisLink(url, callback)
-                }
-              />
-            )}
             {currentView === 'settings' && (
               <SettingsView
                 appSettings={appSettings}
@@ -588,9 +595,23 @@ export default function Home() {
                 wsStatus={wsStatus}
                 connectedDevices={connectedDevices}
                 ownDeviceId={ownDeviceId}
+                activeTab={settingsTab}
+                onTabChange={setSettingsTab}
+                notifications={notifications}
+                onMarkAsRead={markAsRead}
+                openTaskModal={openTaskModal}
+                handleGleisLink={handleGleisLink}
               />
             )}
-            {currentView === 'documents' && <DocumentsView />}
+            {currentView === 'documents' && (
+              <DocumentsView
+                documents={documents}
+                isLoading={isDocumentsLoading}
+                isUploading={isDocumentsUploading}
+                openDocument={openDocument}
+                uploadDocuments={uploadDocuments}
+              />
+            )}
 
             {/* --- Contextual Modals --- */}
             <QuickAlarmModal

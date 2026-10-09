@@ -1,6 +1,6 @@
 // src/components/views/DocumentsView.tsx
 
-import React, { useState, useEffect, DragEvent } from 'react';
+import React, { useMemo, useState, DragEvent } from 'react';
 import {
   Search,
   ExternalLink,
@@ -10,27 +10,34 @@ import {
   Loader2,
   Calendar,
 } from 'lucide-react';
-import { usePaperless } from '@/hooks/usePaperless';
+import { PaperlessDocument } from '@/hooks/usePaperless';
 import { getDateFullString } from '@/utils/dateUtils';
 
-export const DocumentsView: React.FC = () => {
+interface Props {
+  documents: PaperlessDocument[];
+  isLoading: boolean;
+  isUploading: boolean;
+  openDocument: (paperlessId: number) => void;
+  uploadDocuments: (files: File[]) => Promise<boolean>;
+}
+
+export const DocumentsView: React.FC<Props> = ({
+  documents,
+  isLoading,
+  isUploading,
+  openDocument,
+  uploadDocuments,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
-  const {
-    documents,
-    isLoading,
-    isUploading,
-    searchDocuments,
-    openDocument,
-    uploadDocuments,
-  } = usePaperless();
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      searchDocuments(searchQuery);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery, searchDocuments]);
+  const filteredDocuments = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return documents;
+    return documents.filter((doc) =>
+      doc.title.toLocaleLowerCase().includes(query),
+    );
+  }, [documents, searchQuery]);
 
   // D&Dイベントハンドラ
   const handleDragEnter = (e: DragEvent<HTMLDivElement>) => {
@@ -124,12 +131,12 @@ export const DocumentsView: React.FC = () => {
             <div className="text-sm text-gray-500 text-center py-4">
               Searching...
             </div>
-          ) : documents.length === 0 ? (
+          ) : filteredDocuments.length === 0 ? (
             <div className="text-sm text-gray-500 text-center py-4">
               No documents found.
             </div>
           ) : (
-            documents.map((doc) => (
+            filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
                 className="group flex items-center justify-between gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg cursor-pointer transition-colors"
