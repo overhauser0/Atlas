@@ -86,7 +86,7 @@ export default function ConfigModal({
         </div>
 
         <div className="text-center text-xs text-gray-400 p-4">
-          Trails v8.0.0
+          Trails v8.0.1
         </div>
       </div>
     </div>

@@ -1,31 +1,54 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Archive, Plane, Leaf } from 'lucide-react';
+import { Archive, Plane } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ListItem from './ListItem';
+import ListItem from './ui/ListItem';
 import JapanMapWidget from './JapanMapWidget';
 
 interface Props {
   onNavigate: (tab: 'Bucket' | 'Travel' | 'Explore' | 'Calendar') => void;
   onItemClick: (item: LifeItem) => void;
-  data: LifeItem[];
+  events: LifeItem[];
+  tasks: LifeItem[];
 }
 
-export default function HomeView({ onNavigate, onItemClick, data }: Props) {
-  // 統計計算等はそのまま
+export default function HomeView({
+  onNavigate,
+  onItemClick,
+  events,
+  tasks,
+}: Props) {
   const stats = useMemo(() => {
     return {
-      bucket: data.filter(
+      bucket: events.filter(
         (i) => i.category?.includes('Bucket') && i.status !== 'Done',
       ).length,
-      travel: data.filter(
+      travel: events.filter(
         (i) => i.category?.includes('Travel') && i.status !== 'Done',
       ).length,
     };
-  }, [data]);
+  }, [events]);
 
-  const completedItems = data.filter((item) => item.status === 'Done');
+  const completedItems = events.filter((item) => item.status === 'Done');
+  const recentTasks = useMemo(
+    () =>
+      tasks
+        .filter((item) => item.type === 'Task' && item.status !== 'Done')
+        .sort((a, b) => {
+          const parsedDateA = a.date ? Date.parse(a.date) : NaN;
+          const parsedDateB = b.date ? Date.parse(b.date) : NaN;
+          const dateA = Number.isNaN(parsedDateA)
+            ? Number.POSITIVE_INFINITY
+            : parsedDateA;
+          const dateB = Number.isNaN(parsedDateB)
+            ? Number.POSITIVE_INFINITY
+            : parsedDateB;
+          return dateA - dateB;
+        })
+        .slice(0, 5),
+    [tasks],
+  );
 
   const recentTags = useMemo(() => {
     const tags = new Set<string>();
@@ -37,14 +60,6 @@ export default function HomeView({ onNavigate, onItemClick, data }: Props) {
       ? uniqueTags
       : ['Fukuoka', 'Udon', 'Hiking', 'Winter', 'HotSpring', 'Escape'];
   }, [completedItems]);
-
-  const getIcon = (item: LifeItem) => {
-    if (item.category?.includes('Bucket'))
-      return <Archive className="w-5 h-5 text-gray-500" />;
-    if (item.category?.includes('Travel'))
-      return <Plane className="w-5 h-5 text-gray-500" />;
-    return <Leaf className="w-5 h-5 text-green-500" />;
-  };
 
   return (
     // 1. 全体高さを固定 (h-full flex flex-col)
@@ -112,7 +127,7 @@ export default function HomeView({ onNavigate, onItemClick, data }: Props) {
               </div>
             </div>
 
-            <JapanMapWidget data={data} onItemClick={onItemClick} />
+            <JapanMapWidget data={events} onItemClick={onItemClick} />
 
             <section>
               <h2 className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-3 px-2 mt-4">
@@ -127,7 +142,7 @@ export default function HomeView({ onNavigate, onItemClick, data }: Props) {
                     iconClassName="text-green-500"
                   />
                 ))}
-                {data.length === 0 && (
+                {events.length === 0 && (
                   <div className="p-8 text-center text-gray-400 text-sm font-medium">
                     No activity yet.
                   </div>
@@ -136,6 +151,26 @@ export default function HomeView({ onNavigate, onItemClick, data }: Props) {
             </section>
           </div>
         </div>
+
+        <section className="mt-6">
+          <h2 className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mb-3 px-2">
+            Recent TASK
+          </h2>
+          <div className="bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col divide-y divide-gray-50 overflow-hidden">
+            {recentTasks.map((item) => (
+              <ListItem
+                key={item.id}
+                item={item}
+                onItemClick={() => onItemClick(item)}
+              />
+            ))}
+            {recentTasks.length === 0 && (
+              <div className="p-8 text-center text-gray-400 text-sm font-medium">
+                No tasks yet.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Map, X } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ListItem from './ListItem';
+import ListItem from './ui/ListItem';
 
 interface Props {
   data: LifeItem[];

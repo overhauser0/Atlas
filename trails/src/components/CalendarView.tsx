@@ -108,7 +108,7 @@ export default function CalendarView({
     return days;
   }, [year, month]);
 
-  // アイテムから日付を取得するヘルパー（※実際のプロパティ名に書き換えてください）
+  // アイテムから日付を取得するヘルパー
   const getItemDate = (item: LifeItem): Date | null => {
     // 例: item.date や item.createdAt が存在する場合
     const dateStr = (item as any).date || (item as any).createdAt;

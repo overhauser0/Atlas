@@ -2,7 +2,7 @@
 
 import { Plus, Plane } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ListItem from './ListItem';
+import ListItem from './ui/ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
 
 interface Props {

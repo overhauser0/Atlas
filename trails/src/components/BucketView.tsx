@@ -5,7 +5,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus, BadgeCheck, Archive } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
-import ListItem from './ListItem';
+import ListItem from './ui/ListItem';
 
 interface Props {
   data: LifeItem[];

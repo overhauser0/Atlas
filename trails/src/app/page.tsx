@@ -16,15 +16,15 @@ import CalendarView from '@/components/CalendarView';
 import BucketView from '@/components/BucketView';
 import TravelView from '@/components/TravelView';
 import ExploreView from '@/components/ExploreView';
-import DetailModal from '@/components/DetailModal';
-import ConfigModal from '@/components/ConfigModal';
+import DetailModal from '@/components/modal/DetailModal';
+import ConfigModal from '@/components/modal/ConfigModal';
 import ViewHeader from '@/components/ViewHeader';
 import AuthView from '@/components/AuthView';
 import { usePieceSync } from '@/hooks/usePieceSync';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useDiarySync } from '@/hooks/useDiarySync';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
-import DiaryModal from '@/components/DiaryModal';
+import DiaryModal from '@/components/modal/DiaryModal';
 
 export default function AppMain() {
   // ============================================================================
@@ -53,9 +53,9 @@ export default function AppMain() {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [detailModalConfig, setDetailModalConfig] = useState<{
     isOpen: boolean;
-    mode: 'create' | 'edit';
     item: Partial<LifeItem> | null;
-  }>({ isOpen: false, mode: 'create', item: null });
+    initialValues: Partial<LifeItem> | null;
+  }>({ isOpen: false, item: null, initialValues: null });
 
   const [diaryModalConfig, setDiaryModalConfig] = useState<{
     isOpen: boolean;
@@ -154,18 +154,21 @@ export default function AppMain() {
   const openDetailModal = useCallback((item: LifeItem) => {
     setDetailModalConfig({
       isOpen: true,
-      mode: 'edit',
       item: item,
+      initialValues: null,
     });
   }, []);
   // FABクリック時のハンドラ
-  const handleOpenCreate = useCallback((item?: Partial<LifeItem>) => {
-    setDetailModalConfig({
-      isOpen: true,
-      mode: 'create',
-      item: item || null,
-    });
-  }, []);
+  const handleOpenCreate = useCallback(
+    (initialValues?: Partial<LifeItem> | null) => {
+      setDetailModalConfig({
+        isOpen: true,
+        item: null,
+        initialValues: initialValues || null,
+      });
+    },
+    [],
+  );
   const handleTabChange = (tab: AppTab) => {
     setCurrentTab(tab);
     setIsMoreOpen(false);
@@ -199,7 +202,8 @@ export default function AppMain() {
       <main className="flex-1 overflow-hidden relative">
         {currentTab === 'Home' && (
           <HomeView
-            data={events}
+            events={events}
+            tasks={tasks}
             onNavigate={setCurrentTab}
             onItemClick={openDetailModal}
           />
@@ -309,13 +313,13 @@ export default function AppMain() {
       {/* モーダル系 */}
       <DetailModal
         isOpen={detailModalConfig.isOpen}
-        mode={detailModalConfig.mode}
         item={detailModalConfig.item}
+        initialValues={detailModalConfig.initialValues}
         onClose={() =>
           setDetailModalConfig({
             isOpen: false,
-            mode: 'create',
             item: null,
+            initialValues: null,
           })
         }
       />
