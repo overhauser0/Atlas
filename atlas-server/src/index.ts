@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
 import { serve } from '@hono/node-server';
 import { cors } from 'hono/cors';
-import * as pushController from './controllers/push.controller';
+import * as notificationController from './controllers/notification.controller';
 import * as pieceController from './controllers/piece.controller';
 import * as reviewController from './controllers/review.controller';
 import * as diaryController from './controllers/diary.controller';
@@ -57,27 +57,27 @@ app.post('/auth/verify', async (c) => {
 
 // /api/v1 プレフィックスで整理
 const api = new Hono();
-// 通知
-api.post('/push', pushController.receivePush);
-api.get('/notifications', pushController.getNotificationHistory);
-api.post('/notifications/read', pushController.markAllAsRead);
-api.post('/notifications/:id/read', pushController.markAsRead);
+// notification
+api.post('/push', notificationController.receivePush);
+api.get('/notifications', notificationController.getNotificationHistory);
+api.post('/notifications/read', notificationController.markAllAsRead);
+api.post('/notifications/:id/read', notificationController.markAsRead);
 
 // Piece
 api.get('/pieces', pieceController.getPieces);
 api.post('/pieces', pieceController.createPiece);
 api.post('/pieces/bulk', pieceController.createPiecesBulk);
-api.get('/pieces/:id', pieceController.getPieceById);
-api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
-api.post('/pieces/:id/promote', pieceController.promotePiece);
-api.patch('/pieces/:id', pieceController.updatePiece);
-api.delete('/pieces/:id', pieceController.deletePiece);
 api.get('/pieces/sync', pieceController.getLastSyncTime);
 api.post('/pieces/sync', pieceController.syncPieces);
 api.post(
   '/pieces/reschedule-overdue',
   pieceController.rescheduleOverduePiecesToToday,
 );
+api.get('/pieces/:id', pieceController.getPieceById);
+api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
+api.post('/pieces/:id/promote', pieceController.promotePiece);
+api.patch('/pieces/:id', pieceController.updatePiece);
+api.delete('/pieces/:id', pieceController.deletePiece);
 
 // Monthly,Weekly
 api.get('/reviews', reviewController.getReviews);
