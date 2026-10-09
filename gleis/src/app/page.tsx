@@ -612,6 +612,7 @@ export default function Home() {
                 isUploading={isDocumentsUploading}
                 openDocument={openDocument}
                 uploadDocuments={uploadDocuments}
+                openTaskModal={openTaskModal}
               />
             )}
 

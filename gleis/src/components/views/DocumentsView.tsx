@@ -4,6 +4,7 @@ import React, { useMemo, useState, DragEvent } from 'react';
 import {
   Search,
   ExternalLink,
+  Plus,
   FileStack,
   Layers,
   UploadCloud,
@@ -12,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PaperlessDocument } from '@/hooks/usePaperless';
 import { getDateFullString } from '@/utils/dateUtils';
+import { Task } from '@/types';
 
 interface Props {
   documents: PaperlessDocument[];
@@ -19,6 +21,7 @@ interface Props {
   isUploading: boolean;
   openDocument: (paperlessId: number) => void;
   uploadDocuments: (files: File[]) => Promise<boolean>;
+  openTaskModal: (task?: Partial<Task>) => void;
 }
 
 export const DocumentsView: React.FC<Props> = ({
@@ -27,6 +30,7 @@ export const DocumentsView: React.FC<Props> = ({
   isUploading,
   openDocument,
   uploadDocuments,
+  openTaskModal,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
@@ -161,7 +165,7 @@ export const DocumentsView: React.FC<Props> = ({
                         key={tag}
                         className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 shrink-0"
                       >
-                        # {tag}
+                        #{tag}
                       </span>
                     ))}
                   </div>
@@ -173,6 +177,20 @@ export const DocumentsView: React.FC<Props> = ({
                       {getDateFullString(doc.document_date)}
                     </span>
                   )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openTaskModal({
+                        title: doc.title,
+                        url: `gleis://document/${doc.paperless_id}`,
+                      })
+                    }
+                    className="p-2 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
+                    title="タスク化"
+                    aria-label={`「${doc.title}」からタスクを作成`}
+                  >
+                    <Plus className="w-5 h-5" />
+                  </button>
                   <span className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100">
                     <ExternalLink
                       className="w-5 h-5"
