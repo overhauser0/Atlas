@@ -369,6 +369,8 @@ export default function Home() {
       } else if (gleisLink.type === 'task') {
         const targetTask = allTasks.find((t) => t.id === gleisLink.target);
         if (targetTask) openTaskModal(targetTask);
+      } else if (gleisLink.type === 'document') {
+        openDocument(parseInt(gleisLink.target));
       }
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');

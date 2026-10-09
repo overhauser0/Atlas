@@ -1,6 +1,20 @@
+export const VALID_LINKTYPES = [
+  'view',
+  'action',
+  'task',
+  'document',
+  'unknown',
+] as const;
+
+export type LinkType = (typeof VALID_LINKTYPES)[number];
+
+export const isLinkType = (type: string): type is LinkType => {
+  return (VALID_LINKTYPES as readonly string[]).includes(type);
+};
+
 export interface GleisLinkAction {
-  type: 'view' | 'action' | 'task' | 'unknown';
-  target: string; // 'review', 'calendar', 'sync' など
+  type: LinkType;
+  target: string;
   rawUrl: string;
 }
 
@@ -12,12 +26,12 @@ export const parseGleisLink = (url: string): GleisLinkAction | null => {
 
   try {
     const urlObj = new URL(url);
-    const type = urlObj.hostname; // 'view' や 'action'
-    const target = urlObj.pathname.replace('/', ''); // '/review' -> 'review'
+    const type = urlObj.hostname;
+    const target = urlObj.pathname.replace('/', '');
 
-    if (type === 'view' || type === 'action' || type === 'task') {
+    if (isLinkType(type)) {
       return {
-        type: type as 'view' | 'action',
+        type,
         target,
         rawUrl: url,
       };
