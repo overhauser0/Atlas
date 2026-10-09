@@ -85,8 +85,8 @@ api.patch('/reviews/:pageId', reviewController.updateReview);
 
 // Diary
 api.get('/diaries', diaryController.getDiaries);
-api.patch('/diaries/:id', diaryController.updateDiary);
 api.post('/diaries/sync', diaryController.syncDiaries);
+api.patch('/diaries/:id', diaryController.updateDiary);
 
 // Google Calendar
 api.get('/calendar/events', calendarController.getEvents);
@@ -95,8 +95,8 @@ api.post('/calendar/sync', calendarController.receiveCalendarSync);
 // Gemini
 api.post('/ai', aiController.execute);
 api.get('/ai/agents', agentController.getAgents);
-api.get('/ai/agents/:id', agentController.getAgent);
 api.post('/ai/agents', agentController.createAgent);
+api.get('/ai/agents/:id', agentController.getAgent);
 api.patch('/ai/agents/:id', agentController.updateAgent);
 api.delete('/ai/agents/:id', agentController.deleteAgent);
 
@@ -109,9 +109,9 @@ api.delete('/notes/:id', noteController.deleteNote);
 // Routine
 api.get('/routines', routineController.getRoutines);
 api.post('/routines', routineController.createRoutine);
+api.post('/routines/generate', routineController.generateRoutineTasks);
 api.patch('/routines/:id', routineController.updateRoutine);
 api.delete('/routines/:id', routineController.deleteRoutine);
-api.post('/routines/generate', routineController.generateRoutineTasks);
 
 // immich
 api.get('/immich/stats', immichController.getImmichStats);
