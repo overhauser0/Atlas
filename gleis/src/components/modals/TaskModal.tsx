@@ -22,10 +22,11 @@ import {
 } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
+import { useToast } from '@/components/ui/Toast';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import { getDateString } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
-import { useToast } from '@/components/ui/Toast';
+import { triggerHaptics } from '@/utils/haptics';
 import { useConfirm } from '@/hooks/useConfirm';
 
 interface TaskModalProps {
@@ -204,6 +205,7 @@ export default function TaskModal({
     try {
       await onSave(taskId, payload);
       onSuccess();
+      if (payload.status === 'Done') triggerHaptics(12);
       addToast('タスクを保存しました', 'info');
     } catch (e) {
       console.warn(e);
