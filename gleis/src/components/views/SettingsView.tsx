@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Monitor, Cpu, Activity, Keyboard, Repeat } from 'lucide-react';
+import React from 'react';
+import { Monitor, Cpu, Activity, Keyboard, Repeat, Bell } from 'lucide-react';
 
 // --- Sub Components ---
 import GeneralSettings from './settings/GeneralSettings';
@@ -9,7 +9,8 @@ import AiAgentSettings from './settings/AiAgentSettings';
 import RoutineSettings from './settings/RoutineSettings';
 import NetworkSettings from './settings/NetworkSettings';
 import ShortcutSettings from './settings/ShortcutSettings';
-import { DeviceInfo } from '@/types';
+import NotificationsView from './settings/Notifications';
+import { DeviceInfo, Task } from '@/types';
 
 interface Props {
   appSettings: any;
@@ -17,9 +18,21 @@ interface Props {
   wsStatus?: 'connected' | 'connecting' | 'disconnected';
   connectedDevices?: DeviceInfo[];
   ownDeviceId?: string;
+  activeTab: SettingsTab;
+  onTabChange: (tab: SettingsTab) => void;
+  notifications: any[];
+  onMarkAsRead: (id: string) => void;
+  openTaskModal: (task?: Partial<Task>) => void;
+  handleGleisLink: (url: string, callback?: Function) => void;
 }
 
-type TabType = 'general' | 'ai' | 'routine' | 'network' | 'shortcuts';
+export type SettingsTab =
+  | 'general'
+  | 'ai'
+  | 'routine'
+  | 'network'
+  | 'shortcuts'
+  | 'notifications';
 
 export default function SettingsView({
   appSettings,
@@ -27,15 +40,20 @@ export default function SettingsView({
   wsStatus = 'connecting',
   connectedDevices = [],
   ownDeviceId = '',
+  activeTab,
+  onTabChange,
+  notifications,
+  onMarkAsRead,
+  openTaskModal,
+  handleGleisLink,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<TabType>('general');
-
   const tabs = [
     { id: 'general', label: 'General', icon: Monitor },
     { id: 'ai', label: 'AI Agents', icon: Cpu },
     { id: 'routine', label: 'Routine', icon: Repeat },
     { id: 'network', label: 'Network', icon: Activity },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
   ];
 
   return (
@@ -46,7 +64,7 @@ export default function SettingsView({
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as TabType)}
+              onClick={() => onTabChange(tab.id as SettingsTab)}
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap
                 ${
                   activeTab === tab.id
@@ -91,6 +109,15 @@ export default function SettingsView({
           )}
 
           {activeTab === 'shortcuts' && <ShortcutSettings />}
+
+          {activeTab === 'notifications' && (
+            <NotificationsView
+              notifications={notifications}
+              onMarkAsRead={onMarkAsRead}
+              openTaskModal={openTaskModal}
+              handleGleisLink={handleGleisLink}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -70,6 +70,15 @@ textarea {
   }
 }
 
+@utility noir-scrollbar-hidden {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 /* 共通入力フォーム */
 @utility noir-input {
   @apply w-full bg-black/40 border border-white/10 rounded-xl p-3 
