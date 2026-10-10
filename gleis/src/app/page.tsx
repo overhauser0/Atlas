@@ -43,6 +43,9 @@ import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import ActionPanel from '@/components/panels/ActionPanel';
 import CommandPalette from '@/components/modals/CommandPalette';
+import LiveActivityPill, {
+  LiveActivityItem,
+} from '@/components/ui/LiveActivityPill';
 
 // --- Types & Utils & Hooks ---
 import { Task, ViewType, isViewType } from '@/types';
@@ -98,6 +101,20 @@ export default function Home() {
     isOpen: boolean;
     parentTask: Partial<Task> | null;
   }>({ isOpen: false, parentTask: null });
+
+  const [currentLiveActivity, setCurrentLiveActivity] =
+    useState<LiveActivityItem | null>(null);
+  /*
+    {
+      id: 'mtg-1',
+      title: '保護者面談 (中3数学)',
+      subtitle: '19:00 - 19:30 (ミーティング)',
+      targetTime: new Date(Date.now() + 5 * 60 * 1000), // 5分後の例
+      actionUrl: 'https://www.notion.so/your-page-id', // NotionやMeetのリンク
+      actionLabel: 'Notionで開く',
+    }
+
+    */
 
   // ============================================================================
   // 2. Custom Hooks (データ・同期・システム操作)
@@ -370,7 +387,12 @@ export default function Home() {
         const targetTask = allTasks.find((t) => t.id === gleisLink.target);
         if (targetTask) openTaskModal(targetTask);
       } else if (gleisLink.type === 'document') {
-        openDocument(parseInt(gleisLink.target));
+        const paperlessId = Number(gleisLink.target);
+        if (Number.isSafeInteger(paperlessId) && paperlessId > 0) {
+          openDocument(paperlessId);
+        } else {
+          console.warn(`無効な文書IDです： ${gleisLink.target}`);
+        }
       }
     } else {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -520,9 +542,14 @@ export default function Home() {
               <HomeView
                 tasks={tasks}
                 completedTasks={completedTasks}
+                wrapperTasks={wrapperTasks}
                 subTaskMap={subTaskMap}
                 openTaskModal={(task) => openTaskModal(task)}
                 onOpenStats={() => handleOpenStats(new Date())}
+                onOpenCommandPalette={() => {
+                  setIsCommandPaletteOpen(true);
+                  setIsMobileMenuOpen(false);
+                }}
               />
             )}
             {currentView === 'weekly' && (
@@ -684,6 +711,11 @@ export default function Home() {
             />
             <ConfirmModal {...confirmProps} />
           </main>
+          <LiveActivityPill
+            activity={currentLiveActivity}
+            onClose={() => setCurrentLiveActivity(null)}
+            onOpenLink={(url) => handleGleisLink(url)}
+          />
         </div>
       </div>
     </ToastProvider>
