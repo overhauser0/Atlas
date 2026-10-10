@@ -177,7 +177,7 @@ export default function LiveActivityPill({
             {isOverdue ? `+${formattedCountdown}` : formattedCountdown}
           </span>
           <span className="text-zinc-600 shrink-0">|</span>
-          <span className="truncate max-w-[140px] sm:max-w-[200px]">
+          <span className="truncate max-w-35 sm:max-w-50">
             {activity.title}
           </span>
         </div>
