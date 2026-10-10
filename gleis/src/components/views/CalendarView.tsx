@@ -102,7 +102,7 @@ export default function CalendarView({
       </div>
 
       {/* カレンダーグリッド */}
-      <div className="flex-1 overflow-y-auto px-2 pb-24 noir-scrollbar">
+      <div className="flex-1 overflow-y-auto px-2 pb-24 noir-scrollbar-hidden">
         {loading ? (
           <div className="flex items-center justify-center h-full w-full text-gray-400 animate-pulse">
             Loading Calendar...
