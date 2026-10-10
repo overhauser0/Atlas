@@ -52,8 +52,8 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
 
       const keyMap: Record<string, ViewType> = {
         '0': 'home',
-        '1': 'weekly',
-        '2': 'kanban',
+        '1': 'kanban',
+        '2': 'weekly',
         '3': 'calendar',
         '4': 'meeting',
         '5': 'review',

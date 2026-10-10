@@ -471,8 +471,8 @@ export default function Home() {
           <nav className="flex flex-col gap-2 flex-1 overflow-y-auto overflow-x-hidden noir-scrollbar-hidden">
             {[
               { id: 'home', icon: LayoutDashboard, label: 'Home' },
-              { id: 'weekly', icon: Columns2, label: 'WeeklyTask' },
               { id: 'kanban', icon: Kanban, label: 'Kanban' },
+              { id: 'weekly', icon: Columns2, label: 'Weekly' },
               { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
               { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
               { id: 'review', icon: ClipboardPenLine, label: 'Review' },
