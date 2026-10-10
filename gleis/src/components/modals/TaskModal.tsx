@@ -668,7 +668,7 @@ export default function TaskModal({
 
               {isStatusMenuOpen && (
                 <div className="noir-subglass absolute left-0 right-0 z-60 mt-2 p-1.5 rounded-xl flex flex-col gap-1">
-                  {['INBOX', 'Waiting', 'Going', 'Done'].map((s) => (
+                  {['INBOX', 'Waiting', 'Going', 'Wrapper', 'Done'].map((s) => (
                     <button
                       key={s}
                       onClick={() => {
