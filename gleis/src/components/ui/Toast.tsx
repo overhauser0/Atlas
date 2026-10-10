@@ -32,14 +32,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   return (
     <ToastContext.Provider value={{ addToast }}>
       {children}
-      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-100 flex flex-col gap-3 w-full max-w-xs px-4 bg-black/60">
+      <div className="fixed top-6 left-1/2 -translate-x-1/2 z-100 flex flex-col gap-3 w-full max-w-xs px-4">
         {toasts.map((t) => (
           <div
             key={t.id}
             onClick={() =>
               t.url && window.open(t.url, '_blank', 'noopener,noreferrer')
             }
-            className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 ${
+            className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 bg-black/60 ${
               t.url ? 'cursor-pointer hover:border-white/30' : ''
             } ${
               t.type === 'alert'
