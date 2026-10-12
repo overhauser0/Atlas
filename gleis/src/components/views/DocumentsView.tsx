@@ -143,9 +143,9 @@ export const DocumentsView: React.FC<Props> = ({
             filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className="group flex items-center justify-between gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg cursor-pointer transition-colors"
+                className="group grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] items-center gap-x-3 gap-y-2 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg cursor-pointer transition-colors sm:flex sm:justify-between"
               >
-                <div className="flex flex-col md:flex-row gap-2 min-w-0 flex-1">
+                <div className="col-start-1 row-span-3 flex min-w-0 flex-col gap-2 sm:flex-row">
                   <div className="flex items-center gap-2 min-w-0">
                     <FileStack className="w-4 h-4 text-gray-400 shrink-0" />
                     <p className="text-sm font-medium text-gray-200 truncate leading-snug">
@@ -169,11 +169,16 @@ export const DocumentsView: React.FC<Props> = ({
                       </span>
                     ))}
                   </div>
+                  {doc.document_date && (
+                    <span className="text-xs font-mono text-gray-600 transition-colors group-hover:text-gray-400 sm:hidden">
+                      {getDateFullString(doc.document_date)}
+                    </span>
+                  )}
                 </div>
 
-                <div className="flex items-center gap-3 shrink-0">
+                <div className="col-start-2 row-start-1 flex shrink-0 items-center gap-3 sm:static">
                   {doc.document_date && (
-                    <span className="text-xs font-mono text-gray-600 group-hover:text-gray-400 transition-colors">
+                    <span className="hidden text-xs font-mono text-gray-600 transition-colors group-hover:text-gray-400 sm:inline">
                       {getDateFullString(doc.document_date)}
                     </span>
                   )}
