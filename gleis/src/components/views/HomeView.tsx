@@ -161,11 +161,11 @@ export default function HomeView({
         </section>
 
         {/* 【右カラム】: ステータス ＆ 情報パネル */}
-        <aside className="order-1 md:order-2 shrink-0 md:w-72 lg:w-92 flex flex-col">
+        <aside className="order-1 md:order-2 shrink-0 md:w-72 lg:w-92 flex min-h-0 flex-col">
           <h2 className="hidden md:flex shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4  items-center gap-2">
             Info
           </h2>
-          <div className="flex flex-col gap-2">
+          <div className="flex min-h-0 flex-1 flex-col gap-2">
             <Card
               size="sm"
               hoverable
@@ -196,11 +196,11 @@ export default function HomeView({
                 {completedTargetTasks.length}
               </span>
             </Card>
-            <div className="mt-3 hidden md:block">
+            <div className="mt-3 hidden min-h-0 flex-1 flex-col md:flex">
               <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
                 Project
               </h2>
-              <div className="max-h-72 overflow-y-auto noir-scrollbar rounded-xl border border-white/5 bg-black/20 p-1">
+              <div className="min-h-0 flex-1 overflow-y-auto noir-scrollbar rounded-xl border border-white/5 bg-black/20 p-1">
                 <SimpleList
                   tasks={wrapperTasks}
                   onTaskClick={(task) => openTaskModal(task)}
