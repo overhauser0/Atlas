@@ -8,7 +8,6 @@ import {
   Award,
   ListChecks,
   CornerDownRight,
-  Search,
 } from 'lucide-react';
 import {
   getStatusColor,
@@ -28,7 +27,6 @@ interface HomeViewProps {
   completedTasks: Task[];
   wrapperTasks: Task[];
   onOpenStats: () => void;
-  onOpenCommandPalette?: () => void;
 }
 
 export default function HomeView({
@@ -38,7 +36,6 @@ export default function HomeView({
   wrapperTasks,
   openTaskModal,
   onOpenStats,
-  onOpenCommandPalette,
 }: HomeViewProps) {
   // 1. 日付選択のステート（デフォルトは今日）
   const [targetDate, setTargetDate] = useState(new Date());
@@ -67,31 +64,9 @@ export default function HomeView({
 
   return (
     <div className="px-4 animate-fade-in flex-1 flex flex-col h-full min-h-0 relative">
-      {/* --- 1. ヘッダーエリア (日付 ＆ Spotlight) --- */}
-      <div className="shrink-0 mb-6 flex flex-col gap-4">
+      {/* --- 1. 日付選択 --- */}
+      <div className="shrink-0 mb-6">
         <DateSelector currentDate={targetDate} onChange={setTargetDate} />
-
-        {onOpenCommandPalette && (
-          <button
-            onClick={onOpenCommandPalette}
-            className="w-full flex items-center justify-between px-4 py-3.5 noir-glass rounded-xl border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all group text-left shadow-lg"
-          >
-            <div className="flex items-center gap-3">
-              <Search className="w-5 h-5 text-gray-500 group-hover:text-gray-400 transition-colors" />
-              <span className="text-gray-500 group-hover:text-gray-400 text-sm transition-colors">
-                Type a command, search tasks, or ask AI...
-              </span>
-            </div>
-            <div className="hidden sm:flex items-center gap-1">
-              <kbd className="px-2 py-1 text-[10px] font-mono bg-white/10 text-gray-400 rounded border border-white/10">
-                Ctrl
-              </kbd>
-              <kbd className="px-2 py-1 text-[10px] font-mono bg-white/10 text-gray-400 rounded border border-white/10">
-                K
-              </kbd>
-            </div>
-          </button>
-        )}
       </div>
 
       {/* --- 2. メインコンテンツ (2カラムレイアウト) --- */}

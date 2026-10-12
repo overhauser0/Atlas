@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Menu, Zap, Loader2 } from 'lucide-react';
+import { Menu, Zap, Loader2, Search } from 'lucide-react';
 
 interface HeaderViewProps {
   currentTime: Date | null;
@@ -11,6 +11,7 @@ interface HeaderViewProps {
   setIsQuickAlarmOpen: (isOpen: boolean) => void;
   setIsActionPanelOpen: (isOpen: boolean) => void;
   isSyncing: boolean;
+  onOpenCommandPalette: () => void;
 }
 
 export default function HeaderView({
@@ -22,6 +23,7 @@ export default function HeaderView({
   setIsQuickAlarmOpen,
   setIsActionPanelOpen,
   isSyncing,
+  onOpenCommandPalette,
 }: HeaderViewProps) {
   const today = new Date();
   const longDate = today.toLocaleDateString('en-US', {
@@ -38,7 +40,7 @@ export default function HeaderView({
   });
 
   return (
-    <header className="h-14 mb-4 flex items-center justify-between px-2 shrink-0">
+    <header className="mb-4 flex h-14 shrink-0 items-center justify-between px-2">
       <div className="flex items-center gap-3">
         <button
           onClick={() => setIsMobileMenuOpen(true)}
@@ -54,6 +56,28 @@ export default function HeaderView({
           <span className="hidden sm:inline">{longDate}</span>
         </h1>
       </div>
+
+      <button
+        onClick={onOpenCommandPalette}
+        className="hidden min-w-0 items-center justify-between rounded-xl border border-white/10 px-4 py-1 text-left shadow-lg transition-all hover:border-white/20 hover:bg-white/5 group noir-glass sm:mx-6 sm:flex sm:w-auto sm:max-w-xl sm:flex-1 sm:py-2.5"
+        aria-label="Open command palette"
+      >
+        <span className="flex min-w-0 items-center gap-3">
+          <Search className="h-5 w-5 shrink-0 text-gray-500 transition-colors group-hover:text-gray-400" />
+          <span className="truncate text-sm text-gray-500 transition-colors group-hover:text-gray-400">
+            Type a command, search tasks, or ask AI...
+          </span>
+        </span>
+        <span className="hidden shrink-0 items-center gap-1 sm:flex">
+          <kbd className="rounded border border-white/10 bg-white/10 px-2 py-1 font-mono text-[10px] text-gray-400">
+            Ctrl
+          </kbd>
+          <kbd className="rounded border border-white/10 bg-white/10 px-2 py-1 font-mono text-[10px] text-gray-400">
+            K
+          </kbd>
+        </span>
+      </button>
+
       {/* 時計&通知ボタン */}
       <div className="flex items-center gap-4">
         <button

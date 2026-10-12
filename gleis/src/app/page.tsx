@@ -535,6 +535,10 @@ export default function Home() {
             setIsActionPanelOpen={setIsActionPanelOpen}
             appSettings={appSettings}
             isSyncing={activeRequests > 0}
+            onOpenCommandPalette={() => {
+              setIsCommandPaletteOpen(true);
+              setIsMobileMenuOpen(false);
+            }}
           />
 
           <main className="relative flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
@@ -546,10 +550,6 @@ export default function Home() {
                 subTaskMap={subTaskMap}
                 openTaskModal={(task) => openTaskModal(task)}
                 onOpenStats={() => handleOpenStats(new Date())}
-                onOpenCommandPalette={() => {
-                  setIsCommandPaletteOpen(true);
-                  setIsMobileMenuOpen(false);
-                }}
               />
             )}
             {currentView === 'weekly' && (
