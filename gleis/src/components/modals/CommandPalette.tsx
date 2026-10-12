@@ -94,7 +94,7 @@ export default function CommandPalette({
       },
       {
         id: 'nav-weekly',
-        label: 'Go to Weekly Tasks',
+        label: 'Go to Weekly',
         icon: Columns2,
         action: () => onNavigate('weekly'),
       },
