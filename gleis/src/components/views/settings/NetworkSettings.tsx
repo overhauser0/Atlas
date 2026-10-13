@@ -47,22 +47,22 @@ export default function NetworkSettings({
                 <ServerCrash className="w-4 h-4 text-red-400" />
               )}
             </div>
-            <div>
-              <div className="text-sm font-bold text-white">
-                Connection Status
-              </div>
-              <div className="text-xs text-gray-500 mt-0.5">
-                {wsStatus === 'connected' && (
-                  <span className="text-green-400">🟢 Connected to Atlas</span>
-                )}
-                {wsStatus === 'connecting' && (
-                  <span className="text-yellow-400">🟡 Connecting...</span>
-                )}
-                {wsStatus === 'disconnected' && (
-                  <span className="text-red-400">🔴 Disconnected</span>
-                )}
-              </div>
-            </div>
+            <div className="text-sm font-bold text-white">Connection Status</div>
+          </div>
+          <div
+            className={`text-[10px] font-bold tracking-wide px-2 py-1 rounded-md border ${
+              wsStatus === 'connected'
+                ? 'text-green-400 bg-green-400/10 border-green-400/20'
+                : wsStatus === 'connecting'
+                  ? 'text-yellow-400 bg-yellow-400/10 border-yellow-400/20'
+                  : 'text-red-400 bg-red-400/10 border-red-400/20'
+            }`}
+          >
+            {wsStatus === 'connected'
+              ? 'CONNECTED'
+              : wsStatus === 'connecting'
+                ? 'CONNECTING...'
+                : 'DISCONNECTED'}
           </div>
         </div>
 
