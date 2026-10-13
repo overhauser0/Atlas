@@ -187,7 +187,7 @@ export default function AiAgentSettings({
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-2 shrink-0 lg:opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => handleEditStart(agent)}
                             className="p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
