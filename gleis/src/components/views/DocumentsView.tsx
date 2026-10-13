@@ -11,7 +11,7 @@ import {
   Loader2,
   Calendar,
 } from 'lucide-react';
-import { PaperlessDocument } from '@/hooks/usePaperless';
+import { PaperlessDocument } from '@/types';
 import { getDateFullString } from '@/utils/dateUtils';
 import { Task } from '@/types';
 
