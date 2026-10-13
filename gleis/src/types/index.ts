@@ -21,6 +21,17 @@ export interface Task {
   parent_id?: string | null;
 }
 
+export interface PaperlessDocument {
+  id: number;
+  paperless_id: number;
+  title: string;
+  asn: number | null;
+  document_type: string | null;
+  correspondent: string | null;
+  tags: string[];
+  document_date: string | null;
+}
+
 export const VALID_VIEWS = [
   'home',
   'weekly',

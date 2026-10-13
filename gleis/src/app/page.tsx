@@ -440,12 +440,13 @@ export default function Home() {
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
-          onSync={() => handleNotionSync(true)}
-          onNewTask={(task) => openTaskModal(task)}
           tasks={tasks}
           onTaskClick={(task) => openTaskModal(task)}
+          onNewTask={(task) => openTaskModal(task)}
+          onNotionSync={() => handleNotionSync(true)}
           documents={documents}
           onDocumentClick={openDocument}
+          onDocumentSync={() => syncDocuments()}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
           onLock={handleLogout}
         />

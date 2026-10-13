@@ -1,17 +1,7 @@
 // src/hooks/usePaperless.ts
 import { useState, useCallback } from 'react';
 import { atlasFetch } from '@/utils/api';
-
-export interface PaperlessDocument {
-  id: number;
-  paperless_id: number;
-  title: string;
-  asn: number | null;
-  document_type: string | null;
-  correspondent: string | null;
-  tags: string[];
-  document_date: string | null;
-}
+import { PaperlessDocument } from '@/types';
 
 export const usePaperless = () => {
   const [documents, setDocuments] = useState<PaperlessDocument[]>([]);

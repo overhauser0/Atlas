@@ -27,13 +27,14 @@ import {
 } from 'lucide-react';
 import { ViewType, Task } from '@/types';
 import { atlasFetch } from '@/utils/api';
-import { PaperlessDocument } from '@/hooks/usePaperless';
+import { PaperlessDocument } from '@/types';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: ViewType) => void;
-  onSync: () => void;
+  onNotionSync: () => void;
+  onDocumentSync: () => void;
   onNewTask: (task?: Partial<Task>) => void;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
@@ -47,7 +48,8 @@ export default function CommandPalette({
   isOpen,
   onClose,
   onNavigate,
-  onSync,
+  onNotionSync,
+  onDocumentSync,
   onNewTask,
   tasks,
   onTaskClick,
@@ -75,10 +77,16 @@ export default function CommandPalette({
         action: () => onNewTask(),
       },
       {
-        id: 'sync',
+        id: 'syncNotion',
         label: 'Sync with Notion',
         icon: RefreshCw,
-        action: onSync,
+        action: onNotionSync,
+      },
+      {
+        id: 'syncDocument',
+        label: 'Sync with Paperless',
+        icon: RefreshCw,
+        action: onDocumentSync,
       },
       {
         id: 'timer',
@@ -148,7 +156,14 @@ export default function CommandPalette({
       },
       { id: 'lock-app', label: 'Lock App', icon: Lock, action: onLock },
     ],
-    [onNewTask, onSync, onQuickAlarmOpen, onNavigate, onLock],
+    [
+      onNewTask,
+      onNotionSync,
+      onDocumentSync,
+      onQuickAlarmOpen,
+      onNavigate,
+      onLock,
+    ],
   );
 
   // 1. コマンドのフィルタリング
@@ -167,7 +182,7 @@ export default function CommandPalette({
     );
   }, [search, tasks]);
 
-  // 3. Paperlessドキュメントのフィルタリング（取得済みデータをローカル検索）
+  // 3. Paperlessドキュメントのフィルタリング
   const filteredDocuments = useMemo(() => {
     if (!search.trim()) return [];
     return documents.filter((document) =>
@@ -538,7 +553,7 @@ export default function CommandPalette({
                     Smart Actions
                   </div>
 
-                  {/* 🌟 各アクションにインデックス判定を追加 */}
+                  {/* 各アクションにインデックス判定を追加 */}
                   {(() => {
                     const createIdx = totalItems.findIndex(
                       (i) => i.type === 'smart-create',
