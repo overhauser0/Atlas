@@ -41,6 +41,7 @@ import StatsModal from '@/components/modals/StatsModal';
 import QuickAlarmModal from '@/components/modals/QuickAlarmModal';
 import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
+import { FocusModal } from '@/components/modals/FocusModal';
 import ActionPanel from '@/components/panels/ActionPanel';
 import CommandPalette from '@/components/modals/CommandPalette';
 import LiveActivityPill, {
@@ -101,6 +102,11 @@ export default function Home() {
     isOpen: boolean;
     parentTask: Partial<Task> | null;
   }>({ isOpen: false, parentTask: null });
+
+  const [focusModalConfig, setFocusModalConfig] = useState<{
+    isOpen: boolean;
+    task: Partial<Task> | null;
+  }>({ isOpen: false, task: null });
 
   const [currentLiveActivity, setCurrentLiveActivity] =
     useState<LiveActivityItem | null>(null);
@@ -256,6 +262,14 @@ export default function Home() {
       parentTask: task,
     });
     closeTaskModal();
+  };
+
+  const openFocusModal = (task: Partial<Task>) => {
+    if (!task) return;
+    setFocusModalConfig({ isOpen: true, task });
+  };
+  const closeFocusModal = () => {
+    setFocusModalConfig({ isOpen: false, task: null });
   };
 
   const handleOpenStats = useCallback((date: Date) => {
@@ -683,6 +697,7 @@ export default function Home() {
               onSendToPC={hasExtension ? handleSendToPC : undefined}
               onShowContent={fetchBlocks}
               onOpenProjectModal={(task) => openProjectModal(task)}
+              onOpenFocusModal={(task) => openFocusModal(task)}
               /*getSubTasks={(parentId) => handleGetSubTasks(parentId)}*/
               openTaskModal={(task) => openTaskModal(task)}
               handleGleisLink={(url, callback) =>
@@ -711,6 +726,12 @@ export default function Home() {
               connectedDevicesCount={connectedDevices.length}
             />
             <ConfirmModal {...confirmProps} />
+            <FocusModal
+              isOpen={focusModalConfig.isOpen}
+              task={focusModalConfig.task}
+              onClose={() => closeFocusModal()}
+              addToast={addToast}
+            />
           </main>
           <LiveActivityPill
             activity={currentLiveActivity}

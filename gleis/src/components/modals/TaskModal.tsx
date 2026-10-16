@@ -15,7 +15,7 @@ import {
   HardDrive,
   Copy,
   FileText,
-  ListTree,
+  Flame,
   CornerLeftUp,
   Search,
   FolderKanban,
@@ -43,6 +43,7 @@ interface TaskModalProps {
   onSendToPC?: (url: string) => void;
   onShowContent: (id: string) => Promise<any[]>;
   onOpenProjectModal: (task: Partial<Task>) => void;
+  onOpenFocusModal: (task: Partial<Task>) => void;
   /*getSubTasks: (parentId: string) => Task[] | undefined;*/
   openTaskModal: (task: Task) => void;
   handleGleisLink: (url: string, callback?: Function) => void;
@@ -62,6 +63,7 @@ export default function TaskModal({
   onSendToPC,
   onShowContent,
   onOpenProjectModal,
+  onOpenFocusModal,
   /*getSubTasks,*/
   openTaskModal,
   handleGleisLink,
@@ -96,6 +98,7 @@ export default function TaskModal({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [internalMode, setInternalMode] = useState(mode);
+  const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
 
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
@@ -117,8 +120,7 @@ export default function TaskModal({
   const [isLoadingBlocks, setIsLoadingBlocks] = useState(false);
 
   // サブタスク
-  //const [subTasks, setSubTasks] = useState<Task[]>([]);
-  const [parentTask, setParentTask] = useState<Task | null>(null);
+  //const [parentTask, setParentTask] = useState<Task | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -138,6 +140,7 @@ export default function TaskModal({
         source: task?.source || 'LOCAL',
         parent_id: task?.parent_id || null,
       });
+      setIsUrlInputOpen(Boolean(task?.url));
       if ((task?.title || '') === '') focusTitleInput();
 
       if (mode === 'edit' && task?.id) {
@@ -475,7 +478,7 @@ export default function TaskModal({
                 onClose();
               }}
               className="noir-icon-btn"
-              title="PCで開く"
+              title="PC（ブラウザ）で開く"
             >
               <MonitorUp className="w-5 h-5" />
             </button>
@@ -711,51 +714,88 @@ export default function TaskModal({
           </div>
 
           {/* URL Input */}
-          <div className="flex items-center gap-2">
-            <div className="relative flex-1">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LinkIcon className="h-4 w-4 text-gray-500" />
+          {editForm.url || isUrlInputOpen ? (
+            <div className="flex items-center gap-2">
+              <div className="relative flex-1">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <LinkIcon className="h-4 w-4 text-gray-500" />
+                </div>
+                <input
+                  type="url"
+                  value={editForm.url}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, url: e.target.value })
+                  }
+                  onBlur={() => {
+                    if (!editForm.url) setIsUrlInputOpen(false);
+                  }}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:border-neon focus:outline-none"
+                  placeholder="https://... (optional)"
+                />
               </div>
-              <input
-                type="url"
-                value={editForm.url}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, url: e.target.value })
-                }
-                className="w-full bg-black/50 border border-white/10 rounded-xl py-3 pl-9 pr-3 text-white text-sm focus:border-neon focus:outline-none"
-                placeholder="https://... (optional)"
-              />
+              {editForm.url && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleGleisLink(editForm.url, onClose);
+                  }}
+                  className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors shrink-0"
+                  title="開く"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            {editForm.url && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleGleisLink(editForm.url, onClose);
-                }}
-                className="p-3 bg-white/5 border border-white/10 hover:bg-white/10 rounded-xl text-gray-400 hover:text-white transition-colors shrink-0"
-                title="開く"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsUrlInputOpen(true)}
+              className="self-start flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-400 hover:text-white hover:bg-white/10 transition-colors"
+              aria-label="URLを追加"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              URL
+              <span className="text-gray-500">+</span>
+            </button>
+          )}
 
           {/* プロジェクト */}
           {internalMode === 'edit' && (
-            <div className="mt-6 border-t border-white/10 pt-4">
+            <div
+              className={
+                totalCount > 0
+                  ? 'mt-6 border-t border-white/10 pt-4'
+                  : 'flex justify-start'
+              }
+            >
               <button
                 type="button"
                 onClick={() => onOpenProjectModal(task as Task)}
-                className="w-full flex items-center justify-between p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 transition-colors group"
+                className={`flex items-center justify-between transition-colors group ${
+                  totalCount > 0
+                    ? 'w-full p-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5'
+                    : 'gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-zinc-400 hover:text-white'
+                }`}
               >
-                <div className="flex items-center gap-2 text-sm font-bold text-zinc-300 group-hover:text-white transition-colors">
-                  <ListTree className="w-4 h-4 text-blue-400" />
-                  {task?.parent_id ? 'Sub Tasks' : 'Project Workspace'}
+                <div
+                  className={`flex items-center gap-2 ${
+                    totalCount > 0
+                      ? 'text-sm font-bold text-zinc-300 group-hover:text-white'
+                      : ''
+                  } transition-colors`}
+                >
+                  <FolderKanban
+                    className={`w-4 h-4 ${
+                      totalCount > 0 ? 'text-blue-400' : 'text-zinc-500'
+                    }`}
+                  />
+                  Project Workspace
+                  {totalCount === 0 && <span className="text-zinc-500">+</span>}
                 </div>
 
-                {totalCount > 0 ? (
+                {totalCount > 0 && (
                   <div
                     className={`text-xs font-mono px-2 py-1 rounded transition-colors ${
                       completedCount === totalCount
@@ -765,11 +805,18 @@ export default function TaskModal({
                   >
                     {completedCount} / {totalCount} Done
                   </div>
-                ) : (
-                  <div className="text-xs font-medium text-zinc-500 bg-white/5 px-2 py-1 rounded group-hover:bg-white/10 transition-colors">
-                    + Add Sub Tasks
-                  </div>
                 )}
+              </button>
+            </div>
+          )}
+          {task && (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => onOpenFocusModal(task)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-xl text-xs font-bold transition-all"
+              >
+                <Flame className="w-3.5 h-3.5" />
+                <span>Focus</span>
               </button>
             </div>
           )}
