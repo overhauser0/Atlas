@@ -4,9 +4,11 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import CalendarItem from '@/components/ui/CalendarItem';
+import { GoogleEvent } from '@/hooks/useGoogleCalendar';
+import { getDateFullString } from '@/utils/dateUtils';
 import { LifeItem } from '@/types';
 import { DiaryItem } from '@/types';
-import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 
 interface CalendarViewProps {
   appSettings: any;
@@ -44,7 +46,7 @@ export default function CalendarView({
       date: ev.date,
       type: 'Event',
       url: ev.url,
-      status: 'Done',
+      status: undefined,
       area: '',
       topics: [],
       flags: [],
@@ -136,14 +138,6 @@ export default function CalendarView({
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const today = new Date();
 
-  // YYYY-MM-DDを生成するヘルパー
-  const getFormatDateStr = (date: Date) => {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, '0');
-    const d = String(date.getDate()).padStart(2, '0');
-    return `${y}-${m}-${d}`;
-  };
-
   return (
     <div className="flex flex-col h-full bg-white">
       {/* カレンダーヘッダー */}
@@ -202,7 +196,7 @@ export default function CalendarView({
             const dayItems = getItemsForDate(date);
 
             // ========== 日記の入力判定 ==========
-            const dateStr = getFormatDateStr(date);
+            const dateStr = getDateFullString(date, 'hyphen');
             const dayDiary =
               diaries.find((d) => d.name === dateStr || d.date === dateStr) ||
               null;
@@ -245,28 +239,27 @@ export default function CalendarView({
                 </button>
 
                 {/* 予定リスト */}
-                <div className="flex flex-col gap-0.5 md:gap-1 overflow-y-auto no-scrollbar flex-1">
-                  {dayItems.map((item) => {
+                <CalendarItem
+                  entries={dayItems.map((item) => {
                     const isGCal = item.source === 'GCAL';
                     const isTask = item.type === 'Task';
 
                     const itemStyle = isTask
                       ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium'
                       : isGCal
-                        ? 'bg-gray-50 text-gray-700 border-l-2 border-l-blue-400 border-y border-r border-gray-200 hover:bg-gray-100'
+                        ? 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
                         : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200 hover:border-gray-300';
 
-                    return (
-                      <div
-                        key={item.id}
-                        onClick={() => onItemClick(item)}
-                        className={`cursor-pointer text-[10px] px-1 py-0.5 md:py-1 overflow-hidden whitespace-nowrap transition-all rounded-sm ${itemStyle}`}
-                      >
-                        {item.title}
-                      </div>
-                    );
+                    return {
+                      id: item.id,
+                      title: item.title,
+                      status: isGCal ? undefined : item.status,
+                      className: itemStyle,
+                      item,
+                    };
                   })}
-                </div>
+                  onItemClick={onItemClick}
+                />
               </div>
             );
           })}
