@@ -440,7 +440,7 @@ export default function Home() {
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
-          tasks={tasks}
+          tasks={allTasks}
           onTaskClick={(task) => openTaskModal(task)}
           onNewTask={(task) => openTaskModal(task)}
           onNotionSync={() => handleNotionSync(true)}
