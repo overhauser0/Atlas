@@ -179,6 +179,21 @@ export default function ProjectModal({
             </div>
           )}
 
+          {parentTask.url && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleGleisLink(parentTask.url, onClose);
+              }}
+              className="flex items-center gap-1.5 rounded-lg border border-violet-500/20 bg-violet-500/10 px-2.5 py-1.5 text-xs font-bold text-violet-400 transition-colors hover:bg-violet-500/20 hover:text-violet-300"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              Link
+            </button>
+          )}
+
           <button
             onClick={() => openTaskModal(parentTask)}
             className="px-3 py-1.5 text-zinc-400 hover:text-violet-300 hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
@@ -200,6 +215,19 @@ export default function ProjectModal({
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-6 overflow-hidden px-4 py-6 lg:grid-cols-2 lg:grid-rows-1">
         {/* 1. 既存タスク一覧 */}
         <section className="flex min-h-0 flex-col gap-2">
+          {parentTask.note && (
+            <article className="shrink-0 overflow-hidden rounded-2xl border border-white/10 bg-linear-to-br from-white/5 to-transparent shadow-lg mb-2">
+              <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
+                <MessageSquare className="h-4 w-4 text-violet-400" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-300">
+                  Note
+                </h3>
+              </div>
+              <p className="whitespace-pre-wrap wrap-break-word px-4 py-4 text-sm leading-relaxed text-zinc-300">
+                {parentTask.note}
+              </p>
+            </article>
+          )}
           <div className="flex items-end justify-between px-1">
             <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
               <ListChecks className="w-4 h-4 text-zinc-500" />
