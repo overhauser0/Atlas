@@ -24,7 +24,7 @@ import { Task, TaskStatus } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
-import { getDateString } from '@/utils/dateUtils';
+import { getDateFullString } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import { triggerHaptics } from '@/utils/haptics';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -127,7 +127,9 @@ export default function TaskModal({
         id: task?.id || '',
         title: task?.title || '',
         status: task?.status || 'INBOX',
-        date: task?.date ? task?.date.split('T')[0] : getDateString(new Date()),
+        date: task?.date
+          ? task?.date.split('T')[0]
+          : getDateFullString(new Date(), 'hyphen'),
         type: task?.type || 'Task',
         topics: task?.topics || [],
         fkw: task?.fkw || [],
