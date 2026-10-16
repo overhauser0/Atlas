@@ -16,11 +16,12 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { Task } from '@/types';
-import SimpleList from '../ui/SimpleList';
+import SimpleList from '@/components/ui/SimpleList';
+import Card from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { atlasFetch } from '@/utils/api';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
-import Card from '@/components/ui/Card';
+import { getDateShortString } from '@/utils/dateUtils';
 import ProgressBar from '@/components/ui/ProgressBar';
 
 interface Props {
@@ -144,8 +145,8 @@ export default function ProjectModal({
   return (
     <div className="absolute inset-0 z-40 flex min-h-0 min-w-0 flex-col overflow-hidden bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
       {/* Header */}
-      <header className="flex items-center justify-between px-5 py-4 border-b border-white/5 bg-black/60 sticky top-0 z-10 shadow-xl">
-        <div className="flex items-center gap-4 min-w-0">
+      <header className="sticky top-0 z-10 flex flex-wrap items-center gap-x-3 gap-y-3 border-b border-white/5 bg-black/60 px-5 py-4 shadow-xl">
+        <div className="order-1 flex min-w-0 flex-1 items-center gap-4">
           <div className="p-2.5 rounded-xl bg-linear-to-br from-violet-500/20 to-violet-600/10 border border-violet-500/20 text-violet-400 shrink-0">
             <FolderKanban className="w-5 h-5" />
           </div>
@@ -158,9 +159,39 @@ export default function ProjectModal({
             </h2>
           </div>
         </div>
+
+        <div className="order-3 flex w-full flex-wrap items-center gap-2 md:order-2 md:w-auto">
+          <div className="flex items-center gap-2 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
+            <div
+              className={`w-2 h-2 rounded-full ${getStatusColor(parentTask.status as any)}`}
+            />
+            <span className="text-xs font-medium text-zinc-300">
+              {parentTask.status}
+            </span>
+          </div>
+
+          {parentTask.date && (
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
+              <Calendar className="w-3.5 h-3.5" />
+              <span className="font-mono mt-0.5">
+                {getDateShortString(parentTask.date)}
+              </span>
+            </div>
+          )}
+
+          <button
+            onClick={() => openTaskModal(parentTask)}
+            className="px-3 py-1.5 text-zinc-400 hover:text-violet-300 hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
+            title="タスク詳細を開く"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Open Task</span>
+          </button>
+        </div>
+
         <button
           onClick={onClose}
-          className="p-2.5 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-all bg-black/50 border border-transparent hover:border-white/10 shrink-0"
+          className="order-2 shrink-0 rounded-full border border-transparent bg-black/50 p-2.5 text-zinc-400 transition-all hover:border-white/10 hover:bg-white/10 hover:text-white md:order-3"
         >
           <X className="w-5 h-5" />
         </button>
@@ -169,64 +200,6 @@ export default function ProjectModal({
       <div className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] gap-6 overflow-hidden px-4 py-6 lg:grid-cols-2 lg:grid-rows-1">
         {/* 1. 既存タスク一覧 */}
         <section className="flex min-h-0 flex-col gap-2">
-          <div className="relative shrink-0 bg-black/40 border border-white/5 rounded-2xl p-5 shadow-lg">
-            {/* プロジェクトタスク自体を開くボタン */}
-            <button
-              onClick={() => openTaskModal(parentTask)}
-              className="absolute top-4 right-4 px-3 py-1.5 text-zinc-400 hover:text-violet-300 hover:bg-violet-500/10 border border-transparent hover:border-violet-500/20 rounded-lg transition-all flex items-center gap-1.5 text-xs font-bold"
-              title="タスク詳細を開く"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Open Task</span>
-            </button>
-
-            <div className="flex flex-col gap-4 pr-24">
-              {/* バッジ群 (ステータス, 日付, URL) */}
-              <div className="flex flex-wrap items-center gap-2.5">
-                {/* ステータス */}
-                <div className="flex items-center gap-2 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
-                  <div
-                    className={`w-2 h-2 rounded-full ${getStatusColor(parentTask.status as any)}`}
-                  />
-                  <span className="text-xs font-medium text-zinc-300">
-                    {parentTask.status}
-                  </span>
-                </div>
-
-                {/* 日付 */}
-                {parentTask.date && (
-                  <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
-                    <Calendar className="w-3.5 h-3.5" />
-                    <span className="font-mono mt-0.5">{parentTask.date}</span>
-                  </div>
-                )}
-
-                {/* URLリンク */}
-                {parentTask.url && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleGleisLink(parentTask.url, onClose);
-                    }}
-                    className="flex items-center gap-1.5 text-xs font-bold text-violet-400 hover:text-violet-300 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 px-2.5 py-1.5 rounded-lg transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Link
-                  </button>
-                )}
-              </div>
-
-              {/* Note (メモ) */}
-              {parentTask.note && (
-                <div className="text-sm text-zinc-400 whitespace-pre-wrap flex gap-2.5 bg-white/2 p-3 rounded-xl border border-white/5">
-                  <MessageSquare className="w-4 h-4 text-zinc-500 shrink-0 mt-0.5" />
-                  <p className="leading-relaxed">{parentTask.note}</p>
-                </div>
-              )}
-            </div>
-          </div>
           <div className="flex items-end justify-between px-1">
             <h3 className="text-sm font-bold text-zinc-300 flex items-center gap-2">
               <ListChecks className="w-4 h-4 text-zinc-500" />
