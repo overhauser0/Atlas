@@ -148,9 +148,6 @@ export function FocusModal({
               <Flame className="w-4 h-4" />
               <span>FOCUS MODE</span>
             </div>
-            <span className="hidden sm:block truncate max-w-xs text-sm text-gray-400">
-              {task.title}
-            </span>
           </div>
 
           <div className="flex items-center gap-2">
