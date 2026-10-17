@@ -42,14 +42,15 @@ import QuickAlarmModal from '@/components/modals/QuickAlarmModal';
 import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { FocusModal } from '@/components/modals/FocusModal';
-import ActionPanel from '@/components/panels/ActionPanel';
 import CommandPalette from '@/components/modals/CommandPalette';
+import ActionPanel from '@/components/panels/ActionPanel';
 import LiveActivityPill, {
   LiveActivityItem,
 } from '@/components/ui/LiveActivityPill';
 
 // --- Types & Utils & Hooks ---
-import { Task, ViewType, isViewType } from '@/types';
+import type { Task, ViewType, LocalNote } from '@/types';
+import { isViewType } from '@/types';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
@@ -58,6 +59,7 @@ import { usePaperless } from '@/hooks/usePaperless';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useConfirm } from '@/hooks/useConfirm';
 import { parseGleisLink } from '@/utils/schemeUtils';
+import { atlasFetch } from '@/utils/api';
 
 export default function Home() {
   // ============================================================================
@@ -81,6 +83,9 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
+  const [notes, setNotes] = useState<LocalNote[]>([]);
+  const [areNotesLoading, setAreNotesLoading] = useState(true);
+  const [selectedNote, setSelectedNote] = useState<LocalNote | null>(null);
 
   // Data Loading State
   const [activeRequests, setActiveRequests] = useState(0);
@@ -128,6 +133,21 @@ export default function Home() {
 
   const { addToast } = useToast();
   const { confirm, confirmProps } = useConfirm();
+
+  const fetchNotes = useCallback(async () => {
+    setAreNotesLoading(true);
+    try {
+      const response = await atlasFetch('/notes');
+      if (!response.ok) throw new Error('Failed to fetch notes');
+      const data = await response.json();
+      setNotes(data.notes ?? data);
+    } catch (error) {
+      console.error(error);
+      addToast('ノートの取得に失敗しました', 'alert');
+    } finally {
+      setAreNotesLoading(false);
+    }
+  }, [addToast]);
 
   const incrementRequest = useCallback(
     () => setActiveRequests((prev) => prev + 1),
@@ -352,9 +372,15 @@ export default function Home() {
       fetchTasks(false);
       fetchNotifications();
       fetchDocuments();
+      fetchNotes();
       hasFetchedInitial.current = true;
     }
-  }, [isAuthenticated, fetchTasks, fetchDocuments]);
+  }, [isAuthenticated, fetchTasks, fetchDocuments, fetchNotes]);
+
+  useEffect(() => {
+    window.addEventListener('refresh_notes', fetchNotes);
+    return () => window.removeEventListener('refresh_notes', fetchNotes);
+  }, [fetchNotes]);
 
   // 時計と自動同期のタイマー
   useEffect(() => {
@@ -463,6 +489,11 @@ export default function Home() {
           onDocumentSync={() => syncDocuments()}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
           onLock={handleLogout}
+          notes={notes}
+          onNoteClick={(note) => {
+            setSelectedNote(note);
+            handleViewChange('note');
+          }}
         />
 
         {isMobileMenuOpen && (
@@ -610,6 +641,11 @@ export default function Home() {
             {currentView === 'review' && <ReviewView />}
             {currentView === 'note' && (
               <NoteView
+                notes={notes}
+                isLoading={areNotesLoading}
+                onRefresh={fetchNotes}
+                selectedNote={selectedNote}
+                onNoteOpened={() => setSelectedNote(null)}
                 onSyncStart={incrementRequest}
                 onSyncEnd={decrementRequest}
               />

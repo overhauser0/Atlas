@@ -14,21 +14,18 @@ import {
 } from 'lucide-react';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
+import type { LocalNote } from '@/types';
 
 // ==========================================
 // 1. Types
 // ==========================================
-export interface LocalNote {
-  id: string;
-  title: string;
-  content: string;
-  url: string;
-  is_pinned: boolean;
-  created_at: string;
-  updated_at: string;
-}
 
 interface NoteViewProps {
+  notes: LocalNote[];
+  isLoading: boolean;
+  onRefresh: () => Promise<void>;
+  selectedNote: LocalNote | null;
+  onNoteOpened: () => void;
   onSyncStart?: () => void;
   onSyncEnd?: () => void;
 }
@@ -36,36 +33,25 @@ interface NoteViewProps {
 // ==========================================
 // 2. Main Component
 // ==========================================
-export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
+export default function NoteView({
+  notes,
+  isLoading,
+  onRefresh,
+  selectedNote,
+  onNoteOpened,
+  onSyncStart,
+  onSyncEnd,
+}: NoteViewProps) {
   const { addToast } = useToast();
 
-  const [notes, setNotes] = useState<LocalNote[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [activeNote, setActiveNote] = useState<LocalNote | null>(null);
 
-  const fetchNotes = useCallback(async () => {
-    try {
-      const response = await atlasFetch('/notes');
-      if (!response.ok) throw new Error('Failed to fetch notes');
-      const data = await response.json();
-      setNotes(data.notes || data); // APIの返し方に応じて調整
-    } catch (error) {
-      console.error(error);
-      addToast('ノートの取得に失敗しました', 'alert');
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (selectedNote) {
+      setActiveNote(selectedNote);
+      onNoteOpened();
     }
-  }, [addToast]);
-
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
-
-  useEffect(() => {
-    const handleRefresh = () => fetchNotes();
-    window.addEventListener('refresh_notes', handleRefresh);
-    return () => window.removeEventListener('refresh_notes', handleRefresh);
-  }, [fetchNotes]);
+  }, [selectedNote, onNoteOpened]);
 
   const handleCreateNew = async () => {
     try {
@@ -75,7 +61,7 @@ export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
         body: JSON.stringify({ title: 'New Note' }),
       });
       const newNote = await response.json();
-      await fetchNotes();
+      await onRefresh();
       setActiveNote(newNote);
     } catch (error) {
       addToast('ノートの作成に失敗しました', 'alert');
@@ -90,7 +76,7 @@ export default function NoteView({ onSyncStart, onSyncEnd }: NoteViewProps) {
         note={activeNote}
         onClose={() => {
           setActiveNote(null);
-          fetchNotes();
+          onRefresh();
         }}
         addToast={addToast}
         onSyncStart={onSyncStart}

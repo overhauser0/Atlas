@@ -32,6 +32,16 @@ export interface PaperlessDocument {
   document_date: string | null;
 }
 
+export interface LocalNote {
+  id: string;
+  title: string;
+  content: string;
+  url: string;
+  is_pinned: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export const VALID_VIEWS = [
   'home',
   'weekly',

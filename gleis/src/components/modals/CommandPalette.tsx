@@ -28,6 +28,7 @@ import {
 import { ViewType, Task } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import { PaperlessDocument } from '@/types';
+import type { LocalNote } from '@/components/views/NoteView';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -40,6 +41,8 @@ interface CommandPaletteProps {
   onTaskClick: (task: Task) => void;
   documents: PaperlessDocument[];
   onDocumentClick: (paperlessId: number) => void;
+  notes: LocalNote[];
+  onNoteClick: (note: LocalNote) => void;
   onQuickAlarmOpen: () => void;
   onLock: () => void;
 }
@@ -55,6 +58,8 @@ export default function CommandPalette({
   onTaskClick,
   documents,
   onDocumentClick,
+  notes,
+  onNoteClick,
   onQuickAlarmOpen,
   onLock,
 }: CommandPaletteProps) {
@@ -190,6 +195,17 @@ export default function CommandPalette({
     );
   }, [search, documents]);
 
+  // 4. ノートのフィルタリング
+  const filteredNotes = useMemo(() => {
+    if (!search.trim()) return [];
+    const query = search.toLowerCase();
+    return notes.filter(
+      (note) =>
+        note.title?.toLowerCase().includes(query) ||
+        note.content?.toLowerCase().includes(query),
+    );
+  }, [search, notes]);
+
   // AI連携のハンドラー関数
   const handleBrainstorm = async () => {
     if (!search.trim()) return;
@@ -280,6 +296,19 @@ export default function CommandPalette({
       });
     });
 
+    // ノート部分
+    filteredNotes.forEach((note) => {
+      items.push({
+        type: 'note',
+        id: String(note.id),
+        label: note.title || 'Untitled',
+        action: () => {
+          onNoteClick(note);
+          onClose();
+        },
+      });
+    });
+
     // スマートアクション部分（文字入力時のみ）
     if (search.trim().length > 0) {
       items.push({
@@ -311,9 +340,15 @@ export default function CommandPalette({
     filteredCommands,
     filteredTasks,
     filteredDocuments,
+    filteredNotes,
     search,
     onClose,
+    onNewTask,
+    onTaskClick,
     onDocumentClick,
+    onNoteClick,
+    handleMagicCreate,
+    handleBrainstorm,
   ]);
 
   // 文字入力やビュー変更があったら、選択インデックスを一番上（0）にリセット
@@ -546,7 +581,50 @@ export default function CommandPalette({
                 </div>
               )}
 
-              {/* 4. スマートアクション */}
+              {/* 4. ノート一覧 */}
+              {filteredNotes.length > 0 && (
+                <div className="mb-2">
+                  <div className="px-4 py-1.5 text-[10px] font-bold text-gray-500 uppercase tracking-wider bg-white/2 border-y border-white/5 mb-1">
+                    Matching Notes
+                  </div>
+                  {filteredNotes.map((note) => {
+                    const globalIdx = totalItems.findIndex(
+                      (item) =>
+                        item.type === 'note' && item.id === String(note.id),
+                    );
+                    const isSelected = globalIdx === activeIndex;
+
+                    return (
+                      <button
+                        key={note.id}
+                        onClick={() => {
+                          onNoteClick(note);
+                          onClose();
+                        }}
+                        className={`w-full flex items-center px-4 py-2.5 text-left transition-colors group ${isSelected ? 'bg-white/10 text-white' : 'hover:bg-white/5'}`}
+                      >
+                        <FileText
+                          className={`w-4 h-4 mr-3 shrink-0 ${isSelected ? 'text-neon' : 'text-gray-500'}`}
+                        />
+                        <div className="min-w-0">
+                          <span
+                            className={`text-sm font-medium truncate block ${isSelected ? 'text-white' : 'text-gray-300'}`}
+                          >
+                            {note.title || 'Untitled'}
+                          </span>
+                          {note.content && (
+                            <span className="text-xs text-gray-500 truncate block">
+                              {note.content}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* 5. スマートアクション */}
               {search.trim().length > 0 && (
                 <div className="mt-2 border-t border-white/10 pt-2 bg-black/20">
                   <div className="px-4 py-1.5 text-[10px] font-bold text-neon uppercase tracking-wider mb-1">
