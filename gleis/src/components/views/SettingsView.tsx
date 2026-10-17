@@ -10,7 +10,7 @@ import RoutineSettings from './settings/RoutineSettings';
 import NetworkSettings from './settings/NetworkSettings';
 import ShortcutSettings from './settings/ShortcutSettings';
 import NotificationsView from './settings/Notifications';
-import { DeviceInfo, Task } from '@/types';
+import { DeviceInfo, Task, SettingsTab } from '@/types';
 
 interface Props {
   appSettings: any;
@@ -25,14 +25,6 @@ interface Props {
   openTaskModal: (task?: Partial<Task>) => void;
   handleGleisLink: (url: string, callback?: Function) => void;
 }
-
-export type SettingsTab =
-  | 'general'
-  | 'ai'
-  | 'routine'
-  | 'network'
-  | 'shortcuts'
-  | 'notifications';
 
 export default function SettingsView({
   appSettings,

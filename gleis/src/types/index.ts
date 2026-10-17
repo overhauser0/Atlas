@@ -68,3 +68,11 @@ export interface DeviceInfo {
   deviceName: string;
   clientType: 'extension' | 'gleis' | string;
 }
+
+export type SettingsTab =
+  | 'general'
+  | 'ai'
+  | 'routine'
+  | 'network'
+  | 'shortcuts'
+  | 'notifications';

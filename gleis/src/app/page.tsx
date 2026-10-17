@@ -31,7 +31,7 @@ import NoteView from '@/components/views/NoteView';
 import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
 import { DocumentsView } from '@/components/views/DocumentsView';
-import SettingsView, { SettingsTab } from '@/components/views/SettingsView';
+import SettingsView from '@/components/views/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
@@ -49,7 +49,7 @@ import LiveActivityPill, {
 } from '@/components/ui/LiveActivityPill';
 
 // --- Types & Utils & Hooks ---
-import type { Task, ViewType, LocalNote } from '@/types';
+import type { Task, ViewType, SettingsTab, LocalNote } from '@/types';
 import { isViewType } from '@/types';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
@@ -242,13 +242,16 @@ export default function Home() {
   // ============================================================================
 
   const handleViewChange = useCallback((view: ViewType) => {
-    if (view === 'notifications') {
-      setSettingsTab('notifications');
-      setCurrentView('settings');
-    } else {
-      if (view === 'settings') setSettingsTab('general');
-      setCurrentView(view);
-    }
+    if (view === 'settings') setSettingsTab('general');
+    setCurrentView(view);
+    setIsMobileMenuOpen(false);
+    closeProjectModal();
+    closeTaskModal();
+  }, []);
+
+  const handleOpenSetting = useCallback((tab: SettingsTab) => {
+    setSettingsTab(tab);
+    setCurrentView('settings');
     setIsMobileMenuOpen(false);
     closeProjectModal();
     closeTaskModal();
@@ -272,7 +275,6 @@ export default function Home() {
   const openTaskModal = useCallback((task?: Partial<Task>) => {
     const mode = task?.id ? 'edit' : 'create';
     setTaskModalConfig({ isOpen: true, mode, task: task || null });
-    // closeProjectModal();
   }, []);
 
   const openProjectModal = (task: Partial<Task>) => {
@@ -480,6 +482,7 @@ export default function Home() {
           isOpen={isCommandPaletteOpen}
           onClose={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
+          onOpenSetting={handleOpenSetting}
           tasks={allTasks}
           onTaskClick={(task) => openTaskModal(task)}
           onNewTask={(task) => openTaskModal(task)}

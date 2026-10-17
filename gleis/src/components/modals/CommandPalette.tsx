@@ -24,16 +24,19 @@ import {
   FileStack,
   Bot,
   ChartNoAxesCombined,
+  Repeat,
+  Cpu,
+  Activity,
 } from 'lucide-react';
-import { ViewType, Task } from '@/types';
+import type { LocalNote, ViewType, Task } from '@/types';
 import { atlasFetch } from '@/utils/api';
-import { PaperlessDocument } from '@/types';
-import type { LocalNote } from '@/components/views/NoteView';
+import { PaperlessDocument, SettingsTab } from '@/types';
 
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
   onNavigate: (view: ViewType) => void;
+  onOpenSetting: (tab: SettingsTab) => void;
   onNotionSync: () => void;
   onDocumentSync: () => void;
   onNewTask: (task?: Partial<Task>) => void;
@@ -51,6 +54,7 @@ export default function CommandPalette({
   isOpen,
   onClose,
   onNavigate,
+  onOpenSetting,
   onNotionSync,
   onDocumentSync,
   onNewTask,
@@ -151,7 +155,25 @@ export default function CommandPalette({
         id: 'nav-notifications',
         label: 'Go to Notifications',
         icon: Bell,
-        action: () => onNavigate('notifications'),
+        action: () => onOpenSetting('notifications'),
+      },
+      {
+        id: 'nav-setting-routine',
+        label: 'Go to Routine Settings',
+        icon: Repeat,
+        action: () => onOpenSetting('routine'),
+      },
+      {
+        id: 'nav-setting-agent',
+        label: 'Go to Agent Settings',
+        icon: Cpu,
+        action: () => onOpenSetting('routine'),
+      },
+      {
+        id: 'nav-setting-network',
+        label: 'Go to Network Settings',
+        icon: Activity,
+        action: () => onOpenSetting('routine'),
       },
       {
         id: 'nav-settings',
