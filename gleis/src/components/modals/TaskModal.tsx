@@ -809,7 +809,7 @@ export default function TaskModal({
               </button>
             </div>
           )}
-          {task && (
+          {internalMode === 'edit' && task && (
             <div className="flex items-center justify-between">
               <button
                 onClick={() => onOpenFocusModal(task)}
