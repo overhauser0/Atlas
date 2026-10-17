@@ -116,7 +116,7 @@ export default function HomeView({
                       <div className="flex items-center gap-1 md:gap-2">
                         {task.parent_id && (
                           <div
-                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-orange-400/10 border-orange-400/20"
+                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-violet-400/10 border-violet-400/20"
                             title="Has Parent Project"
                           >
                             <CornerDownRight className="w-3.5 h-3.5 text-violet-400 shrink-0" />
