@@ -548,27 +548,29 @@ export default function Home() {
             ))}
           </nav>
 
-          <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2 shrink-0">
+          <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2 shrink-0 md:flex-row">
             <button
               onClick={() => {
                 setIsCommandPaletteOpen(true);
                 setIsMobileMenuOpen(false);
               }}
-              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon transition-colors"
+              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-neon transition-colors md:flex-1 md:justify-center md:gap-2"
             >
               <Terminal className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium md:hidden">
                 Command Palette
               </span>
+              <span className="hidden md:inline font-medium">Cmd</span>
             </button>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400"
+              className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400 md:flex-1 md:justify-center md:gap-2"
             >
               <Lock className="w-5 h-5 shrink-0" />
-              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium">
+              <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium lg:hidden">
                 Lock
               </span>
+              <span className="hidden lg:inline font-medium">Lock</span>
             </button>
           </div>
         </aside>
