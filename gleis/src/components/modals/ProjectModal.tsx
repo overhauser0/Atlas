@@ -275,7 +275,7 @@ export default function ProjectModal({
 
           <button
             onClick={() => setIsLinkSelectorOpen(true)}
-            className="text-xs font-medium text-zinc-400 hover:text-violet-300 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-violet-500/10 transition-colors border border-transparent hover:border-violet-500/20"
+            className="text-xs font-medium text-zinc-400 hover:text-violet-300 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-violet-500/10 transition-colors border border-transparent hover:border-violet-500/20 mb-2"
           >
             <Search className="w-3.5 h-3.5" />
             既存タスクを検索
