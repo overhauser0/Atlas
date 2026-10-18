@@ -39,13 +39,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             onClick={() =>
               t.url && window.open(t.url, '_blank', 'noopener,noreferrer')
             }
-            className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 bg-black/60 ${
+            className={`noir-glass p-4 rounded-2xl border flex items-center justify-between animate-in fade-in slide-in-from-top-4 duration-300 ${
               t.url ? 'cursor-pointer hover:border-white/30' : ''
             } ${
               t.type === 'alert'
                 ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.2)]'
                 : 'border-white/10'
             }`}
+            style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
           >
             <span className="text-sm font-medium text-white">{t.message}</span>
             <button
