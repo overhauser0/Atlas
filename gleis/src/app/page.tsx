@@ -548,7 +548,7 @@ export default function Home() {
             ))}
           </nav>
 
-          <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2 shrink-0 md:flex-row">
+          <div className="mt-auto pt-4 border-t border-white/5 flex flex-col gap-2 shrink-0 md:flex-row md:gap-0">
             <button
               onClick={() => {
                 setIsCommandPaletteOpen(true);
@@ -562,6 +562,7 @@ export default function Home() {
               </span>
               <span className="hidden md:inline font-medium">Cmd</span>
             </button>
+            <div className="hidden md:block w-px self-stretch bg-white/10 shrink-0" />
             <button
               onClick={handleLogout}
               className="w-full flex items-center gap-4 p-3 rounded-xl text-gray-400 hover:text-red-400 md:flex-1 md:justify-center md:gap-2"
