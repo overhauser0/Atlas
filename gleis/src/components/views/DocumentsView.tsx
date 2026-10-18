@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { PaperlessDocument } from '@/types';
 import { getDateFullString } from '@/utils/dateUtils';
+import { IconButton } from '@/components/ui/IconButton';
 import { Task } from '@/types';
 
 interface Props {
@@ -182,26 +183,21 @@ export const DocumentsView: React.FC<Props> = ({
                       {getDateFullString(doc.document_date)}
                     </span>
                   )}
-                  <button
-                    type="button"
+
+                  <IconButton
+                    icon={<Plus />}
                     onClick={() =>
                       openTaskModal({
                         title: doc.title,
                         url: `gleis://document/${doc.paperless_id}`,
                       })
                     }
-                    className="p-2 rounded-lg text-gray-500 hover:text-blue-400 hover:bg-blue-500/10 transition-all"
                     title="タスク化"
-                    aria-label={`「${doc.title}」からタスクを作成`}
-                  >
-                    <Plus className="w-5 h-5" />
-                  </button>
-                  <span className="p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/10 transition-all opacity-100">
-                    <ExternalLink
-                      className="w-5 h-5"
-                      onClick={() => openDocument(doc.paperless_id)}
-                    />
-                  </span>
+                  />
+                  <IconButton
+                    icon={<ExternalLink />}
+                    onClick={() => openDocument(doc.paperless_id)}
+                  />
                 </div>
               </div>
             ))

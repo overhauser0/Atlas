@@ -9,6 +9,7 @@ import {
 import { Task } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
+import { IconButton } from '@/components/ui/IconButton';
 import {
   mergeNewDateWithOriginalTime,
   isOverdue,
@@ -239,15 +240,12 @@ export default function WeeklyView({
                             </p>
                           </div>
                           {task.source === 'NOTION' && (
-                            <a
+                            <IconButton
+                              icon={<ExternalLink />}
                               href={getNotionLinkById(task.id, 'notion')}
                               target="_self"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white shrink-0"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                              iconClassName="w-4 h-4"
+                            />
                           )}
                           {task.source === 'LOCAL' && (
                             <span

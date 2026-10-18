@@ -10,6 +10,7 @@ import {
 import { Task, TaskStatus } from '@/types';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
+import { IconButton } from '@/components/ui/IconButton';
 import { getDateShortString } from '@/utils/dateUtils';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import { atlasFetch } from '@/utils/api';
@@ -141,15 +142,12 @@ export default function KanbanView({
                             </p>
                           </div>
                           {task.source === 'NOTION' && (
-                            <a
+                            <IconButton
+                              icon={<ExternalLink />}
                               href={getNotionLinkById(task.id, 'notion')}
                               target="_self"
-                              rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="shrink-0 p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white"
-                            >
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                              iconClassName="w-4 h-4"
+                            />
                           )}
                           {task.source === 'LOCAL' && (
                             <span

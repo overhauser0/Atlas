@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
+import { IconButton } from '@/components/ui/IconButton';
 import type { LocalNote } from '@/types';
 
 // ==========================================
@@ -130,16 +131,12 @@ export default function NoteView({
                       : ''}
                   </div>
                   {note.url ? (
-                    <a
+                    <IconButton
+                      icon={<ExternalLink />}
                       href={note.url}
                       target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="noir-icon-btn"
                       title="リンクを開く"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
+                    />
                   ) : (
                     <div className="h-7 w-7" />
                   )}
