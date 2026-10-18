@@ -70,9 +70,9 @@ export default function HomeView({
       </div>
 
       {/* --- 2. メインコンテンツ (2カラムレイアウト) --- */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row gap-6 md:gap-8">
+      <div className="flex-1 min-h-0 flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* 【左カラム】: メインタスクリスト */}
-        <section className="order-2 md:order-1 flex-1 flex flex-col min-h-0 min-w-0">
+        <section className="order-2 flex-1 flex flex-col min-h-0 min-w-0">
           <div className="flex-1 flex flex-col min-h-0 min-w-0">
             <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
               Today's Tasks
@@ -161,8 +161,8 @@ export default function HomeView({
         </section>
 
         {/* 【右カラム】: ステータス ＆ 情報パネル */}
-        <aside className="order-1 md:order-2 shrink-0 md:w-72 lg:w-92 flex min-h-0 flex-col">
-          <h2 className="hidden md:flex shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4  items-center gap-2">
+        <aside className="order-1 lg:order-2 shrink-0 lg:w-92 flex min-h-0 flex-col">
+          <h2 className="hidden lg:flex shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4  items-center gap-2">
             Info
           </h2>
           <div className="flex min-h-0 flex-1 flex-col gap-2">
@@ -196,7 +196,7 @@ export default function HomeView({
                 {completedTargetTasks.length}
               </span>
             </Card>
-            <div className="mt-3 hidden min-h-0 flex-1 flex-col md:flex">
+            <div className="mt-3 hidden min-h-0 flex-1 flex-col lg:flex">
               <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
                 Project
               </h2>
