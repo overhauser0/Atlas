@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface DateSelectorProps {
   currentDate: Date;
@@ -66,19 +67,8 @@ export default function DateSelector({
 
       {/* 左右のページネーションボタン */}
       <div className="flex gap-2">
-        <button
-          onClick={handlePrev}
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-
-        <button
-          onClick={handleNext}
-          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors border border-white/5"
-        >
-          <ChevronRight className="w-5 h-5" />
-        </button>
+        <IconButton icon={<ChevronLeft />} onClick={handlePrev} />
+        <IconButton icon={<ChevronRight />} onClick={handleNext} />
       </div>
     </div>
   );

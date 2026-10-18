@@ -12,6 +12,7 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { Task } from '@/types';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface Props {
   notifications: any[];
@@ -119,25 +120,24 @@ export default function NotificationsView({
                       onClick={(e) => e.stopPropagation()}
                     >
                       {!n.is_read && (
-                        <button
+                        <IconButton
+                          icon={<Check />}
                           onClick={() => onMarkAsRead(n.id)}
-                          className="p-1 rounded-md bg-white/5 hover:bg-emerald-500/20 text-zinc-400 hover:text-emerald-400 transition-colors"
                           title="既読にする"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                        </button>
+                          iconClassName="w-3.5 h-3.5"
+                        />
                       )}
                       {n.url && (
-                        <button
-                          type="button"
+                        <IconButton
+                          icon={<ExternalLink />}
                           onClick={() => handleGleisLink(n.url)}
-                          className="p-1 rounded-md bg-white/5 hover:bg-white/10 text-zinc-400 hover:text-white transition-colors"
                           title="リンクを開く"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                          iconClassName="w-3.5 h-3.5"
+                        />
                       )}
-                      <button
+
+                      <IconButton
+                        icon={<Plus />}
                         onClick={() =>
                           openTaskModal({
                             title: n.title,
@@ -145,11 +145,9 @@ export default function NotificationsView({
                             url: n.url ?? '',
                           })
                         }
-                        className="p-1 rounded-md bg-white/5 hover:bg-blue-500/20 text-zinc-400 hover:text-blue-400 transition-colors"
                         title="タスク化"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                      </button>
+                        iconClassName="w-3.5 h-3.5"
+                      />
 
                       {/* 詳細トグル（ノートがある場合のみ） */}
                       {n.note && (
