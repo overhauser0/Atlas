@@ -484,6 +484,18 @@ export default function TaskModal({
             </button>
           )}
 
+          {internalMode === 'edit' && task && (
+            <button
+              type="button"
+              onClick={() => onOpenFocusModal(task)}
+              className="noir-icon-btn hidden md:flex"
+              title="Focus"
+              aria-label="Focus"
+            >
+              <Flame className="w-5 h-5 text-amber-500" />
+            </button>
+          )}
+
           {/* 三点リーダーメニュー */}
           {internalMode === 'edit' && task?.id && (
             <div className="relative" ref={moreMenuRef}>
@@ -497,6 +509,18 @@ export default function TaskModal({
 
               {isMoreMenuOpen && (
                 <div className="noir-subglass absolute right-0 w-48 z-60 mt-2 py-1.5 rounded-xl">
+                  {task && (
+                    <button
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        onOpenFocusModal(task);
+                      }}
+                      className="w-full text-left px-4 py-3 text-sm text-amber-500 hover:bg-white/10 flex items-center gap-3 transition-colors md:hidden"
+                    >
+                      <Flame className="w-4 h-4" />
+                      Focus
+                    </button>
+                  )}
                   <button
                     onClick={() => {
                       setIsMoreMenuOpen(false);
@@ -806,17 +830,6 @@ export default function TaskModal({
                     {completedCount} / {totalCount} Done
                   </div>
                 )}
-              </button>
-            </div>
-          )}
-          {internalMode === 'edit' && task && (
-            <div className="flex items-center justify-between">
-              <button
-                onClick={() => onOpenFocusModal(task)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/20 rounded-xl text-xs font-bold transition-all"
-              >
-                <Flame className="w-3.5 h-3.5" />
-                <span>Focus</span>
               </button>
             </div>
           )}
