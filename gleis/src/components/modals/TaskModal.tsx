@@ -394,6 +394,27 @@ export default function TaskModal({
         return;
       }
 
+      if (cmdOrCtrl && e.key.toLowerCase() === 'o') {
+        if (editForm.source === 'NOTION' && task?.id) {
+          e.preventDefault();
+          window.location.assign(getNotionLinkById(task.id, 'notion'));
+        }
+        return;
+      }
+
+      if (cmdOrCtrl && e.key.toLowerCase() === 'b') {
+        if (
+          onSendToPC &&
+          editForm.source === 'NOTION' &&
+          task?.id
+        ) {
+          e.preventDefault();
+          onSendToPC(getNotionLinkById(task.id, 'https'));
+          onClose();
+        }
+        return;
+      }
+
       if (cmdOrCtrl && e.key.toLowerCase() === 'd') {
         e.preventDefault();
         setEditForm({ ...editForm, status: 'Done' });
@@ -413,6 +434,7 @@ export default function TaskModal({
     handleDelete,
     isMoreMenuOpen,
     isStatusMenuOpen,
+    onSendToPC,
   ]);
 
   if (!isOpen) return null;
@@ -463,7 +485,7 @@ export default function TaskModal({
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
               className="noir-icon-btn"
-              title="Notionで開く"
+              title="Notionで開く (Ctrl+O)"
             >
               <ExternalLink className="w-5 h-5" />
             </a>
@@ -478,7 +500,7 @@ export default function TaskModal({
                 onClose();
               }}
               className="noir-icon-btn"
-              title="PC（ブラウザ）で開く"
+              title="PC（ブラウザ）で開く (Ctrl+B)"
             >
               <MonitorUp className="w-5 h-5" />
             </button>
@@ -537,6 +559,7 @@ export default function TaskModal({
                       handleDelete();
                     }}
                     className="w-full text-left px-4 py-3 text-sm text-red-400 hover:bg-white/10 flex items-center gap-3 transition-colors"
+                    title="削除 (Delete)"
                   >
                     <Trash2 className="w-4 h-4" />
                     削除
@@ -565,6 +588,7 @@ export default function TaskModal({
                         handlePromote();
                       }}
                       className="w-full text-left px-4 py-3 text-sm text-green-400 hover:bg-white/10 flex items-center gap-3 transition-colors border-t border-white/5"
+                      title="Notionに昇格 (Ctrl+P)"
                     >
                       <SquareArrowUp className="w-4 h-4" />
                       Notionに昇格
@@ -674,6 +698,7 @@ export default function TaskModal({
               <button
                 type="button"
                 onClick={() => setIsStatusMenuOpen(!isStatusMenuOpen)}
+                title="ステータス (Ctrl+DでDone)"
                 className={`w-full p-3 rounded-xl border bg-black/50 text-white flex items-center justify-between transition-colors focus:outline-none ${
                   isStatusMenuOpen
                     ? 'border-neon'
@@ -839,6 +864,7 @@ export default function TaskModal({
         <button
           onClick={() => handleSave()}
           disabled={isSaving}
+          title="Save Task (Ctrl+Enter)"
           className="w-full bg-neon text-white font-bold py-3 rounded-xl disabled:opacity-50 flex items-center justify-center gap-2"
         >
           {isSaving ? 'Saving...' : 'Save Task'}
