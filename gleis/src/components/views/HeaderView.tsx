@@ -63,7 +63,7 @@ export default function HeaderView({
           <span className="flex min-w-0 items-center gap-3">
             <Search className="h-5 w-5 shrink-0 text-gray-500 transition-colors group-hover:text-gray-400" />
             <span className="truncate text-sm text-gray-500 transition-colors group-hover:text-gray-400">
-              Type a command, search tasks, or ask AI...
+              Type a command, search items, or ask AI...
             </span>
           </span>
           <span className="hidden shrink-0 items-center gap-1 sm:flex">
