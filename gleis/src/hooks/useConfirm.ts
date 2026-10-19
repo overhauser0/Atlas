@@ -17,7 +17,7 @@ export function useConfirm() {
     resolve: null,
   });
 
-  // 💡 呼び出すと Promise を返す関数
+  // 呼び出すと Promise を返す関数
   const confirm = useCallback(
     (
       title: string,
