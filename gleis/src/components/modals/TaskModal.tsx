@@ -402,12 +402,8 @@ export default function TaskModal({
         return;
       }
 
-      if (cmdOrCtrl && e.key.toLowerCase() === 'b') {
-        if (
-          onSendToPC &&
-          editForm.source === 'NOTION' &&
-          task?.id
-        ) {
+      if (cmdOrCtrl && e.key.toLowerCase() === 'e') {
+        if (onSendToPC && editForm.source === 'NOTION' && task?.id) {
           e.preventDefault();
           onSendToPC(getNotionLinkById(task.id, 'https'));
           onClose();
@@ -500,7 +496,7 @@ export default function TaskModal({
                 onClose();
               }}
               className="noir-icon-btn"
-              title="PC（ブラウザ）で開く (Ctrl+B)"
+              title="PC（ブラウザ）で開く (Ctrl+E)"
             >
               <MonitorUp className="w-5 h-5" />
             </button>
