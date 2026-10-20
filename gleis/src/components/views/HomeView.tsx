@@ -76,7 +76,7 @@ export default function HomeView({
         <section className="order-2 flex-1 flex flex-col min-h-0 min-w-0">
           <div className="flex-1 flex flex-col min-h-0 min-w-0">
             <h2 className="shrink-0 text-sm font-bold tracking-widest text-gray-500 uppercase mb-4 flex items-center gap-2">
-              Today's Tasks
+              Daily Tasks
               <span className="bg-white/10 text-gray-300 px-2 py-0.5 rounded-full text-xs">
                 {sortedTargetTasks.length}
               </span>
