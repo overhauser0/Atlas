@@ -30,7 +30,7 @@ import ReviewView from '@/components/views/ReviewView';
 import NoteView from '@/components/views/NoteView';
 import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
-import { DocumentsView } from '@/components/views/DocumentsView';
+import DocumentsView from '@/components/views/DocumentsView';
 import SettingsView from '@/components/views/SettingsView';
 import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
@@ -41,7 +41,7 @@ import StatsModal from '@/components/modals/StatsModal';
 import QuickAlarmModal from '@/components/modals/QuickAlarmModal';
 import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
 import ConfirmModal from '@/components/modals/ConfirmModal';
-import { FocusModal } from '@/components/modals/FocusModal';
+import FocusModal from '@/components/modals/FocusModal';
 import CommandPalette from '@/components/modals/CommandPalette';
 import ActionPanel from '@/components/panels/ActionPanel';
 import LiveActivityPill, {
@@ -740,7 +740,6 @@ export default function Home() {
               onShowContent={fetchBlocks}
               onOpenProjectModal={(task) => openProjectModal(task)}
               onOpenFocusModal={(task) => openFocusModal(task)}
-              /*getSubTasks={(parentId) => handleGetSubTasks(parentId)}*/
               openTaskModal={(task) => openTaskModal(task)}
               handleGleisLink={(url, callback) =>
                 handleGleisLink(url, callback)
@@ -754,7 +753,7 @@ export default function Home() {
               lastSyncTime={lastSyncTime}
               overdueTasks={overdueTasks}
               onClose={() => setIsActionPanelOpen(false)}
-              onOpenSetting={(settingsTab) => handleOpenSetting(settingsTab)}
+              onOpenSetting={(tab) => handleOpenSetting(tab)}
               onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
               onRescheduleOverdue={handleRescheduleOverdue}
               onSyncStart={incrementRequest}

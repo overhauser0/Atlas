@@ -23,7 +23,7 @@ interface FocusModalProps {
 
 type TimerMode = 'pomodoro' | 'stopwatch';
 
-export function FocusModal({
+export default function FocusModal({
   isOpen,
   task,
   onClose,

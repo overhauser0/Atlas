@@ -1,6 +1,6 @@
 // src/components/views/DocumentsView.tsx
 
-import React, { useMemo, useState, DragEvent } from 'react';
+import { useMemo, useState, type DragEvent } from 'react';
 import {
   Search,
   ExternalLink,
@@ -9,7 +9,6 @@ import {
   Layers,
   UploadCloud,
   Loader2,
-  Calendar,
 } from 'lucide-react';
 import { PaperlessDocument } from '@/types';
 import { getDateFullString } from '@/utils/dateUtils';
@@ -25,14 +24,14 @@ interface Props {
   openTaskModal: (task?: Partial<Task>) => void;
 }
 
-export const DocumentsView: React.FC<Props> = ({
+export default function DocumentsView({
   documents,
   isLoading,
   isUploading,
   openDocument,
   uploadDocuments,
   openTaskModal,
-}) => {
+}: Props) {
   const [searchQuery, setSearchQuery] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -92,7 +91,7 @@ export const DocumentsView: React.FC<Props> = ({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* ドラッグ中・アップロード中の美しいオーバーレイ */}
+      {/* ドラッグ中・アップロード中のオーバーレイ */}
       {(isDragging || isUploading) && (
         <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg border-2 border-dashed border-blue-500/50">
           {isUploading ? (
@@ -206,4 +205,4 @@ export const DocumentsView: React.FC<Props> = ({
       </div>
     </div>
   );
-};
+}
