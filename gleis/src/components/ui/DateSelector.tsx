@@ -45,11 +45,7 @@ export default function DateSelector({
     <div className="shrink-0 flex items-center justify-between px-2 mx-auto w-full">
       {/* タイトル ＆ Today バッジ */}
       <div className="flex items-center gap-3">
-        {isToday ? (
-          <span className="text-[10px] px-2 py-0.5 rounded-full border border-neon/50 text-neon bg-neon/10 uppercase tracking-widest font-normal">
-            Today
-          </span>
-        ) : (
+        {!isToday && (
           <>
             <h2 className="text-xl font-bold text-gray-400 tracking-wide">
               {dateStr}
