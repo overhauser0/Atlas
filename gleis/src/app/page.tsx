@@ -754,9 +754,7 @@ export default function Home() {
               lastSyncTime={lastSyncTime}
               overdueTasks={overdueTasks}
               onClose={() => setIsActionPanelOpen(false)}
-              onNavigateToNotifications={() =>
-                handleViewChange('notifications')
-              }
+              onOpenSetting={(settingsTab) => handleOpenSetting(settingsTab)}
               onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
               onRescheduleOverdue={handleRescheduleOverdue}
               onSyncStart={incrementRequest}

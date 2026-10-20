@@ -6,7 +6,6 @@ import { useState, useEffect, useMemo } from 'react';
 import {
   Bell,
   X,
-  ChevronRight,
   Sun,
   Moon,
   RefreshCw,
@@ -22,12 +21,13 @@ import {
   FileStack,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import { SettingsTab } from '@/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   isWakeLockActive: boolean;
-  onNavigateToNotifications: () => void;
+  onOpenSetting: (settingsTab: SettingsTab) => void;
   notifications: any[];
   onOpenVoiceCapture: () => void;
   lastSyncTime: number | null | undefined;
@@ -46,7 +46,7 @@ export default function ActionPanel({
   isOpen,
   onClose,
   isWakeLockActive,
-  onNavigateToNotifications,
+  onOpenSetting,
   notifications = [],
   onOpenVoiceCapture,
   lastSyncTime,
@@ -293,7 +293,7 @@ export default function ActionPanel({
                   </button>
                 </div>
 
-                {/* 💡 2. Paperless Sync */}
+                {/* 2. Paperless Sync */}
                 <div className="h-px w-full bg-white/10" />
                 <div className="flex items-center justify-between">
                   <div className="flex flex-col gap-1">
@@ -338,7 +338,7 @@ export default function ActionPanel({
                 )}
               </div>
 
-              {/* 通知リスト（省略せずに残しています） */}
+              {/* 通知リスト */}
               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 shadow-sm relative overflow-hidden flex flex-col gap-4">
                 {recentUnreadNotifications.length > 0 ? (
                   <div className="flex flex-col gap-5">
@@ -350,7 +350,7 @@ export default function ActionPanel({
                           className="relative flex gap-4 items-center group"
                           onClick={() => {
                             onClose();
-                            onNavigateToNotifications();
+                            onOpenSetting('notifications');
                           }}
                         >
                           <div
@@ -402,7 +402,7 @@ export default function ActionPanel({
                     className="py-2 flex flex-col items-center justify-center text-zinc-500"
                     onClick={() => {
                       onClose();
-                      onNavigateToNotifications();
+                      onOpenSetting('notifications');
                     }}
                   >
                     <Bell className="w-6 h-6 mb-2 opacity-20" />
