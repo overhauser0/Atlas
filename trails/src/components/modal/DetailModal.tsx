@@ -116,8 +116,6 @@ export default function DetailModal({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  if (!isRendered || !formData) return null;
-
   const handleSave = async () => {
     setIsSaving(true);
     const isEditing = item !== null;
@@ -179,6 +177,39 @@ export default function DetailModal({
   const isSaveBtnNeeds =
     !item || (formData.source === 'NOTION' && Boolean(formData.id));
 
+  // ショートカットキー
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isOpen) return;
+
+      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        // ドロップダウン、ステータスメニュー優先
+        if (isMoreMenuOpen || isStatusMenuOpen) {
+          setIsMoreMenuOpen(false);
+          setIsStatusMenuOpen(false);
+          return;
+        }
+        onClose();
+        return;
+      }
+
+      if (cmdOrCtrl && e.key === 'Enter') {
+        e.preventDefault();
+        handleSave();
+        return;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose, handleSave, isMoreMenuOpen, isStatusMenuOpen]);
+
+  if (!isRendered || !formData) return null;
+
   return (
     <div
       className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300 ease-in-out ${
@@ -186,8 +217,8 @@ export default function DetailModal({
           ? 'bg-black/40 backdrop-blur-sm opacity-100'
           : 'bg-black/0 opacity-0'
       }`}
-      onClick={onClose}
     >
+      {/* onClick={onClose} バックドロップのクローズは一時停止 */}
       <div
         className={`relative bg-white w-full max-w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden transition-all duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] ${
           isVisible
