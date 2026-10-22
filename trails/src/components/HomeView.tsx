@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import { Archive, Plane } from 'lucide-react';
-import { LifeItem } from '@/types';
+import { AppTab, LifeItem } from '@/types';
 import ListItem from './ui/ListItem';
 import JapanMapWidget from './JapanMapWidget';
 
 interface Props {
-  onNavigate: (tab: 'Bucket' | 'Travel' | 'Explore' | 'Calendar') => void;
+  onNavigate: (tab: AppTab) => void;
   onItemClick: (item: LifeItem) => void;
   events: LifeItem[];
   tasks: LifeItem[];
