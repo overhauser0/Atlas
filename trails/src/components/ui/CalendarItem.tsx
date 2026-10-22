@@ -11,7 +11,7 @@ interface CalendarItemEntry {
 
 interface CalendarItemProps {
   entries: CalendarItemEntry[];
-  onItemClick: (item: LifeItem) => void;
+  onItemClick?: (item: LifeItem) => void;
 }
 
 export default function CalendarItem({
@@ -19,12 +19,12 @@ export default function CalendarItem({
   onItemClick,
 }: CalendarItemProps) {
   return (
-    <div className="flex flex-col gap-0.5 md:gap-1 overflow-y-auto no-scrollbar flex-1">
+    <div className="flex flex-col gap-0.5 overflow-y-auto no-scrollbar flex-1">
       {entries.map((entry) => (
         <button
           key={entry.id}
           type="button"
-          onClick={() => onItemClick(entry.item)}
+          onClick={() => (onItemClick ? onItemClick(entry.item) : null)}
           className={`w-full cursor-pointer text-left text-[10px] px-1 py-0.5 md:py-1 overflow-hidden whitespace-nowrap transition-all rounded-sm flex items-center gap-1 ${entry.className}`}
         >
           {entry.status !== undefined && (
