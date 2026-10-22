@@ -20,12 +20,20 @@ export default function ConfigModal({
   onUpdateSettings,
 }: Props) {
   const showTaskInCal = !!appSettings?.showTaskInCal;
+  const showGcalInCal = !!appSettings?.showGcalInCal;
 
   // トグルが切り替わったときの処理
   const handleToggleTask = () => {
     onUpdateSettings({
       ...appSettings,
       showTaskInCal: !showTaskInCal,
+    });
+  };
+
+  const handleToggleGoogleEvents = () => {
+    onUpdateSettings({
+      ...appSettings,
+      showGcalInCal: !showGcalInCal,
     });
   };
 
@@ -65,6 +73,26 @@ export default function ConfigModal({
               />
               <div
                 className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showTaskInCal ? 'translate-x-5' : 'translate-x-0'}`}
+              />
+            </label>
+          </div>
+          <div className="flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm text-gray-900 font-bold">
+            <div className="flex items-center gap-4">
+              <Calendar className="w-5 h-5 text-gray-500" />
+              <span>Show Google Events</span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showGcalInCal}
+                onChange={handleToggleGoogleEvents}
+                className="sr-only"
+              />
+              <div
+                className={`w-11 h-6 rounded-full transition-colors ${showGcalInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
+              />
+              <div
+                className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showGcalInCal ? 'translate-x-5' : 'translate-x-0'}`}
               />
             </label>
           </div>

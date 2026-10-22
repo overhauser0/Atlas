@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 import { getDateFullString } from '@/utils/dateUtils';
@@ -11,6 +11,7 @@ import CalendarItem from '@/components/ui/CalendarItem';
 
 interface CalendarViewProps {
   appSettings: any;
+  onUpdateSettings: (newSettings: any) => void;
   data: LifeItem[];
   task: LifeItem[];
   diaries: DiaryItem[];
@@ -22,6 +23,7 @@ interface CalendarViewProps {
 
 export default function CalendarView({
   appSettings,
+  onUpdateSettings,
   data,
   task,
   diaries,
@@ -34,6 +36,7 @@ export default function CalendarView({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const showTasks = !!appSettings?.showTaskInCal;
+  const showGcal = !!appSettings?.showGcalInCal;
 
   // ========== 描画用データの内部結合 ==========
   const calendarItems = useMemo(() => {
@@ -54,11 +57,12 @@ export default function CalendarView({
       source: 'GCAL',
     }));
 
-    let combined = [...data, ...gcalItems];
+    let combined = [...data];
     if (showTasks && task) combined = [...combined, ...task];
+    if (showGcal && gcalItems) combined = [...combined, ...gcalItems];
 
     return combined;
-  }, [data, task, googleEvents, showTasks]);
+  }, [data, task, googleEvents, showTasks, showGcal]);
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth(); // 0-11
@@ -144,6 +148,68 @@ export default function CalendarView({
         <h2 className="text-xl font-bold tracking-tight text-gray-900">
           {year}年 {month + 1}月
         </h2>
+        <div className="hidden md:flex items-center gap-3">
+          <label
+            className={`flex items-center gap-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+              showTasks
+                ? 'border-teal-200 text-teal-800'
+                : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={showTasks}
+              onChange={() =>
+                onUpdateSettings({
+                  ...appSettings,
+                  showTaskInCal: !showTasks,
+                })
+              }
+              className="sr-only"
+            />
+            <span
+              aria-hidden="true"
+              className={`flex h-5 w-5 items-center justify-center rounded-md border transition-colors ${
+                showTasks
+                  ? 'border-teal-500 bg-teal-500 text-white'
+                  : 'border-gray-300 bg-white text-transparent'
+              }`}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
+            タスク
+          </label>
+          <label
+            className={`flex items-center gap-2.5 text-sm font-semibold transition-colors cursor-pointer ${
+              showGcal
+                ? 'border-indigo-200 text-indigo-800'
+                : 'border-gray-200 bg-white text-gray-500 hover:bg-gray-50'
+            }`}
+          >
+            <input
+              type="checkbox"
+              checked={showGcal}
+              onChange={() =>
+                onUpdateSettings({
+                  ...appSettings,
+                  showGcalInCal: !showGcal,
+                })
+              }
+              className="sr-only"
+            />
+            <span
+              aria-hidden="true"
+              className={`flex h-5 w-5 items-center justify-center rounded-md border transition-colors ${
+                showGcal
+                  ? 'border-indigo-500 bg-indigo-500 text-white'
+                  : 'border-gray-300 bg-white text-transparent'
+              }`}
+            >
+              <Check className="h-3.5 w-3.5" strokeWidth={3} />
+            </span>
+            Google
+          </label>
+        </div>
         <div className="flex items-center space-x-4">
           <button
             onClick={goToToday}

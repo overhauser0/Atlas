@@ -36,7 +36,8 @@ export default function AppMain() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [appSettings, setAppSettings] = useState({
-    showTaskInCal: false,
+    showTaskInCal: true,
+    showGcalInCal: true,
   });
 
   // Global UI & View (画面・メニュー状態)
@@ -130,7 +131,12 @@ export default function AppMain() {
   // 設定のロード・保存
   useEffect(() => {
     const saved = localStorage.getItem('trails_settings');
-    if (saved) setAppSettings(JSON.parse(saved));
+    if (saved) {
+      setAppSettings((currentSettings) => ({
+        ...currentSettings,
+        ...JSON.parse(saved),
+      }));
+    }
   }, []);
 
   useEffect(() => {
@@ -212,6 +218,7 @@ export default function AppMain() {
         {currentTab === 'Calendar' && (
           <CalendarView
             appSettings={appSettings}
+            onUpdateSettings={setAppSettings}
             data={events}
             task={tasks}
             diaries={diaries}
