@@ -1,14 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Lock, AlertTriangle, CheckCircle2, Circle } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 interface AuthViewProps {
   onLogin: () => void;
   currentTime: Date | null;
 }
-
-// const CORRECT_PASSWORD = process.env.NEXT_PUBLIC_ATLAS_PASSWORD;
 
 export default function AuthView({ onLogin, currentTime }: AuthViewProps) {
   const [passwordInput, setPasswordInput] = useState('');

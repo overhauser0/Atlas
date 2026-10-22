@@ -7,21 +7,21 @@ import {
   CornerDownRight,
 } from 'lucide-react';
 import { Task } from '@/types';
-import Card from '@/components/ui/Card';
-import FAB from '@/components/ui/FAB';
-import { IconButton } from '@/components/ui/IconButton';
 import {
   mergeNewDateWithOriginalTime,
   isOverdue,
   getThisWeekMonday,
 } from '@/utils/dateUtils';
+import { atlasFetch } from '@/utils/api';
 import {
   COLUMNS,
   getStatusColor,
   sortTasksByStatus,
   getNotionLinkById,
 } from '@/utils/miscellaneousUtils';
-import { atlasFetch } from '@/utils/api';
+import Card from '@/components/ui/Card';
+import FAB from '@/components/ui/FAB';
+import { IconButton } from '@/components/ui/IconButton';
 import { useToast } from '@/components/ui/Toast';
 
 interface Props {

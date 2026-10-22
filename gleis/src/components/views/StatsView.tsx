@@ -13,12 +13,12 @@ import {
   ChartBar,
   PlayCircle,
 } from 'lucide-react';
+import { Task } from '@/types';
 import Card from '@/components/ui/Card';
 import SimpleList from '@/components/ui/SimpleList';
 import MonthSelector from '@/components/ui/MonthSelector';
 import Tooltip from '@/components/ui/Tooltip';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { Task } from '@/types';
 
 interface StatsViewProps {
   completedTasks: Task[];

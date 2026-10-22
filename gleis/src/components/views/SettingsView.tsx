@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Monitor, Cpu, Activity, Keyboard, Repeat, Bell } from 'lucide-react';
+import { DeviceInfo, Task, SettingsTab } from '@/types';
 
 // --- Sub Components ---
 import GeneralSettings from './settings/GeneralSettings';
@@ -10,7 +11,6 @@ import RoutineSettings from './settings/RoutineSettings';
 import NetworkSettings from './settings/NetworkSettings';
 import ShortcutSettings from './settings/ShortcutSettings';
 import NotificationsView from './settings/Notifications';
-import { DeviceInfo, Task, SettingsTab } from '@/types';
 
 interface Props {
   appSettings: any;

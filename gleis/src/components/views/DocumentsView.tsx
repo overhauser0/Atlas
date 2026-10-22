@@ -10,10 +10,9 @@ import {
   UploadCloud,
   Loader2,
 } from 'lucide-react';
-import { PaperlessDocument } from '@/types';
+import { PaperlessDocument, Task } from '@/types';
 import { getDateFullString } from '@/utils/dateUtils';
 import { IconButton } from '@/components/ui/IconButton';
-import { Task } from '@/types';
 
 interface Props {
   documents: PaperlessDocument[];

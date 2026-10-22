@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
-import EditReviewModal from '../modals/EditReviewModal';
 import { atlasFetch } from '@/utils/api';
-import MonthSelector from '../ui/MonthSelector';
+import EditReviewModal from '@/components/modals/EditReviewModal';
+import MonthSelector from '@/components/ui/MonthSelector';
 
 const formatWeekTitle = (weekName: string) => weekName.split('-')[1];
 

@@ -12,10 +12,10 @@ import {
   ArrowRight,
   PenLine,
 } from 'lucide-react';
+import type { LocalNote } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import { useToast } from '@/components/ui/Toast';
 import { IconButton } from '@/components/ui/IconButton';
-import type { LocalNote } from '@/types';
 
 // ==========================================
 // 1. Types

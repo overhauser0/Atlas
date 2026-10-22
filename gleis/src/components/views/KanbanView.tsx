@@ -8,12 +8,12 @@ import {
   CornerDownRight,
 } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
+import { atlasFetch } from '@/utils/api';
+import { getDateShortString } from '@/utils/dateUtils';
+import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
 import { IconButton } from '@/components/ui/IconButton';
-import { getDateShortString } from '@/utils/dateUtils';
-import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
-import { atlasFetch } from '@/utils/api';
 
 // カンバンで表示するステータスに 'Done' を追加
 const KANBAN_COLUMNS = ['INBOX', 'Waiting', 'Going', 'Done'] as const;

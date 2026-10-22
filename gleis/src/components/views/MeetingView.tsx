@@ -3,9 +3,9 @@
 
 import { useState, useMemo } from 'react';
 import { FileText, Plus, Clock, Search } from 'lucide-react';
-import SimpleList from '@/components/ui/SimpleList';
-import { getDateFullString } from '@/utils/dateUtils';
 import { Task } from '@/types';
+import { getDateFullString } from '@/utils/dateUtils';
+import SimpleList from '@/components/ui/SimpleList';
 
 interface MeetingProps {
   meetingTasks: Task[];
