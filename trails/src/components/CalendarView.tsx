@@ -244,10 +244,10 @@ export default function CalendarView({
                     const isTask = item.type === 'Task';
 
                     const itemStyle = isTask
-                      ? 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium'
+                      ? 'bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-100 hover:border-teal-100'
                       : isGCal
                         ? 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                        : 'bg-gray-100 text-gray-800 border border-gray-200 hover:bg-gray-200 hover:border-gray-300';
+                        : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium';
 
                     return {
                       id: item.id,
