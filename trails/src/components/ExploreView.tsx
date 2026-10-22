@@ -5,8 +5,8 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ListItem from './ui/ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
+import ListItem from './ui/ListItem';
 
 export default function ExploreView({ data, onItemClick, onOpenCreate }: any) {
   const [activeType, setActiveType] = useState<

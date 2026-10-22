@@ -11,6 +11,11 @@ import {
 } from 'lucide-react';
 import { AppTab, LifeItem, DiaryItem } from '@/types';
 
+import { usePieceSync } from '@/hooks/usePieceSync';
+import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
+import { useDiarySync } from '@/hooks/useDiarySync';
+import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
+
 import HomeView from '@/components/HomeView';
 import CalendarView from '@/components/CalendarView';
 import BucketView from '@/components/BucketView';
@@ -20,10 +25,6 @@ import DetailModal from '@/components/modal/DetailModal';
 import ConfigModal from '@/components/modal/ConfigModal';
 import ViewHeader from '@/components/ViewHeader';
 import AuthView from '@/components/AuthView';
-import { usePieceSync } from '@/hooks/usePieceSync';
-import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
-import { useDiarySync } from '@/hooks/useDiarySync';
-import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import DiaryModal from '@/components/modal/DiaryModal';
 
 export default function AppMain() {

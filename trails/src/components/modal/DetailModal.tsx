@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { atlasFetch } from '@/utils/api';
-import { getStatusColor, getNotionLinkById } from '@/utils/utils';
+import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneous';
 
 const STATUSES = ['INBOX', 'Waiting', 'Going', 'Done'];
 

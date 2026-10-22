@@ -4,11 +4,10 @@
 
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import CalendarItem from '@/components/ui/CalendarItem';
+import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 import { getDateFullString } from '@/utils/dateUtils';
-import { LifeItem } from '@/types';
-import { DiaryItem } from '@/types';
+import CalendarItem from '@/components/ui/CalendarItem';
 
 interface CalendarViewProps {
   appSettings: any;

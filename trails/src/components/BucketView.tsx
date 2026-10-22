@@ -2,7 +2,7 @@
 
 // useRef と useEffect を追加
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Plus, BadgeCheck, Archive } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
 import ListItem from './ui/ListItem';

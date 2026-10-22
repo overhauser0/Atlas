@@ -1,5 +1,5 @@
 import { LifeItem } from '@/types';
-import { getStatusColor } from '@/utils/utils';
+import { getStatusColor } from '@/utils/miscellaneous';
 
 interface CalendarItemEntry {
   id: string;

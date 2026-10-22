@@ -1,9 +1,9 @@
 'use client';
 
-import { Plus, Plane } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
-import ListItem from './ui/ListItem';
 import { groupItemsByYear } from '@/utils/grouping';
+import ListItem from './ui/ListItem';
 
 interface Props {
   data: LifeItem[];
