@@ -33,7 +33,7 @@ export default function CalendarItem({
               className={`w-1.5 h-1.5 flex-none rounded-full ${getStatusColor(entry.status)}`}
             />
           )}
-          <span className="truncate">{entry.title}</span>
+          <span>{entry.title}</span>
         </button>
       ))}
     </div>
