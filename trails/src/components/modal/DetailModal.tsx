@@ -51,6 +51,7 @@ export default function DetailModal({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -80,6 +81,7 @@ export default function DetailModal({
         iconType: 'leaf',
         source: values?.source || 'NOTION',
       });
+      setIsUrlInputOpen(Boolean(values?.url));
     }
   }, [isOpen, item, initialValues]);
 
@@ -260,7 +262,7 @@ export default function DetailModal({
                 <ExternalLink className="w-4 h-4" />
               </button>
             )}
-            {item?.id && (
+            {item?.id && item.source != 'GCAL' && (
               <div className="relative shrink-0" ref={moreMenuRef}>
                 <button
                   type="button"
@@ -444,27 +446,49 @@ export default function DetailModal({
           </div>
 
           {/* URL */}
-          <div className="flex w-full gap-2">
-            <div className="relative flex-1 min-w-0">
-              <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
-              <input
-                value={formData.url || ''}
-                onChange={(e) =>
-                  setFormData({ ...formData, url: e.target.value })
-                }
-                placeholder="https://..."
-                className="w-full bg-gray-50 py-3 pl-11 pr-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
-              />
+          {formData.url || isUrlInputOpen ? (
+            <div className="flex w-full gap-2">
+              <div className="relative flex-1 min-w-0">
+                <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+                <input
+                  type="url"
+                  value={formData.url || ''}
+                  onChange={(e) =>
+                    setFormData({ ...formData, url: e.target.value })
+                  }
+                  onBlur={() => {
+                    if (!formData.url) setIsUrlInputOpen(false);
+                  }}
+                  placeholder="https://..."
+                  className="w-full bg-gray-50 py-3 pl-11 pr-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
+                />
+              </div>
+              {formData.url && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(formData.url, '_blank', 'noopener,noreferrer')
+                  }
+                  className="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl transition-colors"
+                  title="Open URL"
+                  aria-label="Open URL"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </button>
+              )}
             </div>
-            {formData.url && (
-              <button
-                onClick={() => window.open(formData.url, '_blank')}
-                className="shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 rounded-xl transition-colors"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            )}
-          </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setIsUrlInputOpen(true)}
+              className="self-start flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              aria-label="Add URL"
+            >
+              <LinkIcon className="w-3.5 h-3.5" />
+              URL
+              <span className="text-gray-400">+</span>
+            </button>
+          )}
 
           {/* fkw array */}
           {formData.fkw && formData.fkw.length > 0 && (

@@ -3,7 +3,7 @@
 import { Plus } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
-import ListItem from './ui/ListItem';
+import ListItem from '../ui/ListItem';
 
 interface Props {
   data: LifeItem[];
@@ -49,7 +49,7 @@ export default function TravelView({ data, onItemClick, onOpenCreate }: Props) {
       {/* 3. FABは固定配置 (absolute) */}
       <button
         onClick={() => onOpenCreate({ topics: ['Travel'] })}
-        className="absolute bottom-24 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+        className="absolute bottom-6 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />
       </button>

@@ -2,12 +2,12 @@
 
 import { useMemo } from 'react';
 import { Archive, Plane } from 'lucide-react';
-import { AppTab, LifeItem } from '@/types';
-import ListItem from './ui/ListItem';
-import JapanMapWidget from './JapanMapWidget';
+import { Views, LifeItem } from '@/types';
+import ListItem from '../ui/ListItem';
+import JapanMapWidget from '../JapanMapWidget';
 
 interface Props {
-  onNavigate: (tab: AppTab) => void;
+  onNavigate: (tab: Views) => void;
   onItemClick: (item: LifeItem) => void;
   events: LifeItem[];
   tasks: LifeItem[];
@@ -56,9 +56,11 @@ export default function HomeView({
       if (item.fkw) item.fkw.forEach((tag) => tags.add(tag));
     });
     const uniqueTags = Array.from(tags).slice(0, 15);
-    return uniqueTags.length > 0
-      ? uniqueTags
-      : ['Fukuoka', 'Udon', 'Hiking', 'Winter', 'HotSpring', 'Escape'];
+    for (let i = uniqueTags.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [uniqueTags[i], uniqueTags[j]] = [uniqueTags[j], uniqueTags[i]];
+    }
+    return uniqueTags.slice(0, Math.min(15, uniqueTags.length));
   }, [completedItems]);
 
   return (
@@ -110,10 +112,7 @@ export default function HomeView({
                 <h2 className="text-2xl font-bold text-gray-900">Journeys</h2>
               </div>
             </button>
-          </div>
 
-          {/* 右カラム */}
-          <div className="space-y-6">
             <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
               <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-4">
                 Echos of Journey
@@ -126,7 +125,10 @@ export default function HomeView({
                 ))}
               </div>
             </div>
+          </div>
 
+          {/* 右カラム */}
+          <div className="space-y-6">
             <JapanMapWidget data={events} onItemClick={onItemClick} />
 
             <section>

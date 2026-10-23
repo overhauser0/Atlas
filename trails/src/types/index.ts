@@ -1,4 +1,10 @@
-export type AppTab = 'Home' | 'Calendar' | 'Bucket' | 'Travel' | 'Explore';
+export type Views =
+  | 'Home'
+  | 'Calendar'
+  | 'Bucket'
+  | 'Travel'
+  | 'Explore'
+  | 'Settings';
 
 export interface Piece {
   id: string;

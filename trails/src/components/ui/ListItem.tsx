@@ -8,6 +8,8 @@ import {
   LandPlot,
   Lightbulb,
   Mountain,
+  Calendar,
+  CheckSquare,
   LucideProps,
 } from 'lucide-react';
 import { LifeItem } from '@/types';
@@ -21,6 +23,8 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   LandPlot,
   Lightbulb,
   Mountain,
+  Calendar,
+  CheckSquare,
   Leaf,
 };
 
@@ -30,6 +34,9 @@ interface Props {
   iconClassName?: string; // アイコン本体の色など (ex: "text-blue-500")
   iconWrapperClassName?: string; // アイコン背景枠の色など (ex: "bg-blue-50")
   className?: string; // コンポーネント全体への追加クラス
+  description?: string;
+  isActive?: boolean;
+  onMouseEnter?: () => void;
   onItemClick: () => void;
 }
 
@@ -39,6 +46,9 @@ export default function ListItem({
   iconClassName,
   iconWrapperClassName = 'bg-gray-100', // デフォルト背景色
   className = '',
+  description,
+  isActive = false,
+  onMouseEnter,
   onItemClick,
 }: Props) {
   const iconName = icon ? icon : item.iconType;
@@ -54,7 +64,8 @@ export default function ListItem({
   return (
     <div
       onClick={onItemClick}
-      className={`p-4 flex items-center gap-4 cursor-pointer hover:bg-gray-50 transition-colors ${className}`}
+      onMouseEnter={onMouseEnter}
+      className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${isActive ? 'bg-primary-50 hover:bg-primary-50' : 'hover:bg-gray-50'} ${className}`}
     >
       {/* アイコンの背景枠に iconWrapperClassName を適用 */}
       <div
@@ -65,6 +76,9 @@ export default function ListItem({
 
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold text-gray-900 truncate">{item.title}</p>
+        {description && (
+          <p className="text-xs text-gray-500 truncate mt-0.5">{description}</p>
+        )}
         <div className="flex gap-2 mt-1 flex-wrap">
           {item.fkw?.map((tag) => (
             <span key={tag} className="trails-badge">
