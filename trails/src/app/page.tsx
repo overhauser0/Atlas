@@ -5,6 +5,7 @@ import {
   Compass,
   Archive,
   Plane,
+  CheckSquare,
   Beer,
   Mountain,
   Lightbulb,
@@ -45,6 +46,7 @@ const MAIN_TABS = [
 ] as const;
 
 const EXTRA_TABS = [
+  { id: 'Task', label: 'Task', icon: <CheckSquare /> },
   { id: 'Bucket', label: 'Bucket', icon: <Archive /> },
   { id: 'Travel', label: 'Travel', icon: <Plane /> },
   { id: 'Drinking', label: 'Drinking', icon: <Beer /> },
@@ -54,6 +56,7 @@ const EXTRA_TABS = [
 ] as const;
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
+  Task: 'List',
   Bucket: 'List',
   Travel: 'List',
   Drinking: 'List',
@@ -311,13 +314,11 @@ export default function AppMain() {
               onOpenCreate={handleOpenCreate}
             />
           )}
-          {(['Bucket', 'Travel', 'Drinking', 'Climbing', 'R-Escape', 'Golf'] as const).includes(
-            currentTab as ItemTabPreset,
-          ) && (
+          {ITEM_TAB_PRESETS.includes(currentTab as ItemTabPreset) && (
             <ItemTab
               key={currentTab}
               preset={currentTab as ItemTabPreset}
-              data={events}
+              data={currentTab === 'Task' ? tasks : events}
               activeView={appSettings.itemTabViews[currentTab as ItemTabPreset]}
               onViewChange={handleItemTabViewChange}
               onItemClick={openDetailModal}

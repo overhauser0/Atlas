@@ -24,6 +24,7 @@ interface Props {
 }
 
 const ITEM_ICONS: Partial<Record<ItemTabPreset, string>> = {
+  Task: 'CheckSquare',
   Drinking: 'Beer',
   Climbing: 'Mountain',
   'R-Escape': 'Lightbulb',
@@ -66,6 +67,10 @@ export default function ItemTab({
   }, [activeView, bucketStatus, preset]);
 
   const filteredItems = useMemo(() => {
+    if (preset === 'Task') {
+      return data.filter((item) => item.type === 'Task');
+    }
+
     if (preset === 'Bucket') {
       return data
         .filter((item) => item.category?.includes('Bucket'))
@@ -94,6 +99,7 @@ export default function ItemTab({
   });
 
   const iconForItem = (item: LifeItem) => {
+    if (preset === 'Task') return ITEM_ICONS.Task;
     if (preset === 'Bucket') {
       return item.status === 'Done' ? 'BadgeCheck' : 'Archive';
     }
@@ -158,7 +164,9 @@ export default function ItemTab({
   }, [filteredItems]);
 
   const handleCreate = () => {
-    if (preset === 'Bucket') {
+    if (preset === 'Task') {
+      onOpenCreate({ type: 'Task' });
+    } else if (preset === 'Bucket') {
       onOpenCreate({ flags: ['Bucket'] });
     } else {
       onOpenCreate({ topics: [preset] });

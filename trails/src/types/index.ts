@@ -1,4 +1,5 @@
 export const ITEM_TAB_PRESETS = [
+  'Task',
   'Bucket',
   'Travel',
   'Drinking',
