@@ -8,6 +8,7 @@ import {
   Plus,
   Calendar as CalendarIcon,
   Notebook,
+  Aperture,
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
@@ -24,6 +25,7 @@ interface CalendarTabProps {
   onItemClick: (item: LifeItem) => void;
   onDiaryClick: (diary: DiaryItem | null) => void;
   onOpenCreate: (item: Partial<LifeItem>) => void;
+  onOpenDairyPhoto: (date: string) => void;
 }
 
 export default function CalendarTab({
@@ -36,6 +38,7 @@ export default function CalendarTab({
   onItemClick,
   onDiaryClick,
   onOpenCreate,
+  onOpenDairyPhoto,
 }: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -396,28 +399,37 @@ export default function CalendarTab({
               {formattedSelectedDate}
             </h3>
 
-            {/* 日記入力 / 閲覧ボタン */}
-            {!!selectedDayDiary && (
+            <div className="flex items-center gap-2">
               <button
-                onClick={() => {
-                  if (selectedDayDiary) {
-                    onDiaryClick(selectedDayDiary);
-                  } else {
-                    // 新規作成
-                    onDiaryClick({
-                      name: selectedDateStr,
-                      date: selectedDateStr,
-                      note: '',
-                    } as DiaryItem);
-                  }
-                }}
-                className={`flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 ${
-                  isSelectedEntered ? ' text-green-600' : ' text-gray-400 '
-                }`}
+                onClick={() => onOpenDairyPhoto(selectedDateStr)}
+                aria-label="この日の写真を開く"
+                className="flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-400"
               >
-                <Notebook className="w-4 h-4" />
+                <Aperture className="w-4 h-4" />
               </button>
-            )}
+              {/* 日記入力 / 閲覧ボタン */}
+              {!!selectedDayDiary && (
+                <button
+                  onClick={() => {
+                    if (selectedDayDiary) {
+                      onDiaryClick(selectedDayDiary);
+                    } else {
+                      // 新規作成
+                      onDiaryClick({
+                        name: selectedDateStr,
+                        date: selectedDateStr,
+                        note: '',
+                      } as DiaryItem);
+                    }
+                  }}
+                  className={`flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 ${
+                    isSelectedEntered ? ' text-green-600' : ' text-gray-400 '
+                  }`}
+                >
+                  <Notebook className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           {/* 1日の予定リスト */}

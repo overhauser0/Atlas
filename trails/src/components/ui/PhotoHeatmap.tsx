@@ -35,28 +35,27 @@ export default function PhotoHeatmap({
 
   // 撮影件数に応じた草の色分け
   const getColorClass = (count: number) => {
-    if (count === 0) return 'bg-slate-100 dark:bg-zinc-800/60';
-    if (count <= 5) return 'bg-emerald-200 dark:bg-emerald-900/60';
-    if (count <= 15) return 'bg-emerald-300 dark:bg-emerald-700';
-    if (count <= 30) return 'bg-emerald-400 dark:bg-emerald-500';
-    return 'bg-emerald-500 dark:bg-emerald-400';
+    if (count === 0) return 'bg-gray-100';
+    if (count <= 5) return 'bg-emerald-200';
+    if (count <= 15) return 'bg-emerald-300';
+    if (count <= 30) return 'bg-emerald-400';
+    return 'bg-emerald-500';
   };
 
   return (
-    <div className="soft-card p-6 lg:p-8 col-span-1 md:col-span-2 lg:col-span-3">
+    <div className="w-full">
       <div className="flex justify-between items-center mb-4">
-        <h2 className="soft-label">Shooting Activity (Past Year)</h2>
-        <div className="flex items-center gap-1.5 text-xs text-slate-400">
+        <div className="flex items-center gap-1.5 text-xs text-gray-400">
           <span>Less</span>
-          <span className="w-2.5 h-2.5 rounded-sm bg-slate-100 dark:bg-zinc-800"></span>
-          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 dark:bg-emerald-900/60"></span>
-          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 dark:bg-emerald-500"></span>
-          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 dark:bg-emerald-400"></span>
+          <span className="w-2.5 h-2.5 rounded-sm bg-gray-100"></span>
+          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-200 "></span>
+          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-400 "></span>
+          <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500 "></span>
           <span>More</span>
         </div>
       </div>
 
-      <div className="overflow-x-auto soft-scrollbar pb-2">
+      <div className="overflow-x-auto no-scrollbar pb-2">
         {/* w-max を指定してグリッド列が潰れるのを防止 */}
         <div className="w-max">
           {/* 7行（日〜土）で左から右へ流す */}

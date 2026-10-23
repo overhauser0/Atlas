@@ -102,8 +102,13 @@ export default function ConfigTab({
       </div>
 
       <div className="text-center text-xs text-gray-400 p-4 mt-8">
-        Trails v8.1.0
+        Trails v8.2.0
       </div>
     </div>
   );
 }
+
+/* 
+v8.1.0 サイドメニューレイアウトに変更
+v8.2.0 Vistaと統合（Immich連携）
+*/

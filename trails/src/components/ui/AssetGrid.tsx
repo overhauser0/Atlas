@@ -2,7 +2,7 @@
 'use client';
 
 import React from 'react';
-import AuthImage from './AuthImage'; // 先ほど作成したコンポーネントをインポート
+import AuthImage from './AuthImage';
 
 interface Asset {
   id: string;
@@ -39,16 +39,14 @@ export default function AssetGrid({ assets, isLoading }: AssetGridProps) {
           key={asset.id}
           className="relative group aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800"
         >
-          {/* <img> の代わりに <AuthImage> を使用し、パスだけを渡す */}
           <AuthImage
             src={`/immich/assets/${asset.id}/thumbnail`}
             alt={asset.originalFileName}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
 
-          {/* ホバー時にEXIF情報をふわっと出す */}
           {asset.exif?.model && (
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
+            <div className="absolute inset-0 bg-liner-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-2">
               <span className="text-white text-[10px] font-medium truncate">
                 {asset.exif.model}
               </span>

@@ -10,7 +10,7 @@ export const ITEM_TAB_PRESETS = [
 
 export type ItemTabPreset = (typeof ITEM_TAB_PRESETS)[number];
 
-export type Views = 'Home' | 'Calendar' | 'Settings' | ItemTabPreset;
+export type Views = 'Home' | 'Calendar' | 'Photo' | 'Settings' | ItemTabPreset;
 
 export interface Piece {
   id: string;

@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   Search,
   Settings,
-  X,
+  Aperture,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -32,17 +32,20 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 import HomeTab from '@/components/tabs/HomeTab';
 import CalendarTab from '@/components/tabs/CalendarTab';
+import PhotoTab from '@/components/tabs/PhotoTab';
 import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
 import ConfigTab from '@/components/tabs/ConfigTab';
 import AuthTab from '@/components/tabs/AuthTab';
 import DetailModal from '@/components/modal/DetailModal';
 import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
+import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
 
 // メニュー定義
 const MAIN_TABS = [
   { id: 'Home', label: 'Home', icon: <Compass /> },
   { id: 'Calendar', label: 'Calendar', icon: <CalendarIcon /> },
+  { id: 'Photo', label: 'Immich', icon: <Aperture /> },
 ] as const;
 
 const EXTRA_TABS = [
@@ -99,6 +102,11 @@ export default function AppMain() {
     isOpen: boolean;
     diary: DiaryItem | null;
   }>({ isOpen: false, diary: null });
+
+  const [isPhotoModalOpen, setIsPhotoModalOpen] = useState(false);
+  const [selectedPhotoDate, setSelectedPhotoDate] = useState<string | null>(
+    null,
+  );
 
   // ============================================================================
   // 2. Custom Hooks
@@ -212,6 +220,15 @@ export default function AppMain() {
     setDiaryModalConfig({ isOpen: true, diary });
   };
 
+  const handleOpenDailyPhoto = (date: string) => {
+    setSelectedPhotoDate(date);
+    setIsPhotoModalOpen(true);
+  };
+  const handleCloseDailyPhoto = () => {
+    setIsPhotoModalOpen(false);
+    setSelectedPhotoDate(null);
+  };
+
   useKeyboardShortcuts({
     onOpenSearchModal: () => setIsSearchOpen(true),
   });
@@ -312,7 +329,11 @@ export default function AppMain() {
               onItemClick={openDetailModal}
               onDiaryClick={handleDiaryClick}
               onOpenCreate={handleOpenCreate}
+              onOpenDairyPhoto={handleOpenDailyPhoto}
             />
+          )}
+          {currentTab === 'Photo' && (
+            <PhotoTab onDateClick={handleOpenDailyPhoto} />
           )}
           {ITEM_TAB_PRESETS.includes(currentTab as ItemTabPreset) && (
             <ItemTab
@@ -442,6 +463,11 @@ export default function AppMain() {
         onClose={() =>
           setDiaryModalConfig((prev) => ({ ...prev, isOpen: false }))
         }
+      />
+      <DailyPhotoModal
+        isOpen={isPhotoModalOpen}
+        date={selectedPhotoDate}
+        onClose={handleCloseDailyPhoto}
       />
     </div>
   );
