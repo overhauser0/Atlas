@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
-import { getDateFullString } from '@/utils/dateUtils';
+import { getDateShortString, getDateFullString } from '@/utils/dateUtils';
 import CalendarItem from '@/components/ui/CalendarItem';
 
 interface CalendarTabProps {
@@ -167,12 +167,6 @@ export default function CalendarTab({
     selectedDayDiary.note &&
     selectedDayDiary.note.trim() !== ''
   );
-
-  // 曜日テキスト
-  const selectedDayOfWeek = ['日', '月', '火', '水', '木', '金', '土'][
-    selectedDate.getDay()
-  ];
-  const formattedSelectedDate = `${selectedDate.getFullYear()}/${String(selectedDate.getMonth() + 1).padStart(2, '0')}/${String(selectedDate.getDate()).padStart(2, '0')} (${selectedDayOfWeek})`;
 
   // ショートカットキー
   useEffect(() => {
@@ -396,7 +390,7 @@ export default function CalendarTab({
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <CalendarIcon className="w-6 h-6 text-gray-400" />
-              {formattedSelectedDate}
+              {getDateShortString(selectedDateStr)}
             </h3>
 
             <div className="flex items-center gap-2">
