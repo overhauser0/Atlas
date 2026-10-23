@@ -192,9 +192,9 @@ export default function CalendarTab({
   return (
     <div className="flex flex-col md:flex-row h-full bg-gray-50 overflow-hidden">
       {/* =========================================
-          上部：カレンダーエリア（強制的に高さの55%〜60%を割り当てる）
+          上部：カレンダーエリア
           ========================================= */}
-      <div className="bg-white border-b border-gray-200 z-10 flex flex-col h-[55%] md:h-full md:w-[70%] shrink-0">
+      <div className="bg-white border-b border-gray-200 z-10 flex flex-col h-[65%] md:h-full md:w-[70%] shrink-0">
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 shrink-0">
           <h2 className="text-lg md:text-xl font-bold tracking-tight text-gray-900">
