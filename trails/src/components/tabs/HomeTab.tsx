@@ -13,7 +13,7 @@ interface Props {
   tasks: LifeItem[];
 }
 
-export default function HomeView({
+export default function HomeTab({
   onNavigate,
   onItemClick,
   events,
@@ -30,7 +30,10 @@ export default function HomeView({
     };
   }, [events]);
 
-  const completedItems = events.filter((item) => item.status === 'Done');
+  const completedItems = useMemo(
+    () => events.filter((item) => item.status === 'Done'),
+    [events],
+  );
   const recentTasks = useMemo(
     () =>
       tasks
@@ -55,12 +58,12 @@ export default function HomeView({
     completedItems.forEach((item) => {
       if (item.fkw) item.fkw.forEach((tag) => tags.add(tag));
     });
-    const uniqueTags = Array.from(tags).slice(0, 15);
+    const uniqueTags = Array.from(tags);
     for (let i = uniqueTags.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [uniqueTags[i], uniqueTags[j]] = [uniqueTags[j], uniqueTags[i]];
     }
-    return uniqueTags.slice(0, Math.min(15, uniqueTags.length));
+    return uniqueTags.slice(0, 15);
   }, [completedItems]);
 
   return (

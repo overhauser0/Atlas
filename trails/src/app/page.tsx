@@ -5,14 +5,23 @@ import {
   Compass,
   Archive,
   Plane,
-  BookOpen,
+  Beer,
+  Mountain,
+  Lightbulb,
+  LandPlot,
   Calendar as CalendarIcon,
   MoreHorizontal,
   Search,
   Settings,
   X,
 } from 'lucide-react';
-import { Views, LifeItem, DiaryItem } from '@/types';
+import {
+  ITEM_TAB_PRESETS,
+  ItemTabPreset,
+  Views,
+  LifeItem,
+  DiaryItem,
+} from '@/types';
 
 import { usePieceSync } from '@/hooks/usePieceSync';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
@@ -20,13 +29,11 @@ import { useDiarySync } from '@/hooks/useDiarySync';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
-import HomeView from '@/components/views/HomeView';
-import CalendarView from '@/components/views/CalendarView';
-import BucketView from '@/components/views/BucketView';
-import TravelView from '@/components/views/TravelView';
-import ExploreView from '@/components/views/ExploreView';
-import ConfigView from '@/components/views/ConfigView';
-import AuthView from '@/components/views/AuthView';
+import HomeTab from '@/components/tabs/HomeTab';
+import CalendarTab from '@/components/tabs/CalendarTab';
+import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
+import ConfigTab from '@/components/tabs/ConfigTab';
+import AuthTab from '@/components/tabs/AuthTab';
 import DetailModal from '@/components/modal/DetailModal';
 import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
@@ -40,8 +47,23 @@ const MAIN_TABS = [
 const EXTRA_TABS = [
   { id: 'Bucket', label: 'Bucket', icon: <Archive /> },
   { id: 'Travel', label: 'Travel', icon: <Plane /> },
-  { id: 'Explore', label: 'Explore', icon: <BookOpen /> },
+  { id: 'Drinking', label: 'Drinking', icon: <Beer /> },
+  { id: 'Climbing', label: 'Climbing', icon: <Mountain /> },
+  { id: 'R-Escape', label: 'R-Escape', icon: <Lightbulb /> },
+  { id: 'Golf', label: 'Golf', icon: <LandPlot /> },
 ] as const;
+
+const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
+  Bucket: 'List',
+  Travel: 'List',
+  Drinking: 'List',
+  Climbing: 'List',
+  'R-Escape': 'List',
+  Golf: 'List',
+};
+
+const isItemView = (value: unknown): value is ItemView =>
+  value === 'List' || value === 'Cal' || value === 'Stats';
 
 export default function AppMain() {
   // ============================================================================
@@ -52,6 +74,7 @@ export default function AppMain() {
   const [appSettings, setAppSettings] = useState({
     showTaskInCal: true,
     showGcalInCal: true,
+    itemTabViews: DEFAULT_ITEM_TAB_VIEWS,
   });
 
   const [currentTab, setCurrentTab] = useState<Views>('Home');
@@ -117,9 +140,19 @@ export default function AppMain() {
   useEffect(() => {
     const saved = localStorage.getItem('trails_settings');
     if (saved) {
+      const savedSettings = JSON.parse(saved);
+      const savedItemTabViews = savedSettings.itemTabViews ?? {};
+      const itemTabViews = { ...DEFAULT_ITEM_TAB_VIEWS };
+
+      ITEM_TAB_PRESETS.forEach((preset) => {
+        const savedView = savedItemTabViews[preset];
+        if (isItemView(savedView)) itemTabViews[preset] = savedView;
+      });
+
       setAppSettings((currentSettings) => ({
         ...currentSettings,
-        ...JSON.parse(saved),
+        ...savedSettings,
+        itemTabViews,
       }));
     }
   }, []);
@@ -154,6 +187,19 @@ export default function AppMain() {
     [],
   );
 
+  const handleItemTabViewChange = useCallback(
+    (preset: ItemTabPreset, view: ItemView) => {
+      setAppSettings((settings) => ({
+        ...settings,
+        itemTabViews: {
+          ...settings.itemTabViews,
+          [preset]: view,
+        },
+      }));
+    },
+    [],
+  );
+
   const handleTabChange = (tab: Views) => {
     setCurrentTab(tab);
     setIsMoreSheetOpen(false);
@@ -172,7 +218,7 @@ export default function AppMain() {
   // ============================================================================
   if (isAuthChecking) return <div className="h-screen bg-gray-100" />;
   if (!isAuthenticated)
-    return <AuthView onLogin={() => setIsAuthenticated(true)} />;
+    return <AuthTab onLogin={() => setIsAuthenticated(true)} />;
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-100">
@@ -245,7 +291,7 @@ export default function AppMain() {
         {/* メインビュー（スマホ版のヘッダーは削除されました） */}
         <main className="flex-1 overflow-hidden relative">
           {currentTab === 'Home' && (
-            <HomeView
+            <HomeTab
               events={events}
               tasks={tasks}
               onNavigate={setCurrentTab}
@@ -253,7 +299,7 @@ export default function AppMain() {
             />
           )}
           {currentTab === 'Calendar' && (
-            <CalendarView
+            <CalendarTab
               appSettings={appSettings}
               onUpdateSettings={setAppSettings}
               data={events}
@@ -265,29 +311,21 @@ export default function AppMain() {
               onOpenCreate={handleOpenCreate}
             />
           )}
-          {currentTab === 'Bucket' && (
-            <BucketView
-              data={events.filter((i) => i.category?.includes('Bucket'))}
-              onItemClick={openDetailModal}
-              onOpenCreate={handleOpenCreate}
-            />
-          )}
-          {currentTab === 'Travel' && (
-            <TravelView
-              data={events.filter((i) => i.category?.includes('Travel'))}
-              onItemClick={openDetailModal}
-              onOpenCreate={handleOpenCreate}
-            />
-          )}
-          {currentTab === 'Explore' && (
-            <ExploreView
-              data={events.filter((i) => i.category?.includes('Explore'))}
+          {(['Bucket', 'Travel', 'Drinking', 'Climbing', 'R-Escape', 'Golf'] as const).includes(
+            currentTab as ItemTabPreset,
+          ) && (
+            <ItemTab
+              key={currentTab}
+              preset={currentTab as ItemTabPreset}
+              data={events}
+              activeView={appSettings.itemTabViews[currentTab as ItemTabPreset]}
+              onViewChange={handleItemTabViewChange}
               onItemClick={openDetailModal}
               onOpenCreate={handleOpenCreate}
             />
           )}
           {currentTab === 'Settings' && (
-            <ConfigView
+            <ConfigTab
               appSettings={appSettings}
               onUpdateSettings={setAppSettings}
               onSync={() => {

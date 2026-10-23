@@ -9,7 +9,7 @@ interface Props {
   onUpdateSettings: (newSettings: any) => void;
 }
 
-export default function ConfigView({
+export default function ConfigTab({
   appSettings,
   onSync,
   onLogout,

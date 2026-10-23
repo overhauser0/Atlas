@@ -1,10 +1,15 @@
-export type Views =
-  | 'Home'
-  | 'Calendar'
-  | 'Bucket'
-  | 'Travel'
-  | 'Explore'
-  | 'Settings';
+export const ITEM_TAB_PRESETS = [
+  'Bucket',
+  'Travel',
+  'Drinking',
+  'Climbing',
+  'R-Escape',
+  'Golf',
+] as const;
+
+export type ItemTabPreset = (typeof ITEM_TAB_PRESETS)[number];
+
+export type Views = 'Home' | 'Calendar' | 'Settings' | ItemTabPreset;
 
 export interface Piece {
   id: string;

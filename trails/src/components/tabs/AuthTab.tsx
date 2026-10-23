@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { Lock } from 'lucide-react';
 
-interface AuthViewProps {
+interface AuthTabProps {
   onLogin: () => void;
 }
 
-export default function AuthView({ onLogin }: AuthViewProps) {
+export default function AuthTab({ onLogin }: AuthTabProps) {
   const [passwordInput, setPasswordInput] = useState('');
   const [loginError, setLoginError] = useState(false);
   const [isUnlocking, setIsUnlocking] = useState(false);

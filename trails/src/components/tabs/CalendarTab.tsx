@@ -14,7 +14,7 @@ import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 import { getDateFullString } from '@/utils/dateUtils';
 import CalendarItem from '@/components/ui/CalendarItem';
 
-interface CalendarViewProps {
+interface CalendarTabProps {
   appSettings: any;
   onUpdateSettings: (newSettings: any) => void;
   data: LifeItem[];
@@ -26,7 +26,7 @@ interface CalendarViewProps {
   onOpenCreate: (item: Partial<LifeItem>) => void;
 }
 
-export default function CalendarView({
+export default function CalendarTab({
   appSettings,
   onUpdateSettings,
   data,
@@ -36,7 +36,7 @@ export default function CalendarView({
   onItemClick,
   onDiaryClick,
   onOpenCreate,
-}: CalendarViewProps) {
+}: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   // 新設：選択中の日付（デフォルトは今日）
