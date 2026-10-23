@@ -102,7 +102,7 @@ export default function ConfigTab({
       </div>
 
       <div className="text-center text-xs text-gray-400 p-4 mt-8">
-        Trails v8.0.1
+        Trails v8.1.0
       </div>
     </div>
   );
