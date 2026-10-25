@@ -110,9 +110,3 @@ export default function ConfigTab({
     </div>
   );
 }
-
-/* 
-v8.1.0 サイドメニューレイアウトに変更
-v8.2.0 Vistaと統合（Immich連携）
-  v8.2.1 Homeのレイアウトのレスポンシブを強化
-*/
