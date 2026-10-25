@@ -44,7 +44,10 @@ export default function CalendarTab({
 
   // 新設：選択中の日付（デフォルトは今日）
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const bottomScrollRef = useRef<HTMLDivElement>(null);
+  const bottomScrollRef = useRef<HTMLDivElement | null>(null);
+  const setBottomScrollRef = useCallback((element: HTMLDivElement | null) => {
+    bottomScrollRef.current = element;
+  }, []);
 
   const showTasks = !!appSettings?.showTaskInCal;
   const showGcal = !!appSettings?.showGcalInCal;
@@ -187,11 +190,11 @@ export default function CalendarTab({
   }, []);
 
   return (
-    <div className="flex flex-col md:flex-row h-full bg-gray-50 overflow-hidden">
+    <div className="flex flex-col lg:flex-row h-full bg-gray-50 overflow-hidden">
       {/* =========================================
           上部：カレンダーエリア
           ========================================= */}
-      <div className="bg-white border-b border-gray-200 z-10 flex flex-col h-[65%] md:h-full md:w-[70%] shrink-0">
+      <div className="bg-white border-b border-gray-200 z-10 flex flex-col h-[65%] lg:h-full lg:w-[70%] shrink-0">
         {/* ヘッダー */}
         <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 shrink-0">
           <h2 className="text-lg md:text-xl font-bold tracking-tight text-gray-900">
@@ -381,13 +384,10 @@ export default function CalendarTab({
       {/* =========================================
           下部：1日の詳細エリア（残り45%の領域を占有）
           ========================================= */}
-      <div
-        ref={bottomScrollRef}
-        className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 no-scrollbar"
-      >
-        <div className="max-w-3xl mx-auto">
+      <div className="flex-1 min-h-0 min-w-0 p-4 md:p-6 overflow-hidden">
+        <div className="max-w-3xl mx-auto h-full min-h-0 flex flex-col">
           {/* 詳細エリア ヘッダー */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-6 shrink-0">
             <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
               <CalendarIcon className="w-6 h-6 text-gray-400" />
               {getDateShortString(selectedDateStr)}
@@ -428,12 +428,13 @@ export default function CalendarTab({
 
           {/* 1日の予定リスト */}
           {selectedDayItems.length === 0 ? (
-            <div className="text-center text-gray-400 py-10 text-sm font-medium">
+            <div className="flex-1 min-h-0 text-center text-gray-400 py-10 text-sm font-medium">
               予定はありません
             </div>
           ) : (
-            <div className="flex flex-col gap-2 md:gap-3">
+            <div className="flex-1 min-h-0 flex flex-col">
               <CalendarItem
+                scrollRef={setBottomScrollRef}
                 entries={selectedDayItems.slice(0, 5).map((item) => {
                   const isGCal = item.source === 'GCAL';
                   const isTask = item.type === 'Task';
@@ -448,7 +449,7 @@ export default function CalendarTab({
                     id: item.id,
                     title: item.title,
                     status: isGCal ? undefined : item.status,
-                    className: `${itemStyle} p-3! md:p-4! rounded-2xl! font-bold text-sm md:text-base`,
+                    className: `${itemStyle} p-3! lg:p-4! lg:rounded-2xl! font-bold text-base!`,
                     item,
                   };
                 })}
