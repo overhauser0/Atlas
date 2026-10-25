@@ -1,6 +1,7 @@
 'use client';
 
 import { LogOut, RefreshCw, Calendar } from 'lucide-react';
+import packageJson from '../../../package.json';
 
 interface Props {
   appSettings: any;
@@ -102,7 +103,7 @@ export default function ConfigTab({
       </div>
 
       <div className="text-center text-xs text-gray-400 p-4 mt-8">
-        Trails v8.2.1
+        Trails {packageJson.version}
       </div>
     </div>
   );
