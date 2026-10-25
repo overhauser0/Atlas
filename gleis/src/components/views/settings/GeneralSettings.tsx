@@ -1,7 +1,8 @@
 'use client';
 import React from 'react';
-import { Monitor, RefreshCw, Bell, Clock, Zap } from 'lucide-react';
+import { Monitor, RefreshCw, Bell, Clock, Zap, Info } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
+import packageJson from '../../../../package.json';
 
 interface Props {
   appSettings: any;
@@ -153,7 +154,23 @@ export default function GeneralSettings({
             </div>
           </div>
         </section>
+
+        <section className="flex flex-col gap-4">
+          <h2 className="flex items-center gap-2 px-1 noir-label">
+            <Info className="w-3.5 h-3.5" /> About
+          </h2>
+          <div className="noir-glass rounded-2xl border border-white/5 border-t-white/10 p-5 flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-200">Version</div>
+            <span className="text-sm font-mono text-gray-400">
+              {packageJson.version}
+            </span>
+          </div>
+        </section>
       </div>
     </div>
   );
 }
+
+/* 
+v2.0.0 WebSocket,Paperless連携を加えたWorkOS化
+*/
