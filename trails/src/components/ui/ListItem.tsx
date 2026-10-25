@@ -11,6 +11,7 @@ import {
   Calendar,
   CheckSquare,
   LucideProps,
+  Newspaper,
 } from 'lucide-react';
 import { LifeItem } from '@/types';
 
@@ -26,6 +27,7 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   Calendar,
   CheckSquare,
   Leaf,
+  Newspaper,
 };
 
 interface Props {

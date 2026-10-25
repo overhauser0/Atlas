@@ -9,6 +9,7 @@ import {
   Repeat2,
   List,
   Plus,
+  Newspaper,
 } from 'lucide-react';
 import { ItemTabPreset, LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
@@ -29,6 +30,7 @@ const ITEM_ICONS: Partial<Record<ItemTabPreset, string>> = {
   Climbing: 'Mountain',
   'R-Escape': 'Lightbulb',
   Golf: 'LandPlot',
+  Article: 'Newspaper',
 };
 
 export type ItemView = 'List' | 'Cal' | 'Stats';
@@ -150,16 +152,19 @@ export default function ItemTab({
       byYear.set(year, (byYear.get(year) ?? 0) + 1);
     });
 
+    const byYearEntries = [...byYear.entries()].sort(([a], [b]) => {
+      if (a === 'Plan') return -1;
+      if (b === 'Plan') return 1;
+      return Number(b) - Number(a);
+    });
+
     return {
       completed,
       planned,
       scheduled,
       completionRate,
-      byYear: [...byYear.entries()].sort(([a], [b]) => {
-        if (a === 'Plan') return -1;
-        if (b === 'Plan') return 1;
-        return Number(b) - Number(a);
-      }),
+      byYear: byYearEntries,
+      maxYearCount: Math.max(0, ...byYearEntries.map(([, count]) => count)),
     };
   }, [filteredItems]);
 
@@ -418,60 +423,70 @@ export default function ItemTab({
 
         {activeView === 'Stats' && (
           <div className="space-y-5">
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-              <StatCard label="Items" value={filteredItems.length} />
-              <StatCard label="Completed" value={stats.completed} />
-              <StatCard label="Scheduled" value={stats.scheduled} />
-              <StatCard label="Planned" value={stats.planned} />
-            </div>
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold text-gray-900">Completion</h2>
-                <span className="text-sm font-bold text-primary-700">
-                  {stats.completionRate}%
-                </span>
-              </div>
-              <div
-                className="h-2 overflow-hidden rounded-full bg-gray-100"
-                role="progressbar"
-                aria-label="Completion rate"
-                aria-valuenow={stats.completionRate}
-                aria-valuemin={0}
-                aria-valuemax={100}
-              >
-                <div
-                  className="h-full rounded-full bg-primary-500 transition-all"
-                  style={{ width: `${stats.completionRate}%` }}
-                />
-              </div>
-            </section>
-            <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
-              <h2 className="mb-3 text-sm font-bold text-gray-900">Year</h2>
-              {stats.byYear.length ? (
-                <div className="space-y-3">
-                  {stats.byYear.map(([year, count]) => (
-                    <div key={year} className="flex items-center gap-3">
-                      <span className="w-14 shrink-0 text-xs font-medium text-gray-500">
-                        {year}
-                      </span>
-                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
-                        <div
-                          className="h-full rounded-full bg-primary-400"
-                          style={{
-                            width: `${(count / filteredItems.length) * 100}%`,
-                          }}
-                        />
-                      </div>
-                      <span className="w-8 text-right text-xs font-semibold text-gray-700">
-                        {count}
-                      </span>
-                    </div>
-                  ))}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <section className="space-y-3">
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-2">
+                  <StatCard label="Items" value={filteredItems.length} />
+                  <StatCard label="Completed" value={stats.completed} />
+                  <StatCard label="Scheduled" value={stats.scheduled} />
+                  <StatCard label="Planned" value={stats.planned} />
                 </div>
-              ) : (
-                <p className="text-sm text-gray-400">No items to summarize.</p>
-              )}
-            </section>
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                  <div className="mb-3 flex items-center justify-between">
+                    <h2 className="text-sm font-bold text-gray-900">
+                      Completion
+                    </h2>
+                    <span className="text-sm font-bold text-primary-700">
+                      {stats.completionRate}%
+                    </span>
+                  </div>
+                  <div
+                    className="h-2 overflow-hidden rounded-full bg-gray-100"
+                    role="progressbar"
+                    aria-label="Completion rate"
+                    aria-valuenow={stats.completionRate}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                  >
+                    <div
+                      className="h-full rounded-full bg-primary-500 transition-all"
+                      style={{ width: `${stats.completionRate}%` }}
+                    />
+                  </div>
+                </div>
+              </section>
+              <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <h2 className="mb-3 text-sm font-bold text-gray-900">
+                  By Year
+                </h2>
+                {stats.byYear.length ? (
+                  <div className="space-y-3">
+                    {stats.byYear.map(([year, count]) => (
+                      <div key={year} className="flex items-center gap-3">
+                        <span className="w-14 shrink-0 text-xs font-medium text-gray-500">
+                          {year}
+                        </span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-100">
+                          <div
+                            className="h-full rounded-full bg-primary-400"
+                            style={{
+                              width: `${(count / stats.maxYearCount) * 90}%`,
+                            }}
+                          />
+                        </div>
+                        <span className="w-8 text-right text-xs font-semibold text-gray-700">
+                          {count}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">
+                    No items to summarize.
+                  </p>
+                )}
+              </section>
+            </div>
           </div>
         )}
       </div>

@@ -15,6 +15,7 @@ import {
   Search,
   Settings,
   Aperture,
+  Newspaper,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -56,6 +57,7 @@ const EXTRA_TABS = [
   { id: 'Climbing', label: 'Climbing', icon: <Mountain /> },
   { id: 'R-Escape', label: 'R-Escape', icon: <Lightbulb /> },
   { id: 'Golf', label: 'Golf', icon: <LandPlot /> },
+  { id: 'Article', label: 'Article', icon: <Newspaper /> },
 ] as const;
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
@@ -66,6 +68,7 @@ const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
   Climbing: 'List',
   'R-Escape': 'List',
   Golf: 'List',
+  Article: 'List',
 };
 
 const isItemView = (value: unknown): value is ItemView =>
@@ -111,7 +114,7 @@ export default function AppMain() {
   // ============================================================================
   // 2. Custom Hooks
   // ============================================================================
-  const { events, tasks, fetchPieces, handleNotionSync } = usePieceSync(
+  const { items, events, tasks, fetchPieces, handleNotionSync } = usePieceSync(
     isAuthenticated,
     incrementRequest,
     decrementRequest,
@@ -339,7 +342,7 @@ export default function AppMain() {
             <ItemTab
               key={currentTab}
               preset={currentTab as ItemTabPreset}
-              data={currentTab === 'Task' ? tasks : events}
+              data={items}
               activeView={appSettings.itemTabViews[currentTab as ItemTabPreset]}
               onViewChange={handleItemTabViewChange}
               onItemClick={openDetailModal}

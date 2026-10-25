@@ -9,8 +9,10 @@ export const usePieceSync = (
   onSyncStart: () => void,
   onSyncEnd: () => void,
 ) => {
+  const [items, setItems] = useState<LifeItem[]>([]);
   const [events, setEvents] = useState<LifeItem[]>([]);
   const [tasks, setTasks] = useState<LifeItem[]>([]);
+  const [notes, setNotes] = useState<LifeItem[]>([]);
   const [isPiecesLoading, setIsPiecesLoading] = useState(true);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
 
@@ -70,8 +72,10 @@ export const usePieceSync = (
             };
           });
 
+        setItems(mappedItems);
         setEvents(mappedItems.filter((i) => i.type === 'Event'));
         setTasks(mappedItems.filter((i) => i.type === 'Task'));
+        setNotes(mappedItems.filter((i) => i.type === 'Note'));
       } finally {
         setIsPiecesLoading(false);
       }
@@ -99,8 +103,10 @@ export const usePieceSync = (
   );
 
   return {
+    items,
     events,
     tasks,
+    notes,
     isPiecesLoading,
     lastSyncTime,
     fetchPieces,

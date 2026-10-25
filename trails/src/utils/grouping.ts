@@ -36,6 +36,7 @@ export const judgeDefaultIcon = (item: LifeItem) => {
     if (item.status == 'Done') return 'BadgeCheck';
     return 'Archive';
   }
+  if (item.topics?.includes('Article')) return 'Newspaper';
   if (item.topics?.includes('Drinking')) return 'Beer';
   if (item.topics?.includes('Golf')) return 'LandPlot';
   if (item.topics?.includes('R-Escape')) return 'Lightbulb';
