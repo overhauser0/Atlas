@@ -13,6 +13,7 @@ import * as agentController from './controllers/agent.controller';
 import * as immichController from './controllers/immich.controller';
 import * as paperlessController from './controllers/paperless.controller';
 import * as routineController from './controllers/routine.controller';
+import * as taskPresetController from './controllers/task-preset.controller';
 import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
@@ -78,6 +79,14 @@ api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.post('/pieces/:id/promote', pieceController.promotePiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
 api.delete('/pieces/:id', pieceController.deletePiece);
+api.post('/pieces/:id/apply-preset', taskPresetController.applyTaskPreset);
+
+// Task presets
+api.get('/task-presets', taskPresetController.getTaskPresets);
+api.post('/task-presets', taskPresetController.createTaskPreset);
+api.get('/task-presets/:id', taskPresetController.getTaskPreset);
+api.patch('/task-presets/:id', taskPresetController.updateTaskPreset);
+api.delete('/task-presets/:id', taskPresetController.deleteTaskPreset);
 
 // Monthly,Weekly
 api.get('/reviews', reviewController.getReviews);

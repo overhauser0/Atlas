@@ -12,6 +12,10 @@ import { RoutineTaskTable } from '../models/routine.model';
 import { ImmichCacheTable } from '../models/immich.model';
 import { AppMetadataTable } from '../models/metadata.model';
 import { PaperlessDocumentsTable } from '../models/paperless.model';
+import {
+  TaskPresetChildTable,
+  TaskPresetTable,
+} from '../models/task-preset.model';
 
 // ==========================================
 // Database インターフェース (Kysely全体スキーマ)
@@ -28,4 +32,6 @@ export interface Database {
   immich_cache: ImmichCacheTable;
   paperless_documents: PaperlessDocumentsTable;
   app_metadata: AppMetadataTable;
+  task_presets: TaskPresetTable;
+  task_preset_children: TaskPresetChildTable;
 }
