@@ -50,9 +50,9 @@ export default function SettingsView({
 }: Props) {
   const tabs = [
     { id: 'general', label: 'General', icon: Monitor },
-    { id: 'ai', label: 'AI Agents', icon: Cpu },
     { id: 'routine', label: 'Routine', icon: Repeat },
     { id: 'presets', label: 'Presets', icon: ClipboardList },
+    { id: 'ai', label: 'AI Agents', icon: Cpu },
     { id: 'network', label: 'Network', icon: Activity },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
