@@ -1,7 +1,15 @@
 'use client';
 
 import React from 'react';
-import { Monitor, Cpu, Activity, Keyboard, Repeat, Bell } from 'lucide-react';
+import {
+  Monitor,
+  Cpu,
+  Activity,
+  Keyboard,
+  Repeat,
+  Bell,
+  ClipboardList,
+} from 'lucide-react';
 import { DeviceInfo, Task, SettingsTab } from '@/types';
 
 // --- Sub Components ---
@@ -11,6 +19,7 @@ import RoutineSettings from './settings/RoutineSettings';
 import NetworkSettings from './settings/NetworkSettings';
 import ShortcutSettings from './settings/ShortcutSettings';
 import NotificationsView from './settings/Notifications';
+import PresetSettings from './settings/PresetSettings';
 
 interface Props {
   appSettings: any;
@@ -43,6 +52,7 @@ export default function SettingsView({
     { id: 'general', label: 'General', icon: Monitor },
     { id: 'ai', label: 'AI Agents', icon: Cpu },
     { id: 'routine', label: 'Routine', icon: Repeat },
+    { id: 'presets', label: 'Presets', icon: ClipboardList },
     { id: 'network', label: 'Network', icon: Activity },
     { id: 'shortcuts', label: 'Shortcuts', icon: Keyboard },
     { id: 'notifications', label: 'Notifications', icon: Bell },
@@ -91,6 +101,8 @@ export default function SettingsView({
           )}
 
           {activeTab === 'routine' && <RoutineSettings />}
+
+          {activeTab === 'presets' && <PresetSettings />}
 
           {activeTab === 'network' && (
             <NetworkSettings

@@ -19,6 +19,7 @@ import {
   CornerLeftUp,
   Search,
   FolderKanban,
+  ClipboardList,
 } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
@@ -28,6 +29,7 @@ import { getDateFullString } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import { triggerHaptics } from '@/utils/haptics';
 import { useConfirm } from '@/hooks/useConfirm';
+import ApplyTaskPresetModal from '@/components/modals/ApplyTaskPresetModal';
 
 interface TaskModalProps {
   isOpen: boolean;
@@ -102,6 +104,7 @@ export default function TaskModal({
 
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
+  const [isTaskPresetModalOpen, setIsTaskPresetModalOpen] = useState(false);
 
   const [isParentSelectorOpen, setIsParentSelectorOpen] = useState(false);
   const [parentSearchQuery, setParentSearchQuery] = useState('');
@@ -157,6 +160,7 @@ export default function TaskModal({
     }
     setIsMoreMenuOpen(false);
     setIsStatusMenuOpen(false);
+    if (!isOpen) setIsTaskPresetModalOpen(false);
     setShowBlocks(false);
     setIsParentSelectorOpen(false);
   }, [isOpen, mode, task]);
@@ -366,6 +370,10 @@ export default function TaskModal({
 
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (isTaskPresetModalOpen) {
+          setIsTaskPresetModalOpen(false);
+          return;
+        }
         // ドロップダウン、ステータスメニュー優先
         if (isMoreMenuOpen || isStatusMenuOpen) {
           setIsMoreMenuOpen(false);
@@ -430,6 +438,7 @@ export default function TaskModal({
     handleDelete,
     isMoreMenuOpen,
     isStatusMenuOpen,
+    isTaskPresetModalOpen,
     onSendToPC,
   ]);
 
@@ -548,6 +557,16 @@ export default function TaskModal({
                   >
                     <FolderKanban className="w-4 h-4 text-violet-400" />
                     プロジェクト設定
+                  </button>
+                  <button
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      setIsTaskPresetModalOpen(true);
+                    }}
+                    className="w-full text-left px-4 py-3 text-sm text-cyan-400 hover:bg-white/10 flex items-center gap-3 transition-colors"
+                  >
+                    <ClipboardList className="w-4 h-4" />
+                    プリセットを追加
                   </button>
                   <button
                     onClick={() => {
@@ -975,6 +994,18 @@ export default function TaskModal({
             </div>
           </div>
         </div>
+      )}
+      {task?.id && (
+        <ApplyTaskPresetModal
+          isOpen={isTaskPresetModalOpen}
+          parentTask={{
+            id: task.id,
+            title: task.title || '',
+            date: task.date || null,
+          }}
+          onClose={() => setIsTaskPresetModalOpen(false)}
+          onApplied={onSuccess}
+        />
       )}
       <ConfirmModal {...confirmProps} />
     </div>

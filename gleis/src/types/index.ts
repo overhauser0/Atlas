@@ -73,6 +73,7 @@ export type SettingsTab =
   | 'general'
   | 'ai'
   | 'routine'
+  | 'presets'
   | 'network'
   | 'shortcuts'
   | 'notifications';
