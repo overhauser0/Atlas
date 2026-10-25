@@ -118,6 +118,27 @@ CREATE TABLE IF NOT EXISTS routine_tasks (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- taskプリセットのテーブル
+CREATE TABLE IF NOT EXISTS task_presets (
+    id VARCHAR(50) PRIMARY KEY,
+    label VARCHAR(100) NOT NULL,
+    title_prefix VARCHAR(200),
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS task_preset_children (
+    id VARCHAR(50) PRIMARY KEY,
+    preset_id VARCHAR(50) NOT NULL REFERENCES task_presets(id) ON DELETE CASCADE,
+    title_suffix VARCHAR(200) NOT NULL,
+    offset_days INTEGER NOT NULL,
+    default_status VARCHAR(50),
+    sort_order INTEGER DEFAULT 0,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- immichのテーブル
 CREATE TABLE IF NOT EXISTS immich_cache (
     id SERIAL PRIMARY KEY,
@@ -173,3 +194,5 @@ CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created
 CREATE INDEX IF NOT EXISTS idx_local_notes_sort ON local_notes(is_pinned DESC, updated_at DESC);
 
 CREATE INDEX IF NOT EXISTS paperless_documents_title_idx ON paperless_documents (title);
+
+CREATE INDEX IF NOT EXISTS idx_preset_children_preset_id ON task_preset_children(preset_id);
