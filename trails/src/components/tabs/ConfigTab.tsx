@@ -43,47 +43,49 @@ export default function ConfigTab({
 
       {/* 設定項目 */}
       <div className="flex-1 space-y-3">
-        <div className="flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm text-gray-900 font-bold">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <span>Show Tasks in Calendar</span>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={showTaskInCal}
-              onChange={handleToggleTask}
-              className="sr-only"
-            />
-            <div
-              className={`w-11 h-6 rounded-full transition-colors ${showTaskInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
-            />
-            <div
-              className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showTaskInCal ? 'translate-x-5' : 'translate-x-0'}`}
-            />
-          </label>
-        </div>
+        <section className="space-y-2">
+          <h3 className="flex items-center gap-2 px-1 text-sm font-bold text-gray-500">
+            <Calendar className="w-4 h-4" />
+            Calendar Display
+          </h3>
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
+            <div className="flex items-center justify-between w-full p-4 text-gray-900 font-bold">
+              <span>Show Tasks in Calendar</span>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showTaskInCal}
+                  onChange={handleToggleTask}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-11 h-6 rounded-full transition-colors ${showTaskInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
+                />
+                <div
+                  className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showTaskInCal ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </label>
+            </div>
 
-        <div className="flex items-center justify-between w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm text-gray-900 font-bold">
-          <div className="flex items-center gap-4">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <span>Show Google Events</span>
+            <div className="flex items-center justify-between w-full p-4 text-gray-900 font-bold">
+              <span>Show Google Events</span>
+              <label className="relative inline-flex items-center cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showGcalInCal}
+                  onChange={handleToggleGoogleEvents}
+                  className="sr-only"
+                />
+                <div
+                  className={`w-11 h-6 rounded-full transition-colors ${showGcalInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
+                />
+                <div
+                  className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showGcalInCal ? 'translate-x-5' : 'translate-x-0'}`}
+                />
+              </label>
+            </div>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={showGcalInCal}
-              onChange={handleToggleGoogleEvents}
-              className="sr-only"
-            />
-            <div
-              className={`w-11 h-6 rounded-full transition-colors ${showGcalInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
-            />
-            <div
-              className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showGcalInCal ? 'translate-x-5' : 'translate-x-0'}`}
-            />
-          </label>
-        </div>
+        </section>
 
         <button
           onClick={onSync}
