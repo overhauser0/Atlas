@@ -59,7 +59,6 @@ export const createTaskPreset = async (input: unknown) => {
     {
       id,
       label: data.label,
-      title_prefix: data.title_prefix ?? null,
       description: data.description ?? null,
     },
     makeChildren(id, data.children),
@@ -150,7 +149,7 @@ export const applyTaskPreset = async (parentId: string, input: unknown) => {
         'A preset task date is out of range.',
       );
     }
-    const title = `${preset.title_prefix || ''}${child.title_suffix}`;
+    const title = `${data.titlePrefix || ''}${child.title_suffix}`;
     if (title.length === 0) {
       throw new TaskPresetError(
         'TASK_TITLE_REQUIRED',

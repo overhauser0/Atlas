@@ -25,7 +25,13 @@ const getChildrenByPresetIds = async (presetIds: string[]) => {
 export const getAllTaskPresets = async (): Promise<TaskPresetWithChildren[]> => {
   const presets = await db
     .selectFrom('task_presets')
-    .selectAll()
+    .select([
+      'id',
+      'label',
+      'description',
+      'created_at',
+      'updated_at',
+    ])
     .orderBy('label', 'asc')
     .execute();
   const children = await getChildrenByPresetIds(presets.map(({ id }) => id));
@@ -48,7 +54,13 @@ export const getTaskPresetById = async (
 ): Promise<TaskPresetWithChildren | undefined> => {
   const preset = await db
     .selectFrom('task_presets')
-    .selectAll()
+    .select([
+      'id',
+      'label',
+      'description',
+      'created_at',
+      'updated_at',
+    ])
     .where('id', '=', id)
     .executeTakeFirst();
   if (!preset) return undefined;

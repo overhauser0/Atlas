@@ -19,14 +19,12 @@ const TaskPresetChildInputSchema = z.object({
 
 export const CreateTaskPresetSchema = z.object({
   label: z.string().min(1).max(100),
-  title_prefix: z.string().max(200).nullable().optional(),
   description: z.string().nullable().optional(),
   children: z.array(TaskPresetChildInputSchema).default([]),
 });
 
 export const UpdateTaskPresetSchema = z.object({
   label: z.string().min(1).max(100).optional(),
-  title_prefix: z.string().max(200).nullable().optional(),
   description: z.string().nullable().optional(),
   children: z.array(TaskPresetChildInputSchema).optional(),
 });
@@ -34,6 +32,7 @@ export const UpdateTaskPresetSchema = z.object({
 export const ApplyTaskPresetSchema = z.object({
   presetId: z.string().min(1),
   baseDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  titlePrefix: z.string().max(200).optional(),
 });
 
 export type CreateTaskPresetInput = z.infer<typeof CreateTaskPresetSchema>;
@@ -43,7 +42,6 @@ export type ApplyTaskPresetInput = z.infer<typeof ApplyTaskPresetSchema>;
 export interface TaskPresetTable {
   id: string;
   label: string;
-  title_prefix: string | null;
   description: string | null;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
