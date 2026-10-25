@@ -16,6 +16,7 @@ import {
   Settings,
   Aperture,
   Newspaper,
+  Wine,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -58,6 +59,7 @@ const EXTRA_TABS = [
   { id: 'R-Escape', label: 'R-Escape', icon: <Lightbulb /> },
   { id: 'Golf', label: 'Golf', icon: <LandPlot /> },
   { id: 'Article', label: 'Article', icon: <Newspaper /> },
+  { id: 'Liqueur', label: 'Liqueur', icon: <Wine /> },
 ] as const;
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
@@ -69,6 +71,7 @@ const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
   'R-Escape': 'List',
   Golf: 'List',
   Article: 'List',
+  Liqueur: 'List',
 };
 
 const isItemView = (value: unknown): value is ItemView =>
@@ -273,7 +276,7 @@ export default function AppMain() {
           </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
+        <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
           {MAIN_TABS.map((tab) => (
             <SidebarItem
               key={tab.id}
@@ -404,7 +407,7 @@ export default function AppMain() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsMoreSheetOpen(false)}
           />
-          <div className="relative bg-white rounded-t-3xl pt-2 pb-8 px-6 animate-in slide-in-from-bottom-full duration-300">
+          <div className="relative bg-white rounded-t-3xl pt-2 pb-8 px-6 animate-in slide-in-from-bottom-full duration-300 max-h-[90%] overflow-y-auto no-scrollbar">
             <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
             <div className="flex flex-col gap-1">
               {EXTRA_TABS.map((tab) => (

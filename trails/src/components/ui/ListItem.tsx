@@ -12,6 +12,7 @@ import {
   CheckSquare,
   LucideProps,
   Newspaper,
+  Wine,
 } from 'lucide-react';
 import { LifeItem } from '@/types';
 
@@ -28,6 +29,7 @@ const ICON_MAP: Record<string, React.ComponentType<LucideProps>> = {
   CheckSquare,
   Leaf,
   Newspaper,
+  Wine,
 };
 
 interface Props {

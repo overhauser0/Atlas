@@ -9,7 +9,6 @@ import {
   Repeat2,
   List,
   Plus,
-  Newspaper,
 } from 'lucide-react';
 import { ItemTabPreset, LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
@@ -31,6 +30,7 @@ const ITEM_ICONS: Partial<Record<ItemTabPreset, string>> = {
   'R-Escape': 'Lightbulb',
   Golf: 'LandPlot',
   Article: 'Newspaper',
+  Liqueur: 'Wine',
 };
 
 export type ItemView = 'List' | 'Cal' | 'Stats';
@@ -171,6 +171,10 @@ export default function ItemTab({
   const handleCreate = () => {
     if (preset === 'Task') {
       onOpenCreate({ type: 'Task' });
+    } else if (preset === 'Article') {
+      onOpenCreate({ type: 'Note', topics: ['Article'] });
+    } else if (preset === 'Liqueur') {
+      onOpenCreate({ type: 'Note', topics: ['Liqueur'] });
     } else if (preset === 'Bucket') {
       onOpenCreate({ flags: ['Bucket'] });
     } else {

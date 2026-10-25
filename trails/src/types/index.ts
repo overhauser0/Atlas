@@ -7,6 +7,7 @@ export const ITEM_TAB_PRESETS = [
   'R-Escape',
   'Golf',
   'Article',
+  'Liqueur',
 ] as const;
 
 export type ItemTabPreset = (typeof ITEM_TAB_PRESETS)[number];
