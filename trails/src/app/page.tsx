@@ -444,8 +444,7 @@ export default function AppMain() {
         <SearchModal
           isOpen={isSearchOpen}
           onClose={() => setIsSearchOpen(false)}
-          events={events}
-          tasks={tasks}
+          items={items}
           googleEvents={googleEvents}
           onItemClick={openDetailModal}
         />

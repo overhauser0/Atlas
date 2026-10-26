@@ -9,8 +9,7 @@ import ListItem from '@/components/ui/ListItem';
 interface SearchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  events: LifeItem[];
-  tasks: LifeItem[];
+  items: LifeItem[];
   googleEvents: GoogleEvent[];
   onItemClick: (item: LifeItem) => void;
 }
@@ -18,8 +17,7 @@ interface SearchModalProps {
 export default function SearchModal({
   isOpen,
   onClose,
-  events,
-  tasks,
+  items,
   googleEvents,
   onItemClick,
 }: SearchModalProps) {
@@ -27,9 +25,9 @@ export default function SearchModal({
   const inputRef = useRef<HTMLInputElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
-  // ====== データの統合と正規化 ======
+  // ====== データの統合 ======
   const allItems = useMemo(() => {
-    // 1. GCalイベントをLifeItem型にマッピング
+    // GCalイベントをLifeItem型にマッピング
     const gcalMapped: any[] = (googleEvents || []).map((ev) => ({
       id: ev.id,
       title: ev.title,
@@ -47,14 +45,8 @@ export default function SearchModal({
       category: [],
     }));
 
-    // 2. events と tasks は重複している可能性があるため、IDでユニークにする
-    const uniqueMap = new Map<string, LifeItem>();
-    [...events, ...tasks].forEach((item) => {
-      uniqueMap.set(item.id, item);
-    });
-
-    return [...Array.from(uniqueMap.values()), ...gcalMapped];
-  }, [events, tasks, googleEvents]);
+    return [...items, ...gcalMapped];
+  }, [items, googleEvents]);
 
   // ====== 検索フィルタリング ======
   const filteredItems = useMemo(() => {
@@ -135,7 +127,7 @@ export default function SearchModal({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search events, tasks, tags..."
+            placeholder="Search items,events..."
             className="flex-1 bg-transparent border-none text-gray-900 focus:outline-none placeholder:text-gray-400 text-lg"
           />
           {search && (
@@ -156,35 +148,12 @@ export default function SearchModal({
           {filteredItems.length > 0 ? (
             <div className="flex flex-col">
               {filteredItems.map((item, index) => {
-                const isTask = item.type === 'Task';
-                const isGCal = item.source === 'GCAL';
                 const isActive = index === activeIndex;
 
                 return (
                   <ListItem
                     key={item.id}
                     item={item}
-                    icon={isTask ? 'CheckSquare' : undefined}
-                    iconClassName={
-                      isTask || isGCal
-                        ? isActive
-                          ? 'text-primary-600'
-                          : isTask
-                            ? 'text-teal-500'
-                            : 'text-indigo-500'
-                        : undefined
-                    }
-                    iconWrapperClassName={
-                      isTask
-                        ? isActive
-                          ? 'bg-primary-100'
-                          : 'bg-teal-50'
-                        : isGCal
-                          ? isActive
-                            ? 'bg-primary-100'
-                            : 'bg-indigo-50'
-                          : undefined
-                    }
                     description={item.note || undefined}
                     isActive={isActive}
                     onMouseEnter={() => setActiveIndex(index)}

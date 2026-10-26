@@ -31,6 +31,7 @@ export const markCategory = (item: LifeItem) => {
 };
 
 export const judgeDefaultIcon = (item: LifeItem) => {
+  if (item.type === 'Task') return 'CheckSquare';
   if (item.topics?.includes('Travel')) return 'Plane';
   if (item.flags?.includes('Bucket')) {
     if (item.status == 'Done') return 'BadgeCheck';

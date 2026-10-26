@@ -57,8 +57,8 @@ export interface DiaryEntry {
 
 export interface DiaryItem {
   id?: string;
-  name: string; // yyyy-mm-dd形式
-  date: string; // yyyy-mm-dd形式
+  name: string;
+  date: string;
   rate: string | null;
   note: string | null;
 }
