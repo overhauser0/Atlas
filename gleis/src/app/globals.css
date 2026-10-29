@@ -7,6 +7,8 @@ body {
   -webkit-user-select: none; /* テキスト選択を禁止 (iOS Safari向け) */
   user-select: none; /* テキスト選択を禁止 */
   -webkit-touch-callout: none; /* 長押しメニューを禁止 */
+  height: 100dvh;
+  overflow: hidden;
 }
 #appwindow {
   padding-top: env(safe-area-inset-top); /* iOSのセーフエリアに対応 */
