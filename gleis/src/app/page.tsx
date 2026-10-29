@@ -462,11 +462,6 @@ export default function Home() {
   return (
     <ToastProvider>
       <div
-        className="fixed top-0 inset-x-0 h-2.75 z-9999 pointer-events-none bg-black bg-clip-text"
-        aria-hidden="true"
-      />
-      /* iOSのもやバグ用 */
-      <div
         id="appwindow"
         className="flex h-screen overflow-hidden text-gray-200 relative bg-black"
       >
