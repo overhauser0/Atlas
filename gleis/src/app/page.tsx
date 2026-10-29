@@ -462,6 +462,17 @@ export default function Home() {
   return (
     <ToastProvider>
       <div
+        className="fixed top-0 w-full z-10000 pointer-events-none"
+        style={{
+          height: '10.1px',
+          backgroundColor: '#ffffff01',
+          opacity: 0.1,
+        }}
+        tabIndex={-1}
+        aria-hidden="true"
+        /* iOSのもやバグ用 */
+      />
+      <div
         id="appwindow"
         className="flex h-screen overflow-hidden text-gray-200 relative bg-black"
       >
