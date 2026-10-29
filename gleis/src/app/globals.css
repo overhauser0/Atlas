@@ -1,6 +1,10 @@
 /* src/app/globals.css */
 @import 'tailwindcss';
 
+:root {
+  color-scheme: dark;
+}
+
 html,
 body {
   overscroll-behavior: none; /* スクロールのバウンスを無効化 */

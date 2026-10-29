@@ -4,6 +4,7 @@ import './globals.css';
 export const viewport: Viewport = {
   themeColor: '#000000',
   width: 'device-width',
+  colorScheme: 'dark',
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
