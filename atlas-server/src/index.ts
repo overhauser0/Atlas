@@ -14,6 +14,7 @@ import * as immichController from './controllers/immich.controller';
 import * as paperlessController from './controllers/paperless.controller';
 import * as routineController from './controllers/routine.controller';
 import * as taskPresetController from './controllers/task-preset.controller';
+import * as personController from './controllers/person.controller';
 import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
@@ -87,6 +88,27 @@ api.post('/task-presets', taskPresetController.createTaskPreset);
 api.get('/task-presets/:id', taskPresetController.getTaskPreset);
 api.patch('/task-presets/:id', taskPresetController.updateTaskPreset);
 api.delete('/task-presets/:id', taskPresetController.deleteTaskPreset);
+
+// People
+api.get('/people', personController.getPeople);
+api.post('/people', personController.createPerson);
+api.get('/people/:id', personController.getPerson);
+api.patch('/people/:id', personController.updatePerson);
+api.delete('/people/:id', personController.deletePerson);
+api.get('/people/:id/pieces', personController.getPersonPieces);
+api.post('/people/:id/pieces', personController.createPersonPiece);
+api.get(
+  '/people/:id/pieces/:personPieceId',
+  personController.getPersonPiece,
+);
+api.patch(
+  '/people/:id/pieces/:personPieceId',
+  personController.updatePersonPiece,
+);
+api.delete(
+  '/people/:id/pieces/:personPieceId',
+  personController.deletePersonPiece,
+);
 
 // Monthly,Weekly
 api.get('/reviews', reviewController.getReviews);

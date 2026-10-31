@@ -160,6 +160,40 @@ CREATE TABLE paperless_documents (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- peopleテーブル
+CREATE TABLE people (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  ruby VARCHAR(255),
+  tags TEXT[],
+  immich_person_id VARCHAR(255),
+  google_contact_id VARCHAR(255) UNIQUE,
+  birthday DATE,
+  blood_type TEXT[],
+  notes TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- person - pieceの中間テーブル
+CREATE TABLE person_pieces (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  person_id UUID NOT NULL REFERENCES people(id) ON DELETE CASCADE,
+
+  notion_piece_id VARCHAR(255) REFERENCES notion_pieces_cache(id) ON DELETE CASCADE,
+  local_piece_id UUID REFERENCES local_pieces(id) ON DELETE CASCADE,
+
+  -- 必ずどちらか一方のIDだけが存在し、両方入ったり両方空になるのを防ぐ制約
+  CONSTRAINT chk_only_one_piece CHECK (
+    (notion_piece_id IS NOT NULL AND local_piece_id IS NULL) OR
+    (notion_piece_id IS NULL AND local_piece_id IS NOT NULL)
+  ),
+
+  -- 同じ人とピースの重複紐付けを防ぐためのユニーク制約（NULLを考慮）
+  UNIQUE NULLS NOT DISTINCT (person_id, notion_piece_id, local_piece_id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- アプリのメタデータ（最終同期時刻など）を保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
@@ -195,3 +229,8 @@ CREATE INDEX IF NOT EXISTS idx_local_notes_sort ON local_notes(is_pinned DESC, u
 CREATE INDEX IF NOT EXISTS paperless_documents_title_idx ON paperless_documents (title);
 
 CREATE INDEX IF NOT EXISTS idx_preset_children_preset_id ON task_preset_children(preset_id);
+
+CREATE INDEX IF NOT EXISTS idx_person_pieces_person_id ON person_pieces(person_id);
+CREATE INDEX IF NOT EXISTS idx_person_pieces_notion_piece_id ON person_pieces(notion_piece_id);
+CREATE INDEX IF NOT EXISTS idx_person_pieces_local_piece_id ON person_pieces(local_piece_id);
+CREATE INDEX IF NOT EXISTS idx_people_tags ON people USING GIN (tags);

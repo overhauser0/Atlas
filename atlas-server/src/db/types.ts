@@ -16,6 +16,7 @@ import {
   TaskPresetChildTable,
   TaskPresetTable,
 } from '../models/task-preset.model';
+import { PeopleTable, PersonPiecesTable } from '../models/person.model';
 
 // ==========================================
 // Database インターフェース (Kysely全体スキーマ)
@@ -34,4 +35,6 @@ export interface Database {
   app_metadata: AppMetadataTable;
   task_presets: TaskPresetTable;
   task_preset_children: TaskPresetChildTable;
+  people: PeopleTable;
+  person_pieces: PersonPiecesTable;
 }
