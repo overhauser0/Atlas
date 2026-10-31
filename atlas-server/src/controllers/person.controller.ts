@@ -74,6 +74,17 @@ export const updatePerson = async (c: Context) => {
   }
 };
 
+export const updateImmichPerson = async (c: Context) => {
+  try {
+    const result = await personService.updateImmichPerson(
+      c.req.param('id') || '',
+    );
+    return c.json({ success: true, data: result }, 200);
+  } catch (error) {
+    return handleError(error, c);
+  }
+};
+
 export const deletePerson = async (c: Context) => {
   try {
     await personService.deletePerson(c.req.param('id') || '');

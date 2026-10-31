@@ -6,6 +6,38 @@ const IMMICH_API_URL =
   process.env.IMMICH_API_URL || 'http://192.168.13.55:2283/api';
 const IMMICH_API_KEY = process.env.IMMICH_API_KEY || '';
 
+/** Atlas側の人物情報をImmichへ反映する。Immichからの取得は行わない。 */
+export async function updateImmichPerson(
+  personId: string,
+  person: { name: string; birthday: string | null },
+) {
+  if (!IMMICH_API_KEY) {
+    throw new Error('IMMICH_API_KEY is not configured');
+  }
+
+  const response = await fetch(
+    `${IMMICH_API_URL.replace(/\/+$/, '')}/people/${encodeURIComponent(personId)}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'x-api-key': IMMICH_API_KEY,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+      },
+      body: JSON.stringify({
+        name: person.name,
+        birthDate: person.birthday,
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(`Immich person update failed (${response.status})`);
+  }
+
+  return { personId, name: person.name, birthday: person.birthday };
+}
+
 type Separator = 'slash' | 'hyphen' | 'none';
 
 const getDateFullString = (

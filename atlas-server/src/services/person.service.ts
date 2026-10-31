@@ -5,12 +5,13 @@ import {
   UpdatePersonSchema,
 } from '../models/person.model';
 import * as personRepository from '../repositories/person.repository';
+import * as immichService from './immich.service';
 import { broadcast } from '../utils/websocket';
 
 export class PersonServiceError extends Error {
   constructor(
     public readonly code: string,
-    public readonly status: 400 | 404,
+    public readonly status: 400 | 404 | 502,
     message: string,
   ) {
     super(message);
@@ -19,6 +20,32 @@ export class PersonServiceError extends Error {
 }
 
 const parsePersonId = (id: string) => PersonIdSchema.parse(id);
+
+const syncPersonToImmich = async (person: {
+  id: string;
+  immich_person_id: string | null;
+  name: string;
+  birthday: string | null;
+}) => {
+  if (!person.immich_person_id) return;
+
+  try {
+    await immichService.updateImmichPerson(person.immich_person_id, {
+      name: person.name,
+      birthday: person.birthday,
+    });
+  } catch (error) {
+    console.error(
+      `[Person Service] Atlas person ${person.id} was saved, but Immich sync failed:`,
+      error,
+    );
+    throw new PersonServiceError(
+      'IMMICH_SYNC_FAILED',
+      502,
+      'Person was saved in Atlas, but syncing to Immich failed.',
+    );
+  }
+};
 
 export const getPeople = async () => await personRepository.getPeople();
 
@@ -34,6 +61,7 @@ export const createPerson = async (input: unknown) => {
   const data = PersonInputSchema.parse(input);
   const person = await personRepository.createPerson(data);
   broadcast(JSON.stringify({ type: 'REFRESH_PEOPLE' }));
+  await syncPersonToImmich(person);
   return person;
 };
 
@@ -48,12 +76,36 @@ export const updatePerson = async (id: string, input: unknown) => {
     );
   }
 
+  const currentPerson = await getPersonById(personId);
   const person = await personRepository.updatePerson(personId, data);
   if (!person) {
     throw new PersonServiceError('PERSON_NOT_FOUND', 404, 'Person not found.');
   }
   broadcast(JSON.stringify({ type: 'REFRESH_PEOPLE' }));
+  const shouldSyncImmich =
+    person.immich_person_id !== currentPerson.immich_person_id ||
+    person.name !== currentPerson.name ||
+    person.birthday !== currentPerson.birthday;
+  if (shouldSyncImmich) await syncPersonToImmich(person);
   return person;
+};
+
+export const updateImmichPerson = async (id: string) => {
+  const person = await getPersonById(id);
+  if (!person.immich_person_id) {
+    throw new PersonServiceError(
+      'IMMICH_PERSON_ID_REQUIRED',
+      400,
+      'This person is not linked to an Immich person.',
+    );
+  }
+
+  await syncPersonToImmich(person);
+  return {
+    personId: person.immich_person_id,
+    name: person.name,
+    birthday: person.birthday,
+  };
 };
 
 export const deletePerson = async (id: string) => {

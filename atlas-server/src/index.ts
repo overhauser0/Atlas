@@ -94,6 +94,7 @@ api.get('/people', personController.getPeople);
 api.post('/people', personController.createPerson);
 api.get('/people/:id', personController.getPerson);
 api.patch('/people/:id', personController.updatePerson);
+api.patch('/people/:id/immich', personController.updateImmichPerson);
 api.delete('/people/:id', personController.deletePerson);
 api.get('/people/:id/pieces', personController.getPersonPieces);
 api.post('/people/:id/pieces', personController.createPersonPiece);
