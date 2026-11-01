@@ -21,17 +21,23 @@ export class PersonServiceError extends Error {
 
 const parsePersonId = (id: string) => PersonIdSchema.parse(id);
 
+const formatPersonName = (person: {
+  family_name: string;
+  given_name: string | null;
+}) => [person.family_name, person.given_name].filter(Boolean).join(' ');
+
 const syncPersonToImmich = async (person: {
   id: string;
   immich_person_id: string | null;
-  name: string;
+  family_name: string;
+  given_name: string | null;
   birthday: string | null;
 }) => {
   if (!person.immich_person_id) return;
 
   try {
     await immichService.updateImmichPerson(person.immich_person_id, {
-      name: person.name,
+      name: formatPersonName(person),
       birthday: person.birthday,
     });
   } catch (error) {
@@ -84,7 +90,8 @@ export const updatePerson = async (id: string, input: unknown) => {
   broadcast(JSON.stringify({ type: 'REFRESH_PEOPLE' }));
   const shouldSyncImmich =
     person.immich_person_id !== currentPerson.immich_person_id ||
-    person.name !== currentPerson.name ||
+    person.family_name !== currentPerson.family_name ||
+    person.given_name !== currentPerson.given_name ||
     person.birthday !== currentPerson.birthday;
   if (shouldSyncImmich) await syncPersonToImmich(person);
   return person;
@@ -103,7 +110,7 @@ export const updateImmichPerson = async (id: string) => {
   await syncPersonToImmich(person);
   return {
     personId: person.immich_person_id,
-    name: person.name,
+    name: formatPersonName(person),
     birthday: person.birthday,
   };
 };

@@ -163,8 +163,10 @@ CREATE TABLE paperless_documents (
 -- peopleテーブル
 CREATE TABLE people (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  ruby VARCHAR(255),
+  family_name VARCHAR(255) NOT NULL,
+  given_name VARCHAR(255),
+  ruby_family_name VARCHAR(255),
+  ruby_given_name VARCHAR(255),
   tags TEXT[],
   immich_person_id VARCHAR(255),
   google_contact_id VARCHAR(255) UNIQUE,

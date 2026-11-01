@@ -7,8 +7,10 @@ import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
 export const PersonSchema = z.object({
   id: z.string().uuid().optional(),
-  name: z.string().min(1, '名前は必須です'),
-  ruby: z.string().nullable().optional(),
+  family_name: z.string().min(1, '姓は必須です'),
+  given_name: z.string().nullable().optional(),
+  ruby_family_name: z.string().nullable().optional(),
+  ruby_given_name: z.string().nullable().optional(),
   tags: z.array(z.string()).nullable().optional(),
   immich_person_id: z.string().nullable().optional(),
   google_contact_id: z.string().nullable().optional(),
@@ -90,8 +92,10 @@ export type PersonPieceInput = z.infer<typeof PersonPieceInputSchema>;
 
 export interface PeopleTable {
   id: Generated<string>;
-  name: string;
-  ruby: string | null;
+  family_name: string;
+  given_name: string | null;
+  ruby_family_name: string | null;
+  ruby_given_name: string | null;
   tags: string[] | null;
   immich_person_id: string | null;
   google_contact_id: string | null;

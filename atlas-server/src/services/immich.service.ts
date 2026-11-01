@@ -38,6 +38,59 @@ export async function updateImmichPerson(
   return { personId, name: person.name, birthday: person.birthday };
 }
 
+export async function searchImmichPeopleByFamilyName(searchTerm: string) {
+  if (!IMMICH_API_KEY) {
+    throw new Error('IMMICH_API_KEY is not configured');
+  }
+
+  const response = await fetch(`${IMMICH_API_URL.replace(/\/+$/, '')}/people`, {
+    headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new Error(`Immich people request failed (${response.status})`);
+  }
+
+  const payload: unknown = await response.json();
+  const people = Array.isArray(payload)
+    ? payload
+    : typeof payload === 'object' &&
+        payload !== null &&
+        'people' in payload &&
+        Array.isArray(payload.people)
+      ? payload.people
+      : null;
+  if (!people) {
+    throw new Error('Immich people response has an invalid format');
+  }
+
+  return people.flatMap((person: unknown) => {
+    if (typeof person !== 'object' || person === null || !('name' in person)) {
+      throw new Error('Immich person response has an invalid format');
+    }
+
+    const id = 'id' in person ? person.id : undefined;
+    const name = person.name;
+    const birthDate = 'birthDate' in person ? person.birthDate : undefined;
+    if (
+      typeof id !== 'string' ||
+      typeof name !== 'string' ||
+      (birthDate != null && typeof birthDate !== 'string')
+    ) {
+      throw new Error('Immich person response has an invalid format');
+    }
+
+    const [family_name, ...givenNameParts] = name.trim().split(/\s+/);
+    if (!family_name || !family_name.includes(searchTerm)) return [];
+
+    return [{
+      family_name,
+      given_name: givenNameParts.join(' ') || null,
+      birthday: birthDate ?? null,
+      immich_person_id: id,
+    }];
+  });
+}
+
 type Separator = 'slash' | 'hyphen' | 'none';
 
 const getDateFullString = (

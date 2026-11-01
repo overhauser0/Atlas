@@ -6,7 +6,12 @@ import {
 } from '../models/person.model';
 
 export const getPeople = async () =>
-  await db.selectFrom('people').selectAll().orderBy('name', 'asc').execute();
+  await db
+    .selectFrom('people')
+    .selectAll()
+    .orderBy('family_name', 'asc')
+    .orderBy('given_name', 'asc')
+    .execute();
 
 export const getPersonById = async (id: string) =>
   await db
@@ -19,8 +24,10 @@ export const createPerson = async (data: PersonInput) =>
   await db
     .insertInto('people')
     .values({
-      name: data.name,
-      ruby: data.ruby ?? null,
+      family_name: data.family_name,
+      given_name: data.given_name ?? null,
+      ruby_family_name: data.ruby_family_name ?? null,
+      ruby_given_name: data.ruby_given_name ?? null,
       tags: data.tags ?? null,
       immich_person_id: data.immich_person_id ?? null,
       google_contact_id: data.google_contact_id ?? null,

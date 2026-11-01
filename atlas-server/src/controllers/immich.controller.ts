@@ -74,6 +74,32 @@ export const searchAssets = async (c: Context) => {
   }
 };
 
+export const searchPeopleByFamilyName = async (c: Context) => {
+  const familyName = c.req.query('family_name')?.trim();
+  if (!familyName) {
+    return c.json(
+      { success: false, message: 'family_name query parameter is required' },
+      400,
+    );
+  }
+
+  try {
+    const people =
+      await immichService.searchImmichPeopleByFamilyName(familyName);
+    return c.json({ success: true, data: people }, 200);
+  } catch (error) {
+    console.error('[Immich Controller] People search failed:', error);
+    return c.json(
+      {
+        success: false,
+        message:
+          error instanceof Error ? error.message : 'Failed to search people',
+      },
+      500,
+    );
+  }
+};
+
 export const getThumbnail = async (c: Context) => {
   const id = c.req.param('id');
 
