@@ -12,12 +12,15 @@ import {
   ChevronDown,
   Tag,
   Link as LinkIcon,
+  Search,
+  UserRoundPlus,
 } from 'lucide-react';
-import { LifeItem } from '@/types';
+import { LifeItem, Person } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneous';
 
 const STATUSES = ['INBOX', 'Waiting', 'Going', 'Done'];
+type LinkedPerson = Pick<Person, 'id' | 'family_name' | 'given_name'>;
 
 interface Props {
   isOpen: boolean;
@@ -52,6 +55,13 @@ export default function DetailModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUrlInputOpen, setIsUrlInputOpen] = useState(false);
+  const [linkedPeople, setLinkedPeople] = useState<LinkedPerson[]>([]);
+  const [availablePeople, setAvailablePeople] = useState<Person[]>([]);
+  const [isPeoplePickerOpen, setIsPeoplePickerOpen] = useState(false);
+  const [isLoadingPeople, setIsLoadingPeople] = useState(false);
+  const [isLinkingPerson, setIsLinkingPerson] = useState(false);
+  const [personSearchQuery, setPersonSearchQuery] = useState('');
+  const [peopleError, setPeopleError] = useState('');
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const statusMenuRef = useRef<HTMLDivElement>(null);
   const moreMenuRef = useRef<HTMLDivElement>(null);
@@ -84,6 +94,51 @@ export default function DetailModal({
       setIsUrlInputOpen(Boolean(values?.url));
     }
   }, [isOpen, item, initialValues]);
+
+  useEffect(() => {
+    const pieceId = item?.id;
+    const source = item?.source;
+    if (!isOpen || !pieceId || (source !== 'NOTION' && source !== 'LOCAL')) {
+      setLinkedPeople([]);
+      return;
+    }
+
+    let cancelled = false;
+    const loadLinkedPeople = async () => {
+      try {
+        const response = await atlasFetch(
+          `/pieces/${encodeURIComponent(pieceId)}/people?source=${source}`,
+        );
+        if (!response.ok) {
+          throw new Error(
+            `関連する人物の取得に失敗しました (${response.status})`,
+          );
+        }
+        const result: { people: LinkedPerson[] } = await response.json();
+        if (!Array.isArray(result.people)) {
+          throw new Error('関連する人物のレスポンス形式が正しくありません');
+        }
+        if (!cancelled) setLinkedPeople(result.people);
+      } catch (error) {
+        console.error('Failed to load linked people:', error);
+        if (!cancelled) {
+          setPeopleError(
+            error instanceof Error
+              ? error.message
+              : '関連する人物の取得に失敗しました',
+          );
+        }
+      }
+    };
+
+    setLinkedPeople([]);
+    setPeopleError('');
+    void loadLinkedPeople();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, item?.id, item?.source]);
 
   useEffect(() => {
     if (isOpen) {
@@ -176,8 +231,96 @@ export default function DetailModal({
     }
   };
 
+  const handleOpenPeoplePicker = async () => {
+    setIsPeoplePickerOpen(true);
+    setPeopleError('');
+    if (availablePeople.length > 0) return;
+
+    setIsLoadingPeople(true);
+    try {
+      const response = await atlasFetch('/people');
+      if (!response.ok) {
+        throw new Error(`人物一覧の取得に失敗しました (${response.status})`);
+      }
+      const result: { people: Person[] } = await response.json();
+      if (!Array.isArray(result.people)) {
+        throw new Error('人物一覧のレスポンス形式が正しくありません');
+      }
+      setAvailablePeople(result.people);
+    } catch (error) {
+      console.error('Failed to load people:', error);
+      setPeopleError(
+        error instanceof Error ? error.message : '人物一覧の取得に失敗しました',
+      );
+    } finally {
+      setIsLoadingPeople(false);
+    }
+  };
+
+  const handleLinkPerson = async (person: Person) => {
+    if (!item?.id || isLinkingPerson) return;
+    setIsLinkingPerson(true);
+    setPeopleError('');
+    try {
+      const source = item.source === 'LOCAL' ? 'LOCAL' : 'NOTION';
+      const response = await atlasFetch(
+        `/people/${encodeURIComponent(person.id)}/pieces`,
+        {
+          method: 'POST',
+          body: JSON.stringify(
+            source === 'NOTION'
+              ? { notion_piece_id: item.id }
+              : { local_piece_id: item.id },
+          ),
+        },
+      );
+      if (!response.ok) {
+        throw new Error(`人物の追加に失敗しました (${response.status})`);
+      }
+
+      setLinkedPeople((current) =>
+        current.some(({ id }) => id === person.id)
+          ? current
+          : [...current, person],
+      );
+      setPersonSearchQuery('');
+      setIsPeoplePickerOpen(false);
+    } catch (error) {
+      console.error('Failed to link person to piece:', error);
+      setPeopleError(
+        error instanceof Error ? error.message : '人物の追加に失敗しました',
+      );
+    } finally {
+      setIsLinkingPerson(false);
+    }
+  };
+
   const isSaveBtnNeeds =
     !item || (formData.source === 'NOTION' && Boolean(formData.id));
+  const normalizedPersonSearchQuery = personSearchQuery
+    .trim()
+    .toLocaleLowerCase();
+  const matchingPeople = normalizedPersonSearchQuery
+    ? availablePeople
+        .filter((person) => {
+          if (
+            linkedPeople.some((linkedPerson) => linkedPerson.id === person.id)
+          ) {
+            return false;
+          }
+          const name = [
+            person.family_name,
+            person.given_name,
+            person.ruby_family_name,
+            person.ruby_given_name,
+          ]
+            .filter(Boolean)
+            .join(' ')
+            .toLocaleLowerCase();
+          return name.includes(normalizedPersonSearchQuery);
+        })
+        .slice(0, 10)
+    : [];
 
   // ショートカットキー
   useEffect(() => {
@@ -489,6 +632,108 @@ export default function DetailModal({
               <span className="text-gray-400">+</span>
             </button>
           )}
+
+          {/* People */}
+          {item?.id &&
+            (item.source === 'NOTION' || item.source === 'LOCAL') && (
+              <div className="flex flex-col items-start gap-2">
+                <div className="flex flex-row gap-2">
+                  {linkedPeople.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {linkedPeople.map((person) => (
+                        <span
+                          key={person.id}
+                          className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600"
+                        >
+                          {[person.family_name, person.given_name]
+                            .filter(Boolean)
+                            .join(' ')}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (isPeoplePickerOpen) {
+                        setIsPeoplePickerOpen(false);
+                      } else {
+                        void handleOpenPeoplePicker();
+                      }
+                    }}
+                    className="self-start flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                    aria-label="Add person"
+                    aria-expanded={isPeoplePickerOpen}
+                  >
+                    <UserRoundPlus className="w-3.5 h-3.5" />
+                    人物
+                    <span className="text-gray-400">+</span>
+                  </button>
+                </div>
+                {isPeoplePickerOpen && (
+                  <div className="w-full space-y-2">
+                    <div className="relative">
+                      <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="search"
+                        aria-label="Search people"
+                        value={personSearchQuery}
+                        onChange={(event) =>
+                          setPersonSearchQuery(event.target.value)
+                        }
+                        placeholder={
+                          isLoadingPeople ? '読み込み中...' : '名前で検索'
+                        }
+                        disabled={isLoadingPeople || isLinkingPerson}
+                        className="w-full rounded-xl border border-gray-100 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-700 focus:outline-none"
+                      />
+                    </div>
+                    <div className="h-20 overflow-y-auto rounded-xl border border-gray-100 bg-white p-1">
+                      {!normalizedPersonSearchQuery ? (
+                        <p className="flex h-full items-center justify-center text-sm text-gray-400">
+                          名前を入力して検索
+                        </p>
+                      ) : (
+                        <>
+                          {matchingPeople.map((person) => (
+                            <button
+                              key={person.id}
+                              type="button"
+                              disabled={isLinkingPerson}
+                              onClick={() => void handleLinkPerson(person)}
+                              className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                            >
+                              <span>
+                                {[person.family_name, person.given_name]
+                                  .filter(Boolean)
+                                  .join(' ')}
+                              </span>
+                              {isLinkingPerson ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <span className="text-xs text-gray-400">
+                                  追加
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                          {!isLoadingPeople && matchingPeople.length === 0 && (
+                            <p className="flex h-full items-center justify-center text-sm text-gray-500">
+                              該当する人物がいません
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {peopleError && (
+                  <p role="alert" className="text-xs text-red-600">
+                    {peopleError}
+                  </p>
+                )}
+              </div>
+            )}
 
           {/* fkw array */}
           {formData.fkw && formData.fkw.length > 0 && (
