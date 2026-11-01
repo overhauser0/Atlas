@@ -713,7 +713,7 @@ export default function PersonEditor({
           title: pieceDraft.title.trim(),
           note: pieceDraft.note.trim(),
           area: 'Life',
-          type: 'Note',
+          type: 'Memo',
           source: 'LOCAL',
         }),
       });

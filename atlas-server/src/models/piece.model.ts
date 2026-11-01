@@ -40,7 +40,7 @@ export const PieceSchema = z.object({
     .optional()
     .transform((v) => (!v ? 'Work' : v)),
   type: z
-    .enum(['Task', 'Note', 'Event'])
+    .enum(['Task', 'Note', 'Event', 'Memo'])
     .or(z.literal('')) // 空文字列の許可
     .nullable()
     .optional()
