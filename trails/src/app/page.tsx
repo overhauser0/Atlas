@@ -17,6 +17,7 @@ import {
   Aperture,
   Newspaper,
   Wine,
+  UsersRound,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -37,6 +38,7 @@ import CalendarTab from '@/components/tabs/CalendarTab';
 import PhotoTab from '@/components/tabs/PhotoTab';
 import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
 import ConfigTab from '@/components/tabs/ConfigTab';
+import PeopleTab from '@/components/tabs/PeopleTab';
 import AuthTab from '@/components/tabs/AuthTab';
 import DetailModal from '@/components/modal/DetailModal';
 import DiaryModal from '@/components/modal/DiaryModal';
@@ -60,6 +62,7 @@ const EXTRA_TABS = [
   { id: 'Golf', label: 'Golf', icon: <LandPlot /> },
   { id: 'Article', label: 'Article', icon: <Newspaper /> },
   { id: 'Liqueur', label: 'Liqueur', icon: <Wine /> },
+  { id: 'People', label: 'People', icon: <UsersRound /> },
 ] as const;
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
@@ -341,6 +344,7 @@ export default function AppMain() {
           {currentTab === 'Photo' && (
             <PhotoTab onDateClick={handleOpenDailyPhoto} />
           )}
+          {currentTab === 'People' && <PeopleTab />}
           {ITEM_TAB_PRESETS.includes(currentTab as ItemTabPreset) && (
             <ItemTab
               key={currentTab}

@@ -410,7 +410,10 @@ export async function updateAssetsDate(
 }
 
 /** 条件に一致する自分のアセットを検索する。 */
-export async function searchMyAssets(filters: { date?: string }) {
+export async function searchMyAssets(filters: {
+  date?: string;
+  personId?: string;
+}) {
   const me = await getMyUserId();
   const myUserId = me.id;
 
@@ -426,6 +429,9 @@ export async function searchMyAssets(filters: { date?: string }) {
     const endDate = new Date(`${filters.date}T23:59:59+09:00`);
     reqBody.takenAfter = startDate.toISOString();
     reqBody.takenBefore = endDate.toISOString();
+  }
+  if (filters.personId) {
+    reqBody.personIds = [filters.personId];
   }
 
   const res = await fetch(`${IMMICH_API_URL}/search/metadata`, {

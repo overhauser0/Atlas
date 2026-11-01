@@ -12,7 +12,41 @@ export const ITEM_TAB_PRESETS = [
 
 export type ItemTabPreset = (typeof ITEM_TAB_PRESETS)[number];
 
-export type Views = 'Home' | 'Calendar' | 'Photo' | 'Settings' | ItemTabPreset;
+export type Views =
+  | 'Home'
+  | 'Calendar'
+  | 'Photo'
+  | 'People'
+  | 'Settings'
+  | ItemTabPreset;
+
+export interface Person {
+  id: string;
+  family_name: string;
+  given_name: string | null;
+  ruby_family_name: string | null;
+  ruby_given_name: string | null;
+  tags: string[] | null;
+  immich_person_id: string | null;
+  google_contact_id: string | null;
+  birthday: string | null;
+  blood_type: string[] | null;
+  notes: string | null;
+}
+
+export interface PersonPiece {
+  id: string;
+  notion_piece_id: string | null;
+  local_piece_id: string | null;
+}
+
+export interface PersonTimelinePiece {
+  id: string;
+  title: string;
+  date: string | null;
+  note: string | null;
+  source: 'NOTION' | 'LOCAL';
+}
 
 export interface Piece {
   id: string;

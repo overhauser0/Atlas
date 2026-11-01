@@ -4,7 +4,7 @@
 import React from 'react';
 import AuthImage from './AuthImage';
 
-interface Asset {
+export interface Asset {
   id: string;
   originalFileName: string;
   exif: { model?: string; focalLength?: number } | null;
