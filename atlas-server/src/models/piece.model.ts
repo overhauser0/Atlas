@@ -20,6 +20,7 @@ export const PieceSchema = z.object({
     .enum(['INBOX', 'Waiting', 'Going', 'Wrapper', 'Canceled', 'Done'])
     .or(z.literal(''))
     .nullable()
+    .optional()
     .transform((v) => (!v ? 'INBOX' : v)),
   source: z
     .enum(['NOTION', 'LOCAL'])

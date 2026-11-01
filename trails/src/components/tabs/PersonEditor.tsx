@@ -714,6 +714,7 @@ export default function PersonEditor({
           note: pieceDraft.note.trim(),
           area: 'Life',
           type: 'Memo',
+          status: 'Done',
           source: 'LOCAL',
         }),
       });
