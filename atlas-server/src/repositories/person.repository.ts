@@ -35,6 +35,16 @@ export const createPerson = async (data: PersonInput) =>
       blood_type: data.blood_type ?? null,
       notes: data.notes ?? null,
     })
+    .onConflict((oc) =>
+      oc.column('google_contact_id').doUpdateSet({
+        family_name: (eb) => eb.ref('excluded.family_name'),
+        given_name: (eb) => eb.ref('excluded.given_name'),
+        ruby_family_name: (eb) => eb.ref('excluded.ruby_family_name'),
+        ruby_given_name: (eb) => eb.ref('excluded.ruby_given_name'),
+        birthday: (eb) => eb.ref('excluded.birthday'),
+        notes: (eb) => eb.ref('excluded.notes'),
+      }),
+    )
     .returningAll()
     .executeTakeFirstOrThrow();
 
