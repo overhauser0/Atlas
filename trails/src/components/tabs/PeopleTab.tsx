@@ -1,7 +1,15 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Plus, RefreshCw, Search, UsersRound, X } from 'lucide-react';
+import {
+  ContactRound,
+  Image,
+  Plus,
+  RefreshCw,
+  Search,
+  UsersRound,
+  X,
+} from 'lucide-react';
 import { Person } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import PersonEditor from '@/components/tabs/PersonEditor';
@@ -303,6 +311,37 @@ export default function PeopleTab() {
                           </div>
                         )}
                       </div>
+                      {(person.immich_person_id ||
+                        person.google_contact_id) && (
+                        <div
+                          className="flex shrink-0 items-center gap-2"
+                          role="img"
+                          aria-label={[
+                            person.immich_person_id && 'Immich連携済み',
+                            person.google_contact_id &&
+                              'Google Contacts連携済み',
+                          ]
+                            .filter(Boolean)
+                            .join('、')}
+                        >
+                          {person.immich_person_id && (
+                            <span title="Immich連携済み">
+                              <Image
+                                className="h-5 w-5 text-amber-600"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          )}
+                          {person.google_contact_id && (
+                            <span title="Google Contacts連携済み">
+                              <ContactRound
+                                className="h-5 w-5 text-blue-600"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </article>
                   ))}
                 </div>
