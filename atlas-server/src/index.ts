@@ -75,6 +75,7 @@ api.post(
   '/pieces/reschedule-overdue',
   pieceController.rescheduleOverduePiecesToToday,
 );
+api.get('/pieces/:id/people', personController.getPiecePeople);
 api.get('/pieces/:id', pieceController.getPieceById);
 api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
 api.post('/pieces/:id/promote', pieceController.promotePiece);

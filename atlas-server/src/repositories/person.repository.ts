@@ -73,6 +73,20 @@ export const getPersonPieces = async (personId: string) =>
     .orderBy('created_at', 'asc')
     .execute();
 
+export const getPeopleByPiece = async (
+  pieceId: string,
+  source: 'NOTION' | 'LOCAL',
+) => {
+  const query = db
+    .selectFrom('person_pieces as pp')
+    .innerJoin('people as p', 'p.id', 'pp.person_id')
+    .select(['p.id', 'p.family_name', 'p.given_name']);
+
+  return source === 'NOTION'
+    ? await query.where('pp.notion_piece_id', '=', pieceId).execute()
+    : await query.where('pp.local_piece_id', '=', pieceId).execute();
+};
+
 export const getPersonPieceById = async (personId: string, id: string) =>
   await db
     .selectFrom('person_pieces')

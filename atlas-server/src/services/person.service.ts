@@ -130,6 +130,11 @@ export const getPersonPieces = async (personId: string) => {
   return await personRepository.getPersonPieces(id);
 };
 
+export const getPiecePeople = async (
+  pieceId: string,
+  source: 'NOTION' | 'LOCAL',
+) => await personRepository.getPeopleByPiece(pieceId, source);
+
 export const createPersonPiece = async (personId: string, input: unknown) => {
   const id = parsePersonId(personId);
   await getPersonById(id);

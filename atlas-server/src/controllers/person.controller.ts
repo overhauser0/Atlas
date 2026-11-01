@@ -105,6 +105,26 @@ export const getPersonPieces = async (c: Context) => {
   }
 };
 
+export const getPiecePeople = async (c: Context) => {
+  const source = c.req.query('source');
+  if (source !== 'NOTION' && source !== 'LOCAL') {
+    return c.json(
+      { success: false, code: 'INVALID_SOURCE', message: 'Invalid source.' },
+      400,
+    );
+  }
+
+  try {
+    const people = await personService.getPiecePeople(
+      c.req.param('id') || '',
+      source,
+    );
+    return c.json({ people }, 200);
+  } catch (error) {
+    return handleError(error, c);
+  }
+};
+
 export const createPersonPiece = async (c: Context) => {
   try {
     const person_piece = await personService.createPersonPiece(
