@@ -74,18 +74,17 @@ export const searchAssets = async (c: Context) => {
   }
 };
 
-export const searchPeopleByFamilyName = async (c: Context) => {
-  const familyName = c.req.query('family_name')?.trim();
-  if (!familyName) {
+export const searchPeopleByName = async (c: Context) => {
+  const name = c.req.query('name')?.trim();
+  if (!name) {
     return c.json(
-      { success: false, message: 'family_name query parameter is required' },
+      { success: false, message: 'name query parameter is required' },
       400,
     );
   }
 
   try {
-    const people =
-      await immichService.searchImmichPeopleByFamilyName(familyName);
+    const people = await immichService.searchImmichPeopleByName(name);
     return c.json({ success: true, data: people }, 200);
   } catch (error) {
     console.error('[Immich Controller] People search failed:', error);

@@ -38,7 +38,7 @@ export async function updateImmichPerson(
   return { personId, name: person.name, birthday: person.birthday };
 }
 
-export async function searchImmichPeopleByFamilyName(searchTerm: string) {
+export async function searchImmichPeopleByName(searchTerm: string) {
   if (!IMMICH_API_KEY) {
     throw new Error('IMMICH_API_KEY is not configured');
   }
@@ -79,8 +79,11 @@ export async function searchImmichPeopleByFamilyName(searchTerm: string) {
       throw new Error('Immich person response has an invalid format');
     }
 
-    const [family_name, ...givenNameParts] = name.trim().split(/\s+/);
-    if (!family_name || !family_name.includes(searchTerm)) return [];
+    const fullName = name.trim();
+    if (fullName !== searchTerm) return [];
+
+    const [family_name, ...givenNameParts] = fullName.split(/\s+/);
+    if (!family_name) return [];
 
     return [{
       family_name,

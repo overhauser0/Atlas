@@ -151,7 +151,7 @@ api.post('/immich/sync', immichController.syncImmichStats);
 api.get('/immich/missing-dates', immichController.getMissingDates);
 api.post('/immich/batch/dates', immichController.updateMissingDates);
 api.post('/immich/search', immichController.searchAssets);
-api.get('/immich/people/search', immichController.searchPeopleByFamilyName);
+api.get('/immich/people/search', immichController.searchPeopleByName);
 api.get('/immich/assets/:id/thumbnail', immichController.getThumbnail);
 
 // paperless-ngx
