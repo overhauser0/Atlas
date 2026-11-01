@@ -47,6 +47,17 @@ export default function PeopleTab() {
     void fetchPeople();
   }, [fetchPeople]);
 
+  useEffect(() => {
+    const handleRefreshPeople = () => {
+      void fetchPeople();
+    };
+
+    window.addEventListener('refresh_people', handleRefreshPeople);
+    return () => {
+      window.removeEventListener('refresh_people', handleRefreshPeople);
+    };
+  }, [fetchPeople]);
+
   const closePersonView = () => {
     setIsPersonViewOpen(false);
     setSelectedPerson(null);
@@ -92,15 +103,17 @@ export default function PeopleTab() {
       <PersonEditor
         person={selectedPerson}
         onClose={closePersonView}
-        onSaved={() => void fetchPeople()}
+        onSaved={(savedPerson) => {
+          if (savedPerson) setSelectedPerson(savedPerson);
+        }}
       />
     );
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="max-w-4xl mx-auto p-4 md:p-8">
-        <div className="flex items-center justify-between mb-6">
+    <div className="h-full overflow-hidden">
+      <div className="mx-auto flex h-full w-full max-w-4xl min-h-0 flex-col p-4 md:p-8">
+        <div className="mb-6 flex shrink-0 items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">People</h1>
             <p className="text-sm text-gray-500 mt-1">人物一覧</p>
@@ -132,30 +145,38 @@ export default function PeopleTab() {
         </div>
 
         {isLoading && people.length === 0 ? (
-          <p className="text-sm text-gray-500 py-8 text-center">
-            人物一覧を読み込み中...
-          </p>
+          <div className="min-h-0 flex-1 overflow-y-auto trails-scrollbar">
+            <p className="py-8 text-center text-sm text-gray-500">
+              人物一覧を読み込み中...
+            </p>
+          </div>
         ) : error ? (
-          <div className="rounded-2xl bg-white p-6 text-center">
-            <p className="text-sm text-red-600">{error}</p>
-            <button
-              type="button"
-              onClick={() => void fetchPeople()}
-              className="mt-4 text-sm font-bold text-primary-600 hover:text-primary-700"
-            >
-              再試行
-            </button>
+          <div className="min-h-0 flex-1 overflow-y-auto trails-scrollbar">
+            <div className="rounded-2xl bg-white p-6 text-center">
+              <p className="text-sm text-red-600">{error}</p>
+              <button
+                type="button"
+                onClick={() => void fetchPeople()}
+                className="mt-4 text-sm font-bold text-primary-600 hover:text-primary-700"
+              >
+                再試行
+              </button>
+            </div>
           </div>
         ) : people.length === 0 ? (
-          <div className="rounded-2xl bg-white p-8 text-center">
-            <UsersRound className="w-8 h-8 text-gray-300 mx-auto mb-3" />
-            <p className="text-sm text-gray-500">登録された人物はいません</p>
+          <div className="min-h-0 flex-1 overflow-y-auto trails-scrollbar">
+            <div className="rounded-2xl bg-white p-8 text-center">
+              <UsersRound className="mx-auto mb-3 h-8 w-8 text-gray-300" />
+              <p className="text-sm text-gray-500">
+                登録された人物はいません
+              </p>
+            </div>
           </div>
         ) : (
           <>
             <section
               aria-label="人物の検索と絞り込み"
-              className="mb-4 space-y-3 rounded-2xl bg-white p-4"
+              className="mb-4 shrink-0 space-y-3 rounded-2xl bg-white p-4"
             >
               <label className="relative block">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -228,62 +249,65 @@ export default function PeopleTab() {
               )}
             </section>
 
-            {filteredPeople.length === 0 ? (
-              <div className="rounded-2xl bg-white p-8 text-center">
-                <p className="text-sm text-gray-500">
-                  条件に一致する人物はいません
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl bg-white">
-                {filteredPeople.map((person) => (
-              <article
-                key={person.id}
-                onClick={() => {
-                  setSelectedPerson(person);
-                  setIsPersonViewOpen(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    setSelectedPerson(person);
-                    setIsPersonViewOpen(true);
-                  }
-                }}
-                role="button"
-                tabIndex={0}
-                className="flex cursor-pointer items-center gap-4 px-4 py-4 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400"
-              >
-                <div className="w-11 h-11 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
-                  <UsersRound className="w-5 h-5" />
+            <div className="min-h-0 flex-1 overflow-y-auto trails-scrollbar">
+              {filteredPeople.length === 0 ? (
+                <div className="rounded-2xl bg-white p-8 text-center">
+                  <p className="text-sm text-gray-500">
+                    条件に一致する人物はいません
+                  </p>
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h2 className="text-sm font-bold text-gray-900 truncate">
-                    {[person.family_name, person.given_name]
-                      .filter(Boolean)
-                      .join(' ')}
-                  </h2>
-                  {(person.ruby_family_name || person.ruby_given_name) && (
-                    <p className="text-xs text-gray-500 mt-0.5 truncate">
-                      {[person.ruby_family_name, person.ruby_given_name]
-                        .filter(Boolean)
-                        .join(' ')}
-                    </p>
-                  )}
-                  {person.tags && person.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {person.tags.map((tag) => (
-                        <span key={tag} className="trails-badge">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
+              ) : (
+                <div className="divide-y divide-gray-100 overflow-hidden rounded-2xl bg-white">
+                  {filteredPeople.map((person) => (
+                    <article
+                      key={person.id}
+                      onClick={() => {
+                        setSelectedPerson(person);
+                        setIsPersonViewOpen(true);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPerson(person);
+                          setIsPersonViewOpen(true);
+                        }
+                      }}
+                      role="button"
+                      tabIndex={0}
+                      className="flex cursor-pointer items-center gap-4 px-4 py-4 transition-colors hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-amber-400"
+                    >
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-amber-50 text-amber-600">
+                        <UsersRound className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate text-sm font-bold text-gray-900">
+                          {[person.family_name, person.given_name]
+                            .filter(Boolean)
+                            .join(' ')}
+                        </h2>
+                        {(person.ruby_family_name ||
+                          person.ruby_given_name) && (
+                          <p className="mt-0.5 truncate text-xs text-gray-500">
+                            {[person.ruby_family_name, person.ruby_given_name]
+                              .filter(Boolean)
+                              .join(' ')}
+                          </p>
+                        )}
+                        {person.tags && person.tags.length > 0 && (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            {person.tags.map((tag) => (
+                              <span key={tag} className="trails-badge">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              </article>
-                ))}
-              </div>
-            )}
+              )}
+            </div>
           </>
         )}
       </div>

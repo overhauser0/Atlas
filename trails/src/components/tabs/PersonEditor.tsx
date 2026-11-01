@@ -26,7 +26,7 @@ import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
 interface PersonEditorProps {
   person: Person | null;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (person?: Person) => void;
 }
 
 interface PersonForm {
@@ -132,6 +132,17 @@ export default function PersonEditor({
     null,
   );
   const [isUpdatingTimelinePiece, setIsUpdatingTimelinePiece] = useState(false);
+  const [editingTimelinePiece, setEditingTimelinePiece] =
+    useState<LinkedTimelinePiece | null>(null);
+  const [timelineEditDraft, setTimelineEditDraft] = useState<PieceDraft>({
+    date: '',
+    title: '',
+    note: '',
+  });
+  const [timelineEditError, setTimelineEditError] = useState<string | null>(
+    null,
+  );
+  const [isSavingTimelineEdit, setIsSavingTimelineEdit] = useState(false);
   const [openPieceMenuId, setOpenPieceMenuId] = useState<string | null>(null);
   const pieceMenuRef = useRef<HTMLDivElement>(null);
   const { confirm, confirmProps } = useConfirm();
@@ -270,6 +281,11 @@ export default function PersonEditor({
         setOpenPieceMenuId(null);
         return;
       }
+      if (editingTimelinePiece && !isSavingTimelineEdit) {
+        setEditingTimelinePiece(null);
+        setTimelineEditError(null);
+        return;
+      }
       if (pieceModalType && !isSavingPiece) {
         setPieceModalType(null);
         setPieceActionError(null);
@@ -297,6 +313,8 @@ export default function PersonEditor({
     isEditing,
     person,
     onClose,
+    editingTimelinePiece,
+    isSavingTimelineEdit,
     linkModalType,
     pieceModalType,
     isSavingPiece,
@@ -357,8 +375,17 @@ export default function PersonEditor({
         );
       }
 
-      onSaved();
-      onClose();
+      const result: { person?: Person } = await response.json();
+      if (!result.person || (person && result.person.id !== person.id)) {
+        throw new Error('保存した人物のレスポンス形式が正しくありません');
+      }
+
+      onSaved(result.person);
+      if (person) {
+        setIsEditing(false);
+      } else {
+        onClose();
+      }
     } catch (saveError) {
       console.error(
         `Failed to ${person ? 'update' : 'create'} person:`,
@@ -700,6 +727,83 @@ export default function PersonEditor({
     }
   };
 
+  const openTimelinePieceEditor = (piece: LinkedTimelinePiece) => {
+    setOpenPieceMenuId(null);
+    setTimelineEditDraft({
+      date: piece.date?.slice(0, 10) ?? '',
+      title: piece.title,
+      note: piece.note ?? '',
+    });
+    setTimelineEditError(null);
+    setEditingTimelinePiece(piece);
+  };
+
+  const saveTimelinePieceEdit = async () => {
+    if (
+      !editingTimelinePiece ||
+      isSavingTimelineEdit ||
+      !timelineEditDraft.title.trim()
+    ) {
+      return;
+    }
+
+    setIsSavingTimelineEdit(true);
+    setTimelineEditError(null);
+    try {
+      const response = await atlasFetch(
+        `/pieces/${encodeURIComponent(editingTimelinePiece.id)}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({
+            title: timelineEditDraft.title.trim(),
+            date: timelineEditDraft.date || null,
+            note: timelineEditDraft.note.trim(),
+          }),
+        },
+      );
+      if (!response.ok) {
+        const result: { message?: string } = await response
+          .json()
+          .catch(() => ({}));
+        throw new Error(
+          result.message || `Pieceの更新に失敗しました (${response.status})`,
+        );
+      }
+
+      const updatedPiece = {
+        ...editingTimelinePiece,
+        title: timelineEditDraft.title.trim(),
+        date: timelineEditDraft.date || null,
+        note: timelineEditDraft.note.trim(),
+      };
+      setTimelinePieces((current) =>
+        current
+          .map((piece) =>
+            piece.id === editingTimelinePiece.id &&
+            piece.source === editingTimelinePiece.source
+              ? updatedPiece
+              : piece,
+          )
+          .sort((a, b) => {
+            if (!a.date) return b.date ? 1 : 0;
+            if (!b.date) return -1;
+            return b.date.localeCompare(a.date);
+          }),
+      );
+      setEditingTimelinePiece(null);
+      onSaved();
+    } catch (saveError) {
+      console.error('Failed to update person timeline piece:', saveError);
+      setTimelineEditError(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Pieceの更新に失敗しました',
+      );
+    } finally {
+      setIsSavingTimelineEdit(false);
+    }
+  };
+
   const createAndLinkPiece = async () => {
     if (!person || isSavingPiece || !pieceDraft.title.trim()) return;
 
@@ -769,9 +873,19 @@ export default function PersonEditor({
     linkModalType === 'immich_person_id' ? 'Immich' : 'Google Contacts';
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="p-4 md:p-8">
-        <div className="mb-6 flex items-center gap-4">
+    <div
+      className={
+        isReadOnly
+          ? 'flex h-full flex-col overflow-hidden'
+          : 'h-full overflow-y-auto'
+      }
+    >
+      <div
+        className={`p-4 md:p-8 ${
+          isReadOnly ? 'flex min-h-0 flex-1 flex-col' : ''
+        }`}
+      >
+        <div className="mb-6 flex shrink-0 items-center gap-4">
           <button
             type="button"
             onClick={onClose}
@@ -804,13 +918,13 @@ export default function PersonEditor({
         <div
           className={
             isReadOnly
-              ? ''
+              ? 'flex min-h-0 flex-1 flex-col'
               : 'overflow-hidden rounded-2xl border border-gray-200 bg-white'
           }
         >
           {isReadOnly && person && (
             <>
-              <header className="flex items-center gap-4 py-4">
+              <header className="flex shrink-0 items-center gap-4 py-4">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
                   <UsersRound className="h-8 w-8" />
                 </div>
@@ -875,7 +989,7 @@ export default function PersonEditor({
                 </div>
               </header>
 
-              <div className="mt-4 grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)]">
+              <div className="mt-4 grid min-h-0 flex-1 grid-cols-1 items-start gap-4 overflow-y-auto trails-scrollbar md:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)]">
                 <div className="space-y-4">
                   <section
                     className="rounded-2xl bg-white p-5"
@@ -1047,6 +1161,18 @@ export default function PersonEditor({
                                   role="menu"
                                   className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1.5 shadow-xl"
                                 >
+                                  <button
+                                    type="button"
+                                    role="menuitem"
+                                    disabled={isUpdatingTimelinePiece}
+                                    onClick={() =>
+                                      openTimelinePieceEditor(piece)
+                                    }
+                                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                                  >
+                                    <Pencil className="h-4 w-4" />
+                                    編集
+                                  </button>
                                   <button
                                     type="button"
                                     role="menuitem"
@@ -1300,6 +1426,133 @@ export default function PersonEditor({
         />
       )}
 
+      {person && editingTimelinePiece && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget && !isSavingTimelineEdit) {
+              setEditingTimelinePiece(null);
+              setTimelineEditError(null);
+            }
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="person-timeline-edit-title"
+            className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2
+                id="person-timeline-edit-title"
+                className="text-lg font-bold text-gray-900"
+              >
+                タイムラインを編集
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTimelinePiece(null);
+                  setTimelineEditError(null);
+                }}
+                disabled={isSavingTimelineEdit}
+                aria-label="閉じる"
+                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold text-gray-600">
+                  日付
+                </span>
+                <input
+                  type="date"
+                  value={timelineEditDraft.date}
+                  onChange={(event) =>
+                    setTimelineEditDraft((current) => ({
+                      ...current,
+                      date: event.target.value,
+                    }))
+                  }
+                  disabled={isSavingTimelineEdit}
+                  className={inputClassName}
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold text-gray-600">
+                  タイトル <span className="text-red-500">*</span>
+                </span>
+                <input
+                  autoFocus
+                  maxLength={255}
+                  value={timelineEditDraft.title}
+                  onChange={(event) =>
+                    setTimelineEditDraft((current) => ({
+                      ...current,
+                      title: event.target.value,
+                    }))
+                  }
+                  disabled={isSavingTimelineEdit}
+                  className={inputClassName}
+                  placeholder="タイトル"
+                />
+              </label>
+              <label className="block space-y-1.5">
+                <span className="text-xs font-semibold text-gray-600">
+                  Note
+                </span>
+                <textarea
+                  rows={4}
+                  value={timelineEditDraft.note}
+                  onChange={(event) =>
+                    setTimelineEditDraft((current) => ({
+                      ...current,
+                      note: event.target.value,
+                    }))
+                  }
+                  disabled={isSavingTimelineEdit}
+                  className={`${inputClassName} resize-y`}
+                  placeholder="Note（任意）"
+                />
+              </label>
+            </div>
+
+            {timelineEditError && (
+              <p role="alert" className="mt-4 text-sm text-red-600">
+                {timelineEditError}
+              </p>
+            )}
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingTimelinePiece(null);
+                  setTimelineEditError(null);
+                }}
+                disabled={isSavingTimelineEdit}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => void saveTimelinePieceEdit()}
+                disabled={
+                  isSavingTimelineEdit || !timelineEditDraft.title.trim()
+                }
+                className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {isSavingTimelineEdit ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
+
       {person && linkModalType && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
@@ -1537,17 +1790,20 @@ export default function PersonEditor({
                     placeholder="タイトルで検索"
                   />
                 </label>
-                <div className="mt-3 min-h-0 flex-1 overflow-y-auto rounded-xl border border-gray-100">
+                <div className="mt-3 h-48 shrink-0 overflow-y-auto rounded-xl border border-gray-100 trails-scrollbar">
                   {isLoadingAvailablePieces ? (
-                    <p className="p-6 text-center text-sm text-gray-500">
+                    <p className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
                       Pieceを読み込み中...
                     </p>
                   ) : availablePiecesError ? (
-                    <p role="alert" className="p-4 text-sm text-red-600">
+                    <p
+                      role="alert"
+                      className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600"
+                    >
                       {availablePiecesError}
                     </p>
                   ) : filteredAvailablePieces.length === 0 ? (
-                    <p className="p-6 text-center text-sm text-gray-500">
+                    <p className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
                       該当するPieceはありません
                     </p>
                   ) : (

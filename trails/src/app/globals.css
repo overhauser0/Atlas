@@ -41,6 +41,23 @@ textarea {
   }
 }
 
+@utility trails-scrollbar {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.6);
+    border-radius: 100px;
+  }
+  &:hover::-webkit-scrollbar-thumb {
+    background: rgba(107, 114, 128, 0.8);
+  }
+}
+
 @layer components {
   .trails-badge {
     @apply text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md whitespace-nowrap;

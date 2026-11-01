@@ -77,6 +77,8 @@ export function useAtlasWebSocket(
             onRefreshPiecesRef.current();
           } else if (data.type === 'REFRESH_DIARIES') {
             onRefreshDiariesRef.current();
+          } else if (data.type === 'REFRESH_PEOPLE') {
+            window.dispatchEvent(new Event('refresh_people'));
           }
         } catch (e) {
           console.warn('WS Message Parse Error:', e);
