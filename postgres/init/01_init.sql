@@ -14,8 +14,6 @@ CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     flags TEXT[] DEFAULT '{}',
     fkw TEXT[] DEFAULT '{}',
     prefs TEXT[] DEFAULT '{}',
-    -- date is retained for compatibility; the start/end columns represent date-only and timed ranges.
-    date TEXT,
     start_date DATE,
     start_time TIME WITHOUT TIME ZONE,
     end_date DATE,
@@ -23,7 +21,23 @@ CREATE TABLE IF NOT EXISTS notion_pieces_cache (
     url TEXT,
     parent_id VARCHAR(255) DEFAULT NULL,
     last_edited_time TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_notion_piece_date_range CHECK (
+        (start_time IS NULL OR start_date IS NOT NULL)
+        AND (end_date IS NULL OR start_date IS NOT NULL)
+        AND (
+            (start_time IS NULL AND end_time IS NULL)
+            OR (start_time IS NOT NULL AND end_date IS NULL AND end_time IS NULL)
+            OR (start_time IS NOT NULL AND end_date IS NOT NULL AND end_time IS NOT NULL)
+        )
+        AND (end_date IS NULL OR end_date >= start_date)
+        AND (
+            end_date IS NULL
+            OR end_date > start_date
+            OR start_time IS NULL
+            OR end_time >= start_time
+        )
+    )
 );
 
 -- ローカルタスク用テーブル
@@ -39,7 +53,6 @@ CREATE TABLE IF NOT EXISTS local_pieces (
     flags TEXT[] DEFAULT '{}',
     fkw TEXT[] DEFAULT '{}',
     prefs TEXT[] DEFAULT '{}',
-    date TEXT,
     start_date DATE,
     start_time TIME WITHOUT TIME ZONE,
     end_date DATE,
@@ -48,93 +61,24 @@ CREATE TABLE IF NOT EXISTS local_pieces (
     parent_id VARCHAR(255) DEFAULT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    metadata JSONB DEFAULT '{}'        -- 廃止予定
+    metadata JSONB DEFAULT '{}',       -- 廃止予定
+    CONSTRAINT chk_local_piece_date_range CHECK (
+        (start_time IS NULL OR start_date IS NOT NULL)
+        AND (end_date IS NULL OR start_date IS NOT NULL)
+        AND (
+            (start_time IS NULL AND end_time IS NULL)
+            OR (start_time IS NOT NULL AND end_date IS NULL AND end_time IS NULL)
+            OR (start_time IS NOT NULL AND end_date IS NOT NULL AND end_time IS NOT NULL)
+        )
+        AND (end_date IS NULL OR end_date >= start_date)
+        AND (
+            end_date IS NULL
+            OR end_date > start_date
+            OR start_time IS NULL
+            OR end_time >= start_time
+        )
+    )
 );
-
--- 既存DBにもPieceの日付・時刻カラムを追加する。
-ALTER TABLE notion_pieces_cache
-    ADD COLUMN IF NOT EXISTS start_date DATE,
-    ADD COLUMN IF NOT EXISTS start_time TIME WITHOUT TIME ZONE,
-    ADD COLUMN IF NOT EXISTS end_date DATE,
-    ADD COLUMN IF NOT EXISTS end_time TIME WITHOUT TIME ZONE;
-
-ALTER TABLE local_pieces
-    ADD COLUMN IF NOT EXISTS start_date DATE,
-    ADD COLUMN IF NOT EXISTS start_time TIME WITHOUT TIME ZONE,
-    ADD COLUMN IF NOT EXISTS end_date DATE,
-    ADD COLUMN IF NOT EXISTS end_time TIME WITHOUT TIME ZONE;
-
--- 旧dateの値を新しい開始日時カラムへ移行する（再実行可能）。
-UPDATE notion_pieces_cache
-SET start_date = substring(date from '^([0-9]{4}-[0-9]{2}-[0-9]{2})')::date,
-    start_time = CASE
-        WHEN date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
-        THEN substring(date from 'T([0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?)')::time
-        ELSE NULL
-    END
-WHERE start_date IS NULL
-  AND date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}($|T)';
-
-UPDATE local_pieces
-SET start_date = substring(date from '^([0-9]{4}-[0-9]{2}-[0-9]{2})')::date,
-    start_time = CASE
-        WHEN date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}T'
-        THEN substring(date from 'T([0-9]{2}:[0-9]{2}(:[0-9]{2}(\.[0-9]+)?)?)')::time
-        ELSE NULL
-    END
-WHERE start_date IS NULL
-  AND date ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}($|T)';
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'chk_notion_piece_date_range'
-          AND conrelid = 'notion_pieces_cache'::regclass
-    ) THEN
-        ALTER TABLE notion_pieces_cache
-            ADD CONSTRAINT chk_notion_piece_date_range CHECK (
-                (start_time IS NULL OR start_date IS NOT NULL)
-                AND (end_date IS NULL OR start_date IS NOT NULL)
-                AND (
-                    (start_time IS NULL AND end_time IS NULL)
-                    OR (start_time IS NOT NULL AND end_date IS NULL AND end_time IS NULL)
-                    OR (start_time IS NOT NULL AND end_date IS NOT NULL AND end_time IS NOT NULL)
-                )
-                AND (end_date IS NULL OR end_date >= start_date)
-                AND (
-                    end_date IS NULL
-                    OR end_date > start_date
-                    OR start_time IS NULL
-                    OR end_time >= start_time
-                )
-            );
-    END IF;
-
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_constraint
-        WHERE conname = 'chk_local_piece_date_range'
-          AND conrelid = 'local_pieces'::regclass
-    ) THEN
-        ALTER TABLE local_pieces
-            ADD CONSTRAINT chk_local_piece_date_range CHECK (
-                (start_time IS NULL OR start_date IS NOT NULL)
-                AND (end_date IS NULL OR start_date IS NOT NULL)
-                AND (
-                    (start_time IS NULL AND end_time IS NULL)
-                    OR (start_time IS NOT NULL AND end_date IS NULL AND end_time IS NULL)
-                    OR (start_time IS NOT NULL AND end_date IS NOT NULL AND end_time IS NOT NULL)
-                )
-                AND (end_date IS NULL OR end_date >= start_date)
-                AND (
-                    end_date IS NULL
-                    OR end_date > start_date
-                    OR start_time IS NULL
-                    OR end_time >= start_time
-                )
-            );
-    END IF;
-END $$;
 
 -- 通知履歴用テーブル
 -- 外部からのプッシュ通知内容を履歴として保持
@@ -165,7 +109,10 @@ CREATE TABLE IF NOT EXISTS google_events (
     title VARCHAR(255) NOT NULL,
     note TEXT,
     url VARCHAR(1024),
-    date VARCHAR(255), -- YYYY-MM-DD 形式
+    start_date DATE,
+    start_time TIME WITHOUT TIME ZONE,
+    end_date DATE,
+    end_time TIME WITHOUT TIME ZONE,
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

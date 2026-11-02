@@ -8,9 +8,11 @@ import {
 } from 'lucide-react';
 import { Task } from '@/types';
 import {
+  addCalendarDays,
+  getCalendarDateKey,
   getPieceDateRangeUpdate,
+  getThisWeekMondayDateKey,
   isOverdue,
-  getThisWeekMonday,
 } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import {
@@ -96,17 +98,10 @@ export default function WeeklyView({
     const now = new Date();
 
     // 今日の日付文字列（YYYY-MM-DD）をJSTで取得
-    const todayStr = new Intl.DateTimeFormat('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      timeZone: 'Asia/Tokyo',
-    })
-      .format(now)
-      .replace(/\//g, '-');
+    const todayStr = getCalendarDateKey(now)!;
 
     // 今週の「月曜日」を取得（週の開始を月曜とする）
-    const startOfWeek = getThisWeekMonday(now);
+    const startOfWeek = getThisWeekMondayDateKey(now);
 
     // 月曜を起点(0)とした各曜日のオフセット日数
     const dayOffsets: Record<string, number> = {
@@ -130,18 +125,9 @@ export default function WeeklyView({
         };
       }
 
-      const colDate = new Date(startOfWeek);
-      // カラムの曜日に合わせて月曜からの日数を足す
-      colDate.setDate(startOfWeek.getDate() + dayOffsets[colName]);
-
-      const dateStr = new Intl.DateTimeFormat('ja-JP', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        timeZone: 'Asia/Tokyo',
-      })
-        .format(colDate)
-        .replace(/\//g, '-');
+      const dateStr = addCalendarDays(startOfWeek, dayOffsets[colName]);
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const colDate = new Date(year, month - 1, day);
 
       return {
         name: colName,
@@ -174,7 +160,9 @@ export default function WeeklyView({
               if (t.status === 'Done') return false;
               if (col.isOverdue) return isOverdue(t.start_date);
 
-              return t.start_date && t.start_date.startsWith(col.dateStr!);
+              return (
+                getCalendarDateKey(t.start_date) === col.dateStr
+              );
             });
 
             // 2. ステータス順でソート

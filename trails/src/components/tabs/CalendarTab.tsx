@@ -58,7 +58,10 @@ export default function CalendarTab({
       id: ev.id,
       title: ev.title,
       note: ev.note,
-      date: ev.date,
+      start_date: ev.start_date,
+      start_time: ev.start_time,
+      end_date: ev.end_date,
+      end_time: ev.end_time,
       type: 'Event',
       url: ev.url,
       status: undefined,
@@ -133,8 +136,13 @@ export default function CalendarTab({
 
   // アイテムから日付を取得するヘルパー
   const getItemDate = (item: LifeItem): Date | null => {
-    const dateStr = (item as any).date || (item as any).createdAt;
-    return dateStr ? new Date(dateStr) : null;
+    const dateStr = item.start_date || (item as any).createdAt;
+    if (!dateStr) return null;
+    const datePart = dateStr.slice(0, 10);
+    const [year, month, day] = datePart.split('-').map(Number);
+    if (!year || !month || !day) return null;
+    const date = new Date(year, month - 1, day);
+    return Number.isNaN(date.getTime()) ? null : date;
   };
 
   // 特定の日のアイテムを取得し、タスクを上にする

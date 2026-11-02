@@ -39,8 +39,8 @@ export default function HomeTab({
       tasks
         .filter((item) => item.type === 'Task' && item.status !== 'Done')
         .sort((a, b) => {
-          const parsedDateA = a.date ? Date.parse(a.date) : NaN;
-          const parsedDateB = b.date ? Date.parse(b.date) : NaN;
+          const parsedDateA = a.start_date ? Date.parse(a.start_date) : NaN;
+          const parsedDateB = b.start_date ? Date.parse(b.start_date) : NaN;
           const dateA = Number.isNaN(parsedDateA)
             ? Number.POSITIVE_INFINITY
             : parsedDateA;

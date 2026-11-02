@@ -6,7 +6,10 @@ export interface GoogleEvent {
   id: string;
   title: string;
   note: string | null;
-  date: string | null;
+  start_date: string;
+  start_time: string | null;
+  end_date: string | null;
+  end_time: string | null;
   url: string | null;
 }
 

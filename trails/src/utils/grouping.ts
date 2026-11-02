@@ -5,15 +5,15 @@ export const groupItemsByYear = (items: LifeItem[]) => {
 
   // 1. 日付の新しい順（降順）にソート。Dateが無いものは一番上(PLAN)に。
   const sortedItems = [...items].sort((a, b) => {
-    if (!a.date && !b.date) return 0;
-    if (!a.date) return -1;
-    if (!b.date) return 1;
-    return new Date(b.date).getTime() - new Date(a.date).getTime();
+    if (!a.start_date && !b.start_date) return 0;
+    if (!a.start_date) return -1;
+    if (!b.start_date) return 1;
+    return b.start_date.localeCompare(a.start_date);
   });
 
   // 2. 年ごとに振り分け
   sortedItems.forEach((item) => {
-    const key = item.date ? item.date.substring(0, 4) : 'PLAN';
+    const key = item.start_date ? item.start_date.substring(0, 4) : 'PLAN';
     if (!grouped[key]) {
       grouped[key] = [];
     }

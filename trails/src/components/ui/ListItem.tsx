@@ -93,9 +93,9 @@ export default function ListItem({
       </div>
 
       <div className="flex items-center gap-2">
-        {item.date && (
+        {item.start_date && (
           <span className="text-xs text-gray-400 font-medium">
-            {item.date.slice(5, 10).replace('-', '/')}
+            {item.start_date.slice(5, 10).replace('-', '/')}
           </span>
         )}
         <ChevronRight className="w-4 h-4 text-gray-300" />

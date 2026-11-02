@@ -39,7 +39,10 @@ export default function DetailModal({
     id: '',
     title: '',
     status: 'INBOX',
-    date: null,
+    start_date: null,
+    start_time: null,
+    end_date: null,
+    end_time: null,
     area: 'Life',
     type: null,
     topics: [],
@@ -78,7 +81,10 @@ export default function DetailModal({
         id: values?.id || '',
         title: values?.title || '',
         status: values?.status || 'INBOX',
-        date: values?.date ? values.date.split('T')[0] : null,
+        start_date: values?.start_date?.slice(0, 10) ?? null,
+        start_time: values?.start_time ?? null,
+        end_date: values?.end_date?.slice(0, 10) ?? null,
+        end_time: values?.end_time ?? null,
         area: 'Life',
         type: values?.type || 'Event',
         topics: values?.topics || [],
@@ -182,7 +188,14 @@ export default function DetailModal({
     const payload = {
       title: formData.title || 'No Title',
       status: formData.status || 'INBOX',
-      date: formData.date || null,
+      start_date: formData.start_date || null,
+      ...(!formData.start_date
+        ? {
+            start_time: null,
+            end_date: null,
+            end_time: null,
+          }
+        : {}),
       area: formData.area,
       type: formData.type || 'Note',
       topics: formData.topics || [],
@@ -484,9 +497,9 @@ export default function DetailModal({
               <input
                 aria-label="Date"
                 type="date"
-                value={formData.date?.split('T')[0] || ''}
+                value={formData.start_date?.slice(0, 10) || ''}
                 onChange={(e) =>
-                  setFormData({ ...formData, date: e.target.value })
+                  setFormData({ ...formData, start_date: e.target.value })
                 }
                 className="w-full min-w-0 box-border appearance-none bg-gray-50 py-3 pl-9 pr-2 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
               />

@@ -211,9 +211,9 @@ export default function PersonEditor({
         if (isCurrent) {
           setTimelinePieces(
             pieces.sort((a, b) => {
-              if (!a.date) return b.date ? 1 : 0;
-              if (!b.date) return -1;
-              return b.date.localeCompare(a.date);
+              if (!a.start_date) return b.start_date ? 1 : 0;
+              if (!b.start_date) return -1;
+              return b.start_date.localeCompare(a.start_date);
             }),
           );
         }
@@ -611,9 +611,9 @@ export default function PersonEditor({
         ),
         piece,
       ].sort((a, b) => {
-        if (!a.date) return b.date ? 1 : 0;
-        if (!b.date) return -1;
-        return b.date.localeCompare(a.date);
+        if (!a.start_date) return b.start_date ? 1 : 0;
+        if (!b.start_date) return -1;
+        return b.start_date.localeCompare(a.start_date);
       }),
     );
   };
@@ -730,7 +730,7 @@ export default function PersonEditor({
   const openTimelinePieceEditor = (piece: LinkedTimelinePiece) => {
     setOpenPieceMenuId(null);
     setTimelineEditDraft({
-      date: piece.date?.slice(0, 10) ?? '',
+      date: piece.start_date?.slice(0, 10) ?? '',
       title: piece.title,
       note: piece.note ?? '',
     });
@@ -756,7 +756,14 @@ export default function PersonEditor({
           method: 'PATCH',
           body: JSON.stringify({
             title: timelineEditDraft.title.trim(),
-            date: timelineEditDraft.date || null,
+            start_date: timelineEditDraft.date || null,
+            ...(!timelineEditDraft.date
+              ? {
+                  start_time: null,
+                  end_date: null,
+                  end_time: null,
+                }
+              : {}),
             note: timelineEditDraft.note.trim(),
           }),
         },
@@ -773,7 +780,14 @@ export default function PersonEditor({
       const updatedPiece = {
         ...editingTimelinePiece,
         title: timelineEditDraft.title.trim(),
-        date: timelineEditDraft.date || null,
+        start_date: timelineEditDraft.date || null,
+        ...(!timelineEditDraft.date
+          ? {
+              start_time: null,
+              end_date: null,
+              end_time: null,
+            }
+          : {}),
         note: timelineEditDraft.note.trim(),
       };
       setTimelinePieces((current) =>
@@ -785,9 +799,9 @@ export default function PersonEditor({
               : piece,
           )
           .sort((a, b) => {
-            if (!a.date) return b.date ? 1 : 0;
-            if (!b.date) return -1;
-            return b.date.localeCompare(a.date);
+            if (!a.start_date) return b.start_date ? 1 : 0;
+            if (!b.start_date) return -1;
+            return b.start_date.localeCompare(a.start_date);
           }),
       );
       setEditingTimelinePiece(null);
@@ -813,7 +827,7 @@ export default function PersonEditor({
       const createResponse = await atlasFetch('/pieces', {
         method: 'POST',
         body: JSON.stringify({
-          date: pieceDraft.date || null,
+          start_date: pieceDraft.date || null,
           title: pieceDraft.title.trim(),
           note: pieceDraft.note.trim(),
           area: 'Life',
@@ -841,7 +855,7 @@ export default function PersonEditor({
       await linkPieceToPerson({
         ...result.piece,
         title: result.piece.title || pieceDraft.title.trim(),
-        date: result.piece.date ?? pieceDraft.date,
+        start_date: result.piece.start_date ?? pieceDraft.date,
         note: result.piece.note ?? pieceDraft.note.trim(),
         source: 'LOCAL',
       });
@@ -1113,8 +1127,8 @@ export default function PersonEditor({
                           <article className="flex items-start justify-between gap-2 border-b border-gray-100 pb-4 pl-1 pt-0.5 last:border-0">
                             <div className="min-w-0 flex-1">
                               <p className="mb-1 text-xs font-semibold text-amber-700">
-                                {piece.date
-                                  ? getDateFullString(piece.date, 'hyphen')
+                                {piece.start_date
+                                  ? getDateFullString(piece.start_date, 'hyphen')
                                   : '日付未設定'}
                               </p>
                               <h4 className="font-bold text-gray-900">
@@ -1820,8 +1834,8 @@ export default function PersonEditor({
                               {piece.title}
                             </span>
                             <span className="mt-1 block text-xs text-gray-500">
-                              {piece.date
-                                ? getDateFullString(piece.date, 'hyphen')
+                              {piece.start_date
+                                ? getDateFullString(piece.start_date, 'hyphen')
                                 : '日付未設定'}
                               {' · '}
                               {piece.source === 'NOTION' ? 'Notion' : 'Local'}

@@ -14,7 +14,7 @@ import {
   sortTasksByStatus,
   getNotionLinkById,
 } from '@/utils/miscellaneousUtils';
-import { getDateFullString } from '@/utils/dateUtils';
+import { getCalendarDateKey, getDateFullString } from '@/utils/dateUtils';
 import DateSelector from '@/components/ui/DateSelector';
 import FAB from '@/components/ui/FAB';
 import Card from '@/components/ui/Card';
@@ -49,8 +49,7 @@ export default function HomeView({
   // 選択した日のタスク（完了していないもの）をフィルタリング
   const targetTasks = tasks.filter(
     (task) =>
-      task.start_date &&
-      task.start_date.startsWith(targetDateString) &&
+      getCalendarDateKey(task.start_date) === targetDateString &&
       task.status !== 'Done',
   );
   const sortedTargetTasks = sortTasksByStatus(targetTasks);
@@ -58,8 +57,7 @@ export default function HomeView({
   // 選択した日の完了済みタスク
   const completedTargetTasks = completedTasks.filter(
     (task) =>
-      task.start_date &&
-      task.start_date.startsWith(targetDateString) &&
+      getCalendarDateKey(task.start_date) === targetDateString &&
       task.status === 'Done',
   );
 

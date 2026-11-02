@@ -124,7 +124,7 @@ export default function ItemTab({
   const itemsByDate = useMemo(() => {
     const grouped = new Map<string, LifeItem[]>();
     filteredItems.forEach((item) => {
-      const date = toLocalDate(item.date);
+      const date = toLocalDate(item.start_date);
       if (!date) return;
       const key = getDateKey(date);
       const items = grouped.get(key) ?? [];
@@ -140,7 +140,7 @@ export default function ItemTab({
     const completed = filteredItems.filter(
       (item) => item.status === 'Done',
     ).length;
-    const planned = filteredItems.filter((item) => !item.date).length;
+    const planned = filteredItems.filter((item) => !item.start_date).length;
     const scheduled = filteredItems.length - planned;
     const completionRate = filteredItems.length
       ? Math.round((completed / filteredItems.length) * 100)
@@ -148,7 +148,7 @@ export default function ItemTab({
     const byYear = new Map<string, number>();
 
     filteredItems.forEach((item) => {
-      const year = item.date?.slice(0, 4) || 'Plan';
+      const year = item.start_date?.slice(0, 4) || 'Plan';
       byYear.set(year, (byYear.get(year) ?? 0) + 1);
     });
 

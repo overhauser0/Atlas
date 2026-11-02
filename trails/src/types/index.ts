@@ -43,7 +43,7 @@ export interface PersonPiece {
 export interface PersonTimelinePiece {
   id: string;
   title: string;
-  date: string | null;
+  start_date: string | null;
   note: string | null;
   source: 'NOTION' | 'LOCAL';
 }
@@ -52,7 +52,10 @@ export interface Piece {
   id: string;
   title: string;
   status: string;
-  date: string | null;
+  start_date: string | null;
+  start_time?: string | null;
+  end_date?: string | null;
+  end_time?: string | null;
   area: string | null;
   type: string | null;
   topics: string[];
@@ -68,7 +71,10 @@ export interface LifeItem {
   id: string;
   title: string;
   status: string;
-  date: string | null;
+  start_date: string | null;
+  start_time?: string | null;
+  end_date?: string | null;
+  end_time?: string | null;
   area: string | null;
   type: string | null;
   topics: string[];
