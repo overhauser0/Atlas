@@ -1,6 +1,8 @@
 'use client';
 
-import { LogOut, RefreshCw, Calendar } from 'lucide-react';
+import { LogOut, RefreshCw, Calendar, ContactRound } from 'lucide-react';
+import { useState } from 'react';
+import { useToast } from '@/components/ui/Toast';
 import packageJson from '../../../package.json';
 
 interface Props {
@@ -18,6 +20,8 @@ export default function ConfigTab({
 }: Props) {
   const showTaskInCal = !!appSettings?.showTaskInCal;
   const showGcalInCal = !!appSettings?.showGcalInCal;
+  const [isSyncingContacts, setIsSyncingContacts] = useState(false);
+  const { addToast } = useToast();
 
   // トグルが切り替わったときの処理
   const handleToggleTask = () => {
@@ -32,6 +36,44 @@ export default function ConfigTab({
       ...appSettings,
       showGcalInCal: !showGcalInCal,
     });
+  };
+
+  const handleSyncGoogleContacts = async () => {
+    setIsSyncingContacts(true);
+
+    try {
+      const response = await fetch(
+        'https://n8n.piova.app/webhook/googleContancts-to-atlas',
+        { method: 'GET' },
+      );
+
+      if (!response.ok) {
+        throw new Error(`Request failed with status ${response.status}`);
+      }
+
+      const result: unknown = await response.json();
+      if (
+        typeof result !== 'object' ||
+        result === null ||
+        !('message' in result) ||
+        typeof result.message !== 'string' ||
+        !('count' in result) ||
+        typeof result.count !== 'number' ||
+        !Number.isInteger(result.count) ||
+        result.count < 0
+      ) {
+        throw new Error('The sync response was invalid.');
+      }
+
+      addToast(`${result.message}: ${result.count} contacts synced.`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'An unexpected error occurred.';
+      console.error('Google Contacts sync failed:', error);
+      addToast(`Google Contacts sync failed: ${message}`, 'alert');
+    } finally {
+      setIsSyncingContacts(false);
+    }
   };
 
   return (
@@ -93,6 +135,23 @@ export default function ConfigTab({
         >
           <RefreshCw className="w-5 h-5 text-primary-500" />
           Sync with Notion
+        </button>
+
+        <button
+          type="button"
+          onClick={handleSyncGoogleContacts}
+          disabled={isSyncingContacts}
+          className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 disabled:cursor-not-allowed disabled:opacity-60 transition-colors text-gray-900 font-bold"
+        >
+          <ContactRound className="w-5 h-5 text-primary-500" />
+          {isSyncingContacts ? (
+            <>
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              Syncing Google Contacts...
+            </>
+          ) : (
+            'Sync Google Contacts'
+          )}
         </button>
 
         <button

@@ -44,6 +44,7 @@ import DetailModal from '@/components/modal/DetailModal';
 import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
+import { ToastProvider } from '@/components/ui/Toast';
 
 // メニュー定義
 const MAIN_TABS = [
@@ -80,7 +81,7 @@ const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
 const isItemView = (value: unknown): value is ItemView =>
   value === 'List' || value === 'Cal' || value === 'Stats';
 
-export default function AppMain() {
+function AppMain() {
   // ============================================================================
   // 1. States
   // ============================================================================
@@ -479,6 +480,14 @@ export default function AppMain() {
         onClose={handleCloseDailyPhoto}
       />
     </div>
+  );
+}
+
+export default function AppPage() {
+  return (
+    <ToastProvider>
+      <AppMain />
+    </ToastProvider>
   );
 }
 
