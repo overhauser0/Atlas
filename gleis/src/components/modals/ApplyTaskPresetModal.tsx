@@ -22,7 +22,7 @@ interface TaskPreset {
 
 interface Props {
   isOpen: boolean;
-  parentTask: Pick<Task, 'id' | 'title' | 'date'>;
+  parentTask: Pick<Task, 'id' | 'title' | 'start_date'>;
   onClose: () => void;
   onApplied: () => void;
 }
@@ -55,12 +55,14 @@ export default function ApplyTaskPresetModal({
   const [isLoading, setIsLoading] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
   const [presetId, setPresetId] = useState('');
-  const [baseDate, setBaseDate] = useState(getDatePart(parentTask.date));
+  const [baseDate, setBaseDate] = useState(
+    getDatePart(parentTask.start_date),
+  );
   const [titlePrefix, setTitlePrefix] = useState('');
 
   useEffect(() => {
     if (!isOpen) return;
-    setBaseDate(getDatePart(parentTask.date));
+    setBaseDate(getDatePart(parentTask.start_date));
     setTitlePrefix('');
     setPresetId('');
     setPresets([]);
@@ -87,7 +89,7 @@ export default function ApplyTaskPresetModal({
     return () => {
       isCurrent = false;
     };
-  }, [isOpen, parentTask.date, addToast]);
+  }, [isOpen, parentTask.start_date, addToast]);
 
   const selectedPreset = presets.find((preset) => preset.id === presetId);
   const previewTasks = useMemo(
@@ -95,7 +97,7 @@ export default function ApplyTaskPresetModal({
       (selectedPreset?.children || []).map((child) => ({
         id: child.id,
         title: `${titlePrefix}${child.title_suffix}`,
-        date: addDays(baseDate, child.offset_days),
+        start_date: addDays(baseDate, child.offset_days),
       })),
     [selectedPreset, titlePrefix, baseDate],
   );
@@ -109,7 +111,7 @@ export default function ApplyTaskPresetModal({
       addToast('基準日を入力してください', 'alert');
       return;
     }
-    if (!previewTasks.every((task) => task.date)) {
+    if (!previewTasks.every((task) => task.start_date)) {
       addToast('有効な基準日を入力してください', 'alert');
       return;
     }
@@ -258,7 +260,7 @@ export default function ApplyTaskPresetModal({
                     {preview.title}
                   </span>
                   <span className="text-xs text-gray-500 font-mono shrink-0">
-                    {formatDate(preview.date)}
+                    {formatDate(preview.start_date)}
                   </span>
                 </div>
               ))}

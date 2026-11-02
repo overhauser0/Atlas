@@ -317,16 +317,20 @@ export default function Home() {
   ) => {
     try {
       // 1. 親が設定されていて、かつ日付が入力されている場合
-      if (payload.parent_id && payload.date) {
+      if (payload.parent_id && payload.start_date) {
         const parentTask = allTasks.find((t) => t.id === payload.parent_id);
 
         // 2. 子タスクの日付が、親タスクの日付より「未来」の場合
-        if (parentTask && parentTask.date && payload.date > parentTask.date) {
+        if (
+          parentTask &&
+          parentTask.start_date &&
+          payload.start_date > parentTask.start_date
+        ) {
           const shouldUpdateParent = await confirm(
             '親タスク期日調整',
             <>
               子タスクの期日が、親プロジェクト「
-              {parentTask.title}」の期日 ({parentTask.date}) を超えています。
+              {parentTask.title}」の期日 ({parentTask.start_date}) を超えています。
               <br />
               <br />
               親プロジェクトの期日も延長しますか？
@@ -336,7 +340,7 @@ export default function Home() {
           );
 
           if (shouldUpdateParent) {
-            await updateTaskDate(parentTask.id, payload.date);
+            await updateTaskDate(parentTask, payload.start_date);
             addToast('親プロジェクトの期日を延長しました', 'info');
           }
         }

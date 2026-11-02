@@ -70,8 +70,8 @@ export default function StatsView({
     const thisMonthCompletedTasks: Task[] = [];
 
     completedTasks.forEach((task) => {
-      if (!task.date) return;
-      const taskDate = new Date(taskDateStr(task.date));
+      if (!task.start_date) return;
+      const taskDate = new Date(taskDateStr(task.start_date));
       const tYear = taskDate.getFullYear();
       const tMonth = taskDate.getMonth();
       const tDate = taskDate.getDate();
@@ -90,14 +90,15 @@ export default function StatsView({
     });
 
     thisMonthCompletedTasks.sort(
-      (a, b) => new Date(b.date!).getTime() - new Date(a.date!).getTime(),
+      (a, b) =>
+        new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime(),
     );
 
     const thisMonthIncompletedTasks: Task[] = [];
 
     tasks.forEach((task) => {
-      if (!task.date) return;
-      const taskDate = new Date(taskDateStr(task.date));
+      if (!task.start_date) return;
+      const taskDate = new Date(taskDateStr(task.start_date));
       const tYear = taskDate.getFullYear();
       const tMonth = taskDate.getMonth();
       if (tYear === currentYear && tMonth === currentMonth) {

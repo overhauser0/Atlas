@@ -74,7 +74,7 @@ export const generateRoutineTasks = async () => {
       piecesToCreate.push({
         area: 'Work',
         title: routine.title,
-        date: dueDate.toISOString().split('T')[0],
+        start_date: dueDate.toISOString().split('T')[0],
         note: routine.note || '',
         url: routine.url || '',
         status: 'INBOX',
@@ -99,7 +99,7 @@ export const generateRoutineTasks = async () => {
       piecesToCreate.push({
         area: 'Work',
         title: routine.title,
-        date: dueDate.toISOString().split('T')[0],
+        start_date: dueDate.toISOString().split('T')[0],
         note: routine.note || '',
         url: routine.url || '',
         status: 'INBOX',

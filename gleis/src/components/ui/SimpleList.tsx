@@ -69,7 +69,7 @@ export default function SimpleList({ tasks, onTaskClick }: SimpleListProps) {
             {/* 右側: 日付と矢印 */}
             <div className="flex items-center gap-3 shrink-0">
               <span className="text-xs font-mono text-gray-600 group-hover:text-gray-400 transition-colors">
-                {getDateShortString(task.date)}
+                {getDateShortString(task.start_date)}
               </span>
               <ChevronRight className="w-4 h-4 text-gray-600 opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
             </div>

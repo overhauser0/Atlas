@@ -78,10 +78,11 @@ export default function KanbanView({
               : tasks
                   .filter((t) => t.status === status)
                   .sort((a, b) => {
-                    if (!a.date) return 1;
-                    if (!b.date) return -1;
+                    if (!a.start_date) return 1;
+                    if (!b.start_date) return -1;
                     return (
-                      new Date(a.date).getTime() - new Date(b.date).getTime()
+                      new Date(a.start_date).getTime() -
+                      new Date(b.start_date).getTime()
                     );
                   });
 
@@ -164,7 +165,7 @@ export default function KanbanView({
                           <div className="flex gap-1.5 overflow-hidden">
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
                               <Calendar className="w-3 h-3" />
-                              <span>{getDateShortString(task.date)}</span>
+                              <span>{getDateShortString(task.start_date)}</span>
                             </div>
                             {task.parent_id && (
                               <div

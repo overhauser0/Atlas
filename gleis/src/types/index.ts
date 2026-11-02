@@ -11,7 +11,10 @@ export interface Task {
   title: string;
   status: TaskStatus;
   note: string;
-  date: string | null;
+  start_date: string | null;
+  start_time?: string | null;
+  end_date?: string | null;
+  end_time?: string | null;
   source: 'NOTION' | 'LOCAL';
   area: string | null;
   type: string | null;

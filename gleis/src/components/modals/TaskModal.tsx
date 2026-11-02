@@ -25,7 +25,10 @@ import { Task, TaskStatus } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
-import { getDateFullString } from '@/utils/dateUtils';
+import {
+  getDateFullString,
+  getPieceDateRangeUpdate,
+} from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 import { triggerHaptics } from '@/utils/haptics';
 import { useConfirm } from '@/hooks/useConfirm';
@@ -77,7 +80,8 @@ export default function TaskModal({
     title: string;
     note: string;
     status: TaskStatus;
-    date: string;
+    start_date: string | null;
+    end_date: string | null;
     source: string;
     id: string;
     url: string;
@@ -89,7 +93,8 @@ export default function TaskModal({
     title: '',
     note: '',
     status: 'INBOX',
-    date: '',
+    start_date: '',
+    end_date: null,
     source: 'LOCAL',
     id: '',
     url: '',
@@ -132,9 +137,10 @@ export default function TaskModal({
         id: task?.id || '',
         title: task?.title || '',
         status: task?.status || 'INBOX',
-        date: task?.date
-          ? task?.date.split('T')[0]
+        start_date: task?.start_date
+          ? task.start_date.slice(0, 10)
           : getDateFullString(new Date(), 'hyphen'),
+        end_date: task?.end_date || null,
         type: task?.type || 'Task',
         topics: task?.topics || [],
         fkw: task?.fkw || [],
@@ -198,7 +204,9 @@ export default function TaskModal({
     const payload = {
       title: editForm.title || 'No Title',
       status: editForm.status || 'INBOX',
-      date: editForm.date || null,
+      start_date: editForm.start_date || null,
+      end_date: editForm.end_date,
+      ...(editForm.start_date ? {} : { start_time: null, end_time: null }),
       type: editForm.type || 'Task',
       topics: editForm.topics || [],
       fkw: editForm.fkw || [],
@@ -700,10 +708,15 @@ export default function TaskModal({
               </div>
               <input
                 type="date"
-                value={editForm.date}
-                onChange={(e) =>
-                  setEditForm({ ...editForm, date: e.target.value })
-                }
+                value={editForm.start_date || ''}
+                onChange={(e) => {
+                  const dateUpdates = getPieceDateRangeUpdate(
+                    editForm.start_date,
+                    editForm.end_date,
+                    e.target.value,
+                  );
+                  setEditForm({ ...editForm, ...dateUpdates });
+                }}
                 className="noir-input pl-9 w-full box-border appearance-none min-w-0"
               />
             </div>
@@ -1001,7 +1014,7 @@ export default function TaskModal({
           parentTask={{
             id: task.id,
             title: task.title || '',
-            date: task.date || null,
+            start_date: task.start_date || null,
           }}
           onClose={() => setIsTaskPresetModalOpen(false)}
           onApplied={onSuccess}

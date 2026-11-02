@@ -135,7 +135,7 @@ export const insertPresetPieces = async (
     fkw: string[];
     prefs: string[];
     url: string | null;
-    date: string;
+    start_date: string;
     parent_id: string;
   }[],
 ) => {

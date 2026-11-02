@@ -62,8 +62,8 @@ export default function StatsModal({
     const targetDayTasks: Task[] = [];
 
     completedTasks.forEach((task) => {
-      if (!task.date) return;
-      const taskDateStr = task.date.substring(0, 10);
+      if (!task.start_date) return;
+      const taskDateStr = task.start_date.substring(0, 10);
       const taskDate = new Date(taskDateStr);
       taskDate.setHours(0, 0, 0, 0);
 

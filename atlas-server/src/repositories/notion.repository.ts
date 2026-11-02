@@ -18,6 +18,23 @@ const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
 
 // Piece operations
 
+const hasPieceDateFields = (piece: Partial<DbPiece>) =>
+  piece.start_date !== undefined ||
+  piece.start_time !== undefined ||
+  piece.end_date !== undefined ||
+  piece.end_time !== undefined;
+
+const toNotionDateValue = (
+  date?: string | null,
+  time?: string | null,
+) => (date ? `${date}${time ? `T${time}` : ''}` : null);
+
+const toNotionDateRange = (piece: Partial<DbPiece>) => {
+  const start = toNotionDateValue(piece.start_date, piece.start_time);
+  const end = toNotionDateValue(piece.end_date, piece.end_time);
+  return start ? { date: { start, end } } : { date: null };
+};
+
 /** Notionの Piece ページをすべて取得する。 */
 export const getPiecePages = async () => {
   let allPages: any[] = [];
@@ -49,8 +66,8 @@ export const insertPiecePage = async (piece: DbPiece) => {
     _Type: { select: { name: piece.type || 'Task' } },
   };
 
-  if (piece.date !== undefined) {
-    properties.Date = { date: piece.date ? { start: piece.date } : null };
+  if (hasPieceDateFields(piece)) {
+    properties.Date = toNotionDateRange(piece);
   }
   if (Array.isArray(piece?.topics)) {
     properties._Topics = {
@@ -109,8 +126,8 @@ export const updatePiecePage = async (
       rich_text: piece.note ? [{ text: { content: piece.note } }] : [],
     };
   }
-  if (piece.date !== undefined) {
-    properties.Date = { date: piece.date ? { start: piece.date } : null };
+  if (hasPieceDateFields(piece)) {
+    properties.Date = toNotionDateRange(piece);
   }
   if (piece.url !== undefined) {
     properties.URL = { url: piece.url };

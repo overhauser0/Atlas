@@ -121,12 +121,7 @@ export const applyTaskPreset = async (parentId: string, input: unknown) => {
     );
   }
 
-  const parentDate =
-    parent.date instanceof Date
-      ? parent.date.toISOString().slice(0, 10)
-      : typeof parent.date === 'string'
-        ? parent.date.slice(0, 10)
-        : '';
+  const parentDate = parent.start_date || '';
   const baseDateValue = data.baseDate || parentDate;
   const baseDate = baseDateValue
     ? parseCalendarDate(baseDateValue)
@@ -168,7 +163,7 @@ export const applyTaskPreset = async (parentId: string, input: unknown) => {
       fkw: [],
       prefs: [],
       url: null,
-      date: dueDate.toISOString().slice(0, 10),
+      start_date: dueDate.toISOString().slice(0, 10),
       parent_id: parentId,
     };
   });

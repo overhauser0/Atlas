@@ -42,7 +42,7 @@ export const createPiecesBulk = async (pieces: Piece[]) => {
   const piecesToCreate: Partial<DbPiece>[] = pieces.map((piece) => ({
     title: piece.title,
     area: piece.area || 'Work',
-    date: piece.date || new Date().toISOString().split('T')[0],
+    start_date: piece.start_date || new Date().toISOString().split('T')[0],
     note: '',
     url: '',
     parent_id: piece.parent_id || null,
@@ -79,11 +79,39 @@ export const updatePiece = async (id: string, payload: Partial<Piece>) => {
   const targetSource = payload.source || exitPiece?.source;
 
   const dbUpdates = DbPieceSchema.partial().parse(payload);
+  const dateFields: (keyof Pick<
+    DbPiece,
+    'start_date' | 'start_time' | 'end_date' | 'end_time'
+  >)[] = ['start_date', 'start_time', 'end_date', 'end_time'];
+  const updatesDate = dateFields.some((field) => dbUpdates[field] !== undefined);
+  const notionUpdates = {
+    ...dbUpdates,
+    ...(updatesDate
+      ? {
+          start_date:
+            dbUpdates.start_date !== undefined
+              ? dbUpdates.start_date
+              : exitPiece?.start_date ?? null,
+          start_time:
+            dbUpdates.start_time !== undefined
+              ? dbUpdates.start_time
+              : exitPiece?.start_time ?? null,
+          end_date:
+            dbUpdates.end_date !== undefined
+              ? dbUpdates.end_date
+              : exitPiece?.end_date ?? null,
+          end_time:
+            dbUpdates.end_time !== undefined
+              ? dbUpdates.end_time
+              : exitPiece?.end_time ?? null,
+        }
+      : {}),
+  };
 
   let result = null;
 
   if (targetSource === 'NOTION') {
-    await notionRepository.updatePiecePage(id, dbUpdates);
+    await notionRepository.updatePiecePage(id, notionUpdates);
     result = await pieceRepository.updateNotionPieceCache(id, dbUpdates);
   } else if (targetSource === 'LOCAL') {
     result = await pieceRepository.updateLocalPiece(id, dbUpdates);
@@ -144,16 +172,38 @@ export const rescheduleOverduePiecesToToday = async () => {
   const updatedPieces = [];
   for (const piece of overduePieces) {
     try {
+      if (!piece.start_date) continue;
+      const startDate = new Date(`${piece.start_date}T00:00:00Z`);
+      const todayDate = new Date(`${todayStr}T00:00:00Z`);
+      const dayDelta =
+        (todayDate.getTime() - startDate.getTime()) / 86400000;
+      const updates = {
+        start_date: todayStr,
+        ...(piece.end_date
+          ? {
+              end_date: new Date(
+                new Date(`${piece.end_date}T00:00:00Z`).getTime() +
+                  dayDelta * 86400000,
+              )
+                .toISOString()
+                .slice(0, 10),
+            }
+          : {}),
+      };
+
       if (piece.source === 'NOTION') {
-        await notionRepository.updatePiecePage(piece.id, { date: todayStr });
+        await notionRepository.updatePiecePage(piece.id, {
+          ...updates,
+          start_time: piece.start_time,
+          end_date: updates.end_date ?? piece.end_date,
+          end_time: piece.end_time,
+        });
         const updated = await pieceRepository.updateNotionPieceCache(piece.id, {
-          date: todayStr,
+          ...updates,
         });
         if (updated) updatedPieces.push(updated);
       } else if (piece.source === 'LOCAL') {
-        const updated = await pieceRepository.updateLocalPiece(piece.id, {
-          date: todayStr,
-        });
+        const updated = await pieceRepository.updateLocalPiece(piece.id, updates);
         if (updated) updatedPieces.push(updated);
       }
     } catch (error) {

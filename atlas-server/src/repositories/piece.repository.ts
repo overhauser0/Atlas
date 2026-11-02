@@ -38,10 +38,10 @@ export const getPieces = async (filters: PieceFilters) => {
       q = q.where('status', 'not in', filters.excludeStatus);
     }
     if (filters.beforeDate) {
-      q = q.where('date', '<', filters.beforeDate);
+      q = q.where('start_date', '<', filters.beforeDate);
     }
     if (filters.afterDate) {
-      q = q.where('date', '>', filters.afterDate);
+      q = q.where('start_date', '>', filters.afterDate);
     }
     if (filters.parentId) q = q.where('parent_id', '=', filters.parentId);
     return q;
@@ -67,7 +67,9 @@ export const getPieces = async (filters: PieceFilters) => {
 
   const pickDate = (piece: any) => {
     return new Date(
-      piece.date || piece.created_at || piece.last_edited_time,
+      piece.start_date
+        ? `${piece.start_date}T${piece.start_time || '00:00:00'}`
+        : piece.created_at || piece.last_edited_time,
     ).getTime();
   };
 
@@ -223,8 +225,8 @@ export const deleteOldDoneLocalPieces = async () => {
   return await db
     .deleteFrom('local_pieces')
     .where('status', '=', 'Done')
-    .where('date', 'is not', null)
-    .where('date', '<', thresholdDateStr)
+    .where('start_date', 'is not', null)
+    .where('start_date', '<', thresholdDateStr)
     .execute();
 };
 

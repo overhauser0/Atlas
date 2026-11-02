@@ -1,7 +1,7 @@
 // gleis/src/hooks/useTaskSync.ts
 import { useState, useCallback } from 'react';
 import { Task } from '@/types';
-import { isPastDate } from '@/utils/dateUtils';
+import { getPieceDateRangeUpdate, isPastDate } from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 
 export const useTaskSync = (
@@ -67,7 +67,7 @@ export const useTaskSync = (
         setOverdueTasks(
           data.pieces.filter(
             (t: Task) =>
-              isPastDate(t.date) &&
+              isPastDate(t.start_date) &&
               t.status !== 'Done' &&
               t.status !== 'Canceled',
           ),
@@ -79,8 +79,8 @@ export const useTaskSync = (
               return topics.includes('Meeting');
             })
             .sort((a: Task, b: Task) => {
-              const dateA = a.date ? new Date(a.date).getTime() : 0;
-              const dateB = b.date ? new Date(b.date).getTime() : 0;
+              const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
+              const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
               return dateB - dateA;
             }),
         );
@@ -143,10 +143,15 @@ export const useTaskSync = (
   };
 
   // 親タスクの期日だけを更新する関数
-  const updateTaskDate = async (taskId: string, newDate: string) => {
-    const response = await atlasFetch(`/pieces/${taskId}`, {
+  const updateTaskDate = async (task: Task, newDate: string) => {
+    const dateUpdates = getPieceDateRangeUpdate(
+      task.start_date,
+      task.end_date,
+      newDate,
+    );
+    const response = await atlasFetch(`/pieces/${task.id}`, {
       method: 'PATCH',
-      body: JSON.stringify({ date: newDate }),
+      body: JSON.stringify(dateUpdates),
     });
     if (!response.ok) throw new Error('Failed to update parent date');
   };

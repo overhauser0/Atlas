@@ -550,10 +550,10 @@ export default function CommandPalette({
                           </span>
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
-                          {task.date && (
+                          {task.start_date && (
                             <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
                               <Calendar className="w-3 h-3 text-gray-600" />
-                              {task.date.split('T')[0].substring(5)}
+                              {task.start_date.substring(5)}
                             </span>
                           )}
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded border border-white/5 text-gray-400 bg-white/2 uppercase tracking-wider">

@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { Task } from '@/types';
-import { mergeNewDateWithOriginalTime } from '@/utils/dateUtils';
+import { getPieceDateRangeUpdate } from '@/utils/dateUtils';
 import { getStatusColor, sortTasksByStatus } from '@/utils/miscellaneousUtils';
 import { atlasFetch } from '@/utils/api';
 import MonthSelector from '@/components/ui/MonthSelector';
@@ -52,17 +52,20 @@ export default function CalendarView({
     if (!draggingTaskId) return;
     const task = displayTasks.find((t) => t.id === draggingTaskId);
 
-    // 日付が変わらない場合は無視（時刻部分は維持するため、前方一致で簡易判定）
-    if (!task || task.date?.startsWith(newDateStr)) {
+    if (!task || task.start_date === newDateStr) {
       setDraggingTaskId(null);
       return;
     }
 
-    const newDateTime = mergeNewDateWithOriginalTime(task.date, newDateStr);
+    const dateUpdates = getPieceDateRangeUpdate(
+      task.start_date,
+      task.end_date,
+      newDateStr,
+    );
 
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === draggingTaskId ? { ...t, date: newDateTime } : t,
+        t.id === draggingTaskId ? { ...t, ...dateUpdates } : t,
       ),
     );
     setDraggingTaskId(null);
@@ -70,8 +73,7 @@ export default function CalendarView({
     await atlasFetch(`/pieces/${task.id}`, {
       method: 'PATCH',
       body: JSON.stringify({
-        ...task,
-        date: newDateTime,
+        ...dateUpdates,
         source: task.source,
       }),
     });
@@ -79,7 +81,7 @@ export default function CalendarView({
 
   const handleRightClick = (e: React.MouseEvent, dateStr: string) => {
     e.preventDefault();
-    openTaskModal && openTaskModal({ date: dateStr } as Task);
+    openTaskModal && openTaskModal({ start_date: dateStr } as Task);
   };
 
   return (
@@ -124,7 +126,7 @@ export default function CalendarView({
 
               // この日のタスクをフィルタリング (表示対象のタスク群から)
               const dayTasks = sortTasksByStatus(
-                displayTasks.filter((t) => t.date?.startsWith(dateStr)),
+                displayTasks.filter((t) => t.start_date?.startsWith(dateStr)),
               );
               const isToday =
                 new Date().toISOString().split('T')[0] === dateStr;

@@ -8,6 +8,18 @@ import { extractParentIdFromNotionUrl } from '../utils/utils';
 import { DbPiece } from '../models/piece.model';
 import { broadcast } from '../utils/websocket';
 
+const parseNotionDate = (value?: string | null) => {
+  if (!value) return { date: null, time: null };
+
+  const match = value.match(
+    /^(\d{4}-\d{2}-\d{2})(?:T(\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(?:Z|[+-]\d{2}:\d{2})?)?$/,
+  );
+  if (!match) {
+    throw new Error(`Unsupported Notion Piece date value: ${value}`);
+  }
+  return { date: match[1], time: match[2] || null };
+};
+
 /** Notionの最終同期時刻を取得する。 */
 export const getLastSyncTime = async () => {
   return await metadataRepo.getLastSyncTimeByKey('last_notion_sync_time');
@@ -36,6 +48,8 @@ export const syncNotionToLocal = async () => {
       const props = page.properties;
 
       const url = props.URL?.url || null;
+      const start = parseNotionDate(props.Date?.date?.start);
+      const end = parseNotionDate(props.Date?.date?.end);
 
       // 2. Notionの型を内部のPieceスキーマにマッピング
       // notion.repository.ts で定義したプロパティ名（_Area等）に準拠
@@ -51,7 +65,10 @@ export const syncNotionToLocal = async () => {
         fkw: props.FreeKeyWord?.multi_select.map((f: any) => f.name) || [],
         prefs: props.prefs?.multi_select.map((p: any) => p.name) || [],
         url,
-        date: props.Date?.date?.start || null,
+        start_date: start.date,
+        start_time: start.time,
+        end_date: end.date,
+        end_time: end.time,
         parent_id:
           props.parent_id?.rich_text[0]?.plain_text ||
           extractParentIdFromNotionUrl(url),

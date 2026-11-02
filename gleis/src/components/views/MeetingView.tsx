@@ -111,12 +111,12 @@ export default function MeetingView({
 
     // 2. 期間ごとにグループ分け
     filtered.slice(0, 50).forEach((task) => {
-      if (!task.date) {
+      if (!task.start_date) {
         groups.older.push(task);
         return;
       }
 
-      const tDate = new Date(task.date);
+      const tDate = new Date(task.start_date);
       const tTime = new Date(
         tDate.getFullYear(),
         tDate.getMonth(),

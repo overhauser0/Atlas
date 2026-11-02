@@ -1,7 +1,7 @@
 // src/models/piece.models.ts
 
 import { z } from 'zod';
-import { Generated } from 'kysely';
+import { ColumnType, Generated } from 'kysely';
 
 // ==========================================
 // 1. Zod Schemas (APIバリデーション用)
@@ -27,11 +27,24 @@ export const PieceSchema = z.object({
     .or(z.literal(''))
     .nullable()
     .transform((v) => (!v ? 'LOCAL' : v)),
-  date: z
-    .union([
-      z.string().datetime({ offset: true }), // Notionはオフセット(+09:00等)を返すことがあるため offset: true がおすすめ
-      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-    ])
+  start_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  start_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$/)
+    .nullable()
+    .optional(),
+  end_date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+  end_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$/)
     .nullable()
     .optional(),
   area: z
@@ -111,6 +124,10 @@ export interface LocalPiecesTable {
   prefs: string[];
   url: string | null;
   date: string | null;
+  start_date: ColumnType<string | null, string | null | undefined, string | null>;
+  start_time: ColumnType<string | null, string | null | undefined, string | null>;
+  end_date: ColumnType<string | null, string | null | undefined, string | null>;
+  end_time: ColumnType<string | null, string | null | undefined, string | null>;
   parent_id: string | null;
   created_at: Generated<Date>;
 }
@@ -126,7 +143,11 @@ export interface NotionPiecesCacheTable {
   flags: string[];
   fkw: string[];
   prefs: string[];
-  date: Date | null;
+  date: string | null;
+  start_date: ColumnType<string | null, string | null | undefined, string | null>;
+  start_time: ColumnType<string | null, string | null | undefined, string | null>;
+  end_date: ColumnType<string | null, string | null | undefined, string | null>;
+  end_time: ColumnType<string | null, string | null | undefined, string | null>;
   url: string | null;
   parent_id: string | null;
   last_edited_time: Date;

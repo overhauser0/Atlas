@@ -37,7 +37,7 @@ interface Props {
 
 interface DraftTask {
   title: string;
-  date: string;
+  start_date: string;
 }
 
 export default function ProjectModal({
@@ -71,7 +71,7 @@ export default function ProjectModal({
     if (e.key === 'Enter' && inputValue.trim() !== '') {
       e.preventDefault();
       const today = new Date().toLocaleDateString('sv-SE');
-      setDrafts([...drafts, { title: inputValue.trim(), date: today }]);
+      setDrafts([...drafts, { title: inputValue.trim(), start_date: today }]);
       setInputValue('');
     }
   };
@@ -82,7 +82,7 @@ export default function ProjectModal({
 
   const updateDraftDate = (index: number, newDate: string) => {
     const newDrafts = [...drafts];
-    newDrafts[index].date = newDate;
+    newDrafts[index].start_date = newDate;
     setDrafts(newDrafts);
   };
 
@@ -94,7 +94,7 @@ export default function ProjectModal({
         pieces: drafts.map((draft) => ({
           title: draft.title,
           parent_id: parentTask.id,
-          date: draft.date,
+          start_date: draft.start_date,
         })),
       };
 
@@ -170,11 +170,11 @@ export default function ProjectModal({
             </span>
           </div>
 
-          {parentTask.date && (
+          {parentTask.start_date && (
             <div className="flex items-center gap-1.5 text-xs text-zinc-400 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
               <Calendar className="w-3.5 h-3.5" />
               <span className="font-mono mt-0.5">
-                {getDateShortString(parentTask.date)}
+                {getDateShortString(parentTask.start_date)}
               </span>
             </div>
           )}
@@ -299,7 +299,7 @@ export default function ProjectModal({
                       <Calendar className="hidden md:inline w-3.5 h-3.5 text-zinc-500 absolute left-2.5 pointer-events-none" />
                       <input
                         type="date"
-                        value={draft.date}
+                        value={draft.start_date}
                         onChange={(e) => updateDraftDate(idx, e.target.value)}
                         className="border border-white/5 rounded-md py-1.5 pl-2 md:pl-8 pr-2 text-xs md:text-sm text-zinc-300 focus:outline-none focus:border-blue-500/50 transition-colors cursor-pointer"
                       />

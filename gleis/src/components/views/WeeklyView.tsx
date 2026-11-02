@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { Task } from '@/types';
 import {
-  mergeNewDateWithOriginalTime,
+  getPieceDateRangeUpdate,
   isOverdue,
   getThisWeekMonday,
 } from '@/utils/dateUtils';
@@ -58,11 +58,19 @@ export default function WeeklyView({
     const task = tasks.find((t) => t.id === draggingTaskId);
     if (!task) return;
 
-    const newDateTime = mergeNewDateWithOriginalTime(task.date, newDateStr);
+    if (task.start_date === newDateStr) {
+      setDraggingTaskId(null);
+      return;
+    }
+    const dateUpdates = getPieceDateRangeUpdate(
+      task.start_date,
+      task.end_date,
+      newDateStr,
+    );
 
     setTasks((prev) =>
       prev.map((t) =>
-        t.id === draggingTaskId ? { ...t, date: newDateTime } : t,
+        t.id === draggingTaskId ? { ...t, ...dateUpdates } : t,
       ),
     );
     setDraggingTaskId(null);
@@ -72,8 +80,7 @@ export default function WeeklyView({
       await atlasFetch(`/pieces/${task.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
-          ...task,
-          date: newDateTime,
+          ...dateUpdates,
           source: task.source,
         }),
       });
@@ -149,7 +156,7 @@ export default function WeeklyView({
   const handleRightClick = (e: React.MouseEvent, dateStr: string | null) => {
     e.preventDefault();
     if (dateStr) {
-      openTaskModal && openTaskModal({ date: dateStr } as Task);
+      openTaskModal && openTaskModal({ start_date: dateStr } as Task);
     }
   };
 
@@ -165,9 +172,9 @@ export default function WeeklyView({
             // 1. 完了を除外 & 期限切れをピックアップ
             const filteredTasks = tasks.filter((t) => {
               if (t.status === 'Done') return false;
-              if (col.isOverdue) return isOverdue(t.date);
+              if (col.isOverdue) return isOverdue(t.start_date);
 
-              return t.date && t.date.startsWith(col.dateStr!);
+              return t.start_date && t.start_date.startsWith(col.dateStr!);
             });
 
             // 2. ステータス順でソート

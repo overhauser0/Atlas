@@ -49,8 +49,8 @@ export default function HomeView({
   // 選択した日のタスク（完了していないもの）をフィルタリング
   const targetTasks = tasks.filter(
     (task) =>
-      task.date &&
-      task.date.startsWith(targetDateString) &&
+      task.start_date &&
+      task.start_date.startsWith(targetDateString) &&
       task.status !== 'Done',
   );
   const sortedTargetTasks = sortTasksByStatus(targetTasks);
@@ -58,8 +58,8 @@ export default function HomeView({
   // 選択した日の完了済みタスク
   const completedTargetTasks = completedTasks.filter(
     (task) =>
-      task.date &&
-      task.date.startsWith(targetDateString) &&
+      task.start_date &&
+      task.start_date.startsWith(targetDateString) &&
       task.status === 'Done',
   );
 

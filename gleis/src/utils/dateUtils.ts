@@ -27,17 +27,38 @@ export const isPastDate = (dateStr: string | null): boolean => {
   return date < today;
 };
 
-export const mergeNewDateWithOriginalTime = (
-  originalDateStr: string | null,
-  newDateStr: string,
-): string | null => {
-  if (!newDateStr) return null;
-  if (originalDateStr && originalDateStr.includes('T')) {
-    const timeMatch = originalDateStr.match(/T(\d{2}:\d{2}:\d{2}(\.\d+)?)/);
-    const timePart = timeMatch ? timeMatch[1] : '09:00:00.000';
-    return `${newDateStr}T${timePart}+09:00`;
+export const getPieceDateRangeUpdate = (
+  originalStartDate: string | null | undefined,
+  originalEndDate: string | null | undefined,
+  newStartDate: string,
+) => {
+  if (!newStartDate) {
+    return {
+      start_date: null,
+      ...(originalEndDate ? { end_date: null } : {}),
+    };
   }
-  return newDateStr;
+
+  if (!originalStartDate || !originalEndDate) {
+    return { start_date: newStartDate };
+  }
+
+  const originalStart = new Date(`${originalStartDate}T00:00:00Z`);
+  const originalEnd = new Date(`${originalEndDate}T00:00:00Z`);
+  const newStart = new Date(`${newStartDate}T00:00:00Z`);
+  if (
+    Number.isNaN(originalStart.getTime()) ||
+    Number.isNaN(originalEnd.getTime()) ||
+    Number.isNaN(newStart.getTime())
+  ) {
+    return { start_date: newStartDate };
+  }
+
+  const duration = originalEnd.getTime() - originalStart.getTime();
+  const newEndDate = new Date(newStart.getTime() + duration)
+    .toISOString()
+    .slice(0, 10);
+  return { start_date: newStartDate, end_date: newEndDate };
 };
 
 export const getCurrentYearMonth = () => {
