@@ -25,9 +25,21 @@ const hasPieceDateFields = (piece: Partial<DbPiece>) =>
   piece.end_time !== undefined;
 
 const toNotionDateValue = (
-  date?: string | null,
+  date?: string | Date | null,
   time?: string | null,
-) => (date ? `${date}${time ? `T${time}+09:00` : ''}` : null);
+) => {
+  if (!date) return null;
+
+  const datePart =
+    date instanceof Date
+      ? `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
+      : date.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+  if (!datePart) {
+    throw new Error(`Invalid Piece date value for Notion: ${date}`);
+  }
+
+  return `${datePart}${time ? `T${time}+09:00` : ''}`;
+};
 
 const toNotionDateRange = (piece: Partial<DbPiece>) => {
   const start = toNotionDateValue(piece.start_date, piece.start_time);
