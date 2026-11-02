@@ -27,7 +27,7 @@ const hasPieceDateFields = (piece: Partial<DbPiece>) =>
 const toNotionDateValue = (
   date?: string | null,
   time?: string | null,
-) => (date ? `${date}${time ? `T${time}` : ''}` : null);
+) => (date ? `${date}${time ? `T${time}+09:00` : ''}` : null);
 
 const toNotionDateRange = (piece: Partial<DbPiece>) => {
   const start = toNotionDateValue(piece.start_date, piece.start_time);
