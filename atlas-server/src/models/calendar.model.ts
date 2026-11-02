@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { Generated, Selectable, Insertable, Updateable } from 'kysely';
+import {
+  ColumnType,
+  Generated,
+  Selectable,
+  Insertable,
+  Updateable,
+} from 'kysely';
 
 // ==========================================
 // 1. Zod Schemas (APIバリデーション用)
@@ -9,7 +15,16 @@ export const GoogleEventSchema = z.object({
   id: z.string().min(1, 'IDは必須です'),
   title: z.string().min(1, 'タイトルは必須です'),
   note: z.string().nullable().optional(),
-  date: z.string().nullable().optional(),
+  start_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  start_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/)
+    .nullable(),
+  end_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable(),
+  end_time: z
+    .string()
+    .regex(/^\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?$/)
+    .nullable(),
   url: z.string().nullable().optional(),
 });
 
@@ -32,7 +47,10 @@ export interface DbGoogleEvent {
   id: string;
   title: string;
   note: string | null;
-  date: string | null;
+  start_date: ColumnType<Date, Date | string, Date | string>;
+  start_time: string | null;
+  end_date: ColumnType<Date | null, Date | string | null, Date | string | null>;
+  end_time: string | null;
   url: string | null;
   synced_at: Generated<Date>;
 }

@@ -123,7 +123,6 @@ export interface LocalPiecesTable {
   fkw: string[];
   prefs: string[];
   url: string | null;
-  date: string | null;
   start_date: ColumnType<string | null, string | null | undefined, string | null>;
   start_time: ColumnType<string | null, string | null | undefined, string | null>;
   end_date: ColumnType<string | null, string | null | undefined, string | null>;
@@ -143,7 +142,6 @@ export interface NotionPiecesCacheTable {
   flags: string[];
   fkw: string[];
   prefs: string[];
-  date: string | null;
   start_date: ColumnType<string | null, string | null | undefined, string | null>;
   start_time: ColumnType<string | null, string | null | undefined, string | null>;
   end_date: ColumnType<string | null, string | null | undefined, string | null>;

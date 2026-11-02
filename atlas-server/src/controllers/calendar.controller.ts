@@ -3,6 +3,7 @@
 import { Context } from 'hono';
 import * as calendarRepo from '../repositories/calendar.repository';
 import { broadcast } from '../utils/websocket';
+import { GoogleEventSchema } from '../models/calendar.model';
 
 // ==========================================
 // Webhook from n8n
@@ -22,14 +23,27 @@ export const receiveCalendarSync = async (c: Context) => {
       );
     }
 
+    const validation = GoogleEventSchema.array().safeParse(events);
+    if (!validation.success) {
+      return c.json(
+        {
+          message: 'Invalid Google Calendar event data.',
+          errors: validation.error.format(),
+        },
+        400,
+      );
+    }
+
     // DBにUpsert
-    await calendarRepo.syncGoogleEvents(events);
+    await calendarRepo.syncGoogleEvents(validation.data);
 
     // WebSocketでフロントエンドに変更を通知
     broadcast(JSON.stringify({ type: 'REFRESH_CALENDAR' }));
 
-    console.log(`✅ Synced ${events.length} Google Calendar events from n8n.`);
-    return c.json({ status: 'SUCCESS', count: events.length }, 200);
+    console.log(
+      `✅ Synced ${validation.data.length} Google Calendar events from n8n.`,
+    );
+    return c.json({ status: 'SUCCESS', count: validation.data.length }, 200);
   } catch (error: any) {
     console.error('❌ Receive Calendar Sync Error:', error);
     return c.json(
