@@ -15,6 +15,7 @@ export type ItemTabPreset = (typeof ITEM_TAB_PRESETS)[number];
 export type Views =
   | 'Home'
   | 'Calendar'
+  | 'Week'
   | 'Photo'
   | 'People'
   | 'Settings'

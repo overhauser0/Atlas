@@ -18,6 +18,7 @@ import {
   Newspaper,
   Wine,
   UsersRound,
+  CalendarDays,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -35,6 +36,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 import HomeTab from '@/components/tabs/HomeTab';
 import CalendarTab from '@/components/tabs/CalendarTab';
+import WeekCalendarTab from '@/components/tabs/WeekCalendarTab';
 import PhotoTab from '@/components/tabs/PhotoTab';
 import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
 import ConfigTab from '@/components/tabs/ConfigTab';
@@ -50,7 +52,7 @@ import { ToastProvider } from '@/components/ui/Toast';
 const MAIN_TABS = [
   { id: 'Home', label: 'Home', icon: <Compass /> },
   { id: 'Calendar', label: 'Calendar', icon: <CalendarIcon /> },
-  { id: 'Photo', label: 'Immich', icon: <Aperture /> },
+  { id: 'Week', label: 'Week', icon: <CalendarDays /> },
 ] as const;
 
 const EXTRA_TABS = [
@@ -64,6 +66,7 @@ const EXTRA_TABS = [
   { id: 'Article', label: 'Article', icon: <Newspaper /> },
   { id: 'Liqueur', label: 'Liqueur', icon: <Wine /> },
   { id: 'People', label: 'People', icon: <UsersRound /> },
+  { id: 'Photo', label: 'Immich', icon: <Aperture /> },
 ] as const;
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
@@ -340,6 +343,16 @@ function AppMain() {
               onDiaryClick={handleDiaryClick}
               onOpenCreate={handleOpenCreate}
               onOpenDairyPhoto={handleOpenDailyPhoto}
+            />
+          )}
+          {currentTab === 'Week' && (
+            <WeekCalendarTab
+              events={events}
+              tasks={tasks}
+              googleEvents={googleEvents}
+              showTasks={appSettings.showTaskInCal}
+              showGoogleEvents={appSettings.showGcalInCal}
+              onItemClick={openDetailModal}
             />
           )}
           {currentTab === 'Photo' && (
