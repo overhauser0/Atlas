@@ -6,6 +6,22 @@ import { ColumnType, Generated } from 'kysely';
 // ==========================================
 // 1. Zod Schemas (APIバリデーション用)
 // ==========================================
+const pieceDateSchema = z.preprocess(
+  (value) => {
+    if (value instanceof Date && !Number.isNaN(value.getTime())) {
+      const year = value.getFullYear();
+      const month = String(value.getMonth() + 1).padStart(2, '0');
+      const day = String(value.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+    return value;
+  },
+  z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullable()
+    .optional(),
+);
 
 // 基本となるPieceスキーマ
 export const PieceSchema = z.object({
@@ -27,21 +43,13 @@ export const PieceSchema = z.object({
     .or(z.literal(''))
     .nullable()
     .transform((v) => (!v ? 'LOCAL' : v)),
-  start_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable()
-    .optional(),
+  start_date: pieceDateSchema,
   start_time: z
     .string()
     .regex(/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$/)
     .nullable()
     .optional(),
-  end_date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .nullable()
-    .optional(),
+  end_date: pieceDateSchema,
   end_time: z
     .string()
     .regex(/^\d{2}:\d{2}(?::\d{2}(?:\.\d{1,6})?)?$/)
@@ -123,8 +131,16 @@ export interface LocalPiecesTable {
   fkw: string[];
   prefs: string[];
   url: string | null;
-  start_date: ColumnType<string | null, string | null | undefined, string | null>;
-  start_time: ColumnType<string | null, string | null | undefined, string | null>;
+  start_date: ColumnType<
+    string | null,
+    string | null | undefined,
+    string | null
+  >;
+  start_time: ColumnType<
+    string | null,
+    string | null | undefined,
+    string | null
+  >;
   end_date: ColumnType<string | null, string | null | undefined, string | null>;
   end_time: ColumnType<string | null, string | null | undefined, string | null>;
   parent_id: string | null;
@@ -142,8 +158,16 @@ export interface NotionPiecesCacheTable {
   flags: string[];
   fkw: string[];
   prefs: string[];
-  start_date: ColumnType<string | null, string | null | undefined, string | null>;
-  start_time: ColumnType<string | null, string | null | undefined, string | null>;
+  start_date: ColumnType<
+    string | null,
+    string | null | undefined,
+    string | null
+  >;
+  start_time: ColumnType<
+    string | null,
+    string | null | undefined,
+    string | null
+  >;
   end_date: ColumnType<string | null, string | null | undefined, string | null>;
   end_time: ColumnType<string | null, string | null | undefined, string | null>;
   url: string | null;
