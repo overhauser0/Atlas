@@ -42,7 +42,6 @@ export default function CalendarTab({
 }: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
-  // 新設：選択中の日付（デフォルトは今日）
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const bottomScrollRef = useRef<HTMLDivElement | null>(null);
   const setBottomScrollRef = useCallback((element: HTMLDivElement | null) => {
@@ -470,7 +469,12 @@ export default function CalendarTab({
 
       {/* FAB */}
       <button
-        onClick={() => onOpenCreate({ type: 'Event' } as LifeItem)}
+        onClick={() =>
+          onOpenCreate({
+            type: 'Event',
+            start_date: getDateFullString(selectedDate),
+          } as LifeItem)
+        }
         className="absolute bottom-6 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
       >
         <Plus className="w-7 h-7" />

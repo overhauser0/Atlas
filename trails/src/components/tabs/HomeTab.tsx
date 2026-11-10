@@ -5,6 +5,7 @@ import { Archive, Plane, Tags } from 'lucide-react';
 import { Views, LifeItem } from '@/types';
 import ListItem from '../ui/ListItem';
 import JapanMapWidget from '../JapanMapWidget';
+import { sortByStartDate } from '@/utils/dateUtils';
 
 interface Props {
   onNavigate: (tab: Views) => void;
@@ -34,22 +35,18 @@ export default function HomeTab({
     () => events.filter((item) => item.status === 'Done'),
     [events],
   );
+  const recentCompletedItems = useMemo(
+    () => sortByStartDate(completedItems, 'desc').slice(0, 5),
+    [completedItems],
+  );
   const recentTasks = useMemo(
     () =>
-      tasks
-        .filter((item) => item.type === 'Task' && item.status !== 'Done')
-        .sort((a, b) => {
-          const parsedDateA = a.start_date ? Date.parse(a.start_date) : NaN;
-          const parsedDateB = b.start_date ? Date.parse(b.start_date) : NaN;
-          const dateA = Number.isNaN(parsedDateA)
-            ? Number.POSITIVE_INFINITY
-            : parsedDateA;
-          const dateB = Number.isNaN(parsedDateB)
-            ? Number.POSITIVE_INFINITY
-            : parsedDateB;
-          return dateA - dateB;
-        })
-        .slice(0, 5),
+      sortByStartDate(
+        tasks.filter(
+          (item) => item.type === 'Task' && item.status !== 'Done',
+        ),
+        'asc',
+      ).slice(0, 5),
     [tasks],
   );
 
@@ -131,7 +128,7 @@ export default function HomeTab({
               Recent Activity
             </h2>
             <div className="bg-white border border-gray-100 rounded-3xl shadow-sm flex flex-col divide-y divide-gray-50 overflow-hidden">
-              {completedItems.slice(0, 5).map((item) => (
+              {recentCompletedItems.map((item) => (
                 <ListItem
                   key={item.id}
                   item={item}

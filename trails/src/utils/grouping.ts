@@ -1,15 +1,11 @@
 import { LifeItem } from '@/types';
+import { sortByStartDate } from '@/utils/dateUtils';
 
 export const groupItemsByYear = (items: LifeItem[]) => {
   const grouped: { [key: string]: LifeItem[] } = {};
 
   // 1. 日付の新しい順（降順）にソート。Dateが無いものは一番上(PLAN)に。
-  const sortedItems = [...items].sort((a, b) => {
-    if (!a.start_date && !b.start_date) return 0;
-    if (!a.start_date) return -1;
-    if (!b.start_date) return 1;
-    return b.start_date.localeCompare(a.start_date);
-  });
+  const sortedItems = sortByStartDate(items, 'desc', 'first');
 
   // 2. 年ごとに振り分け
   sortedItems.forEach((item) => {

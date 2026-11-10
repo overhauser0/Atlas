@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { Person, PersonPiece, PersonTimelinePiece } from '@/types';
 import { atlasFetch } from '@/utils/api';
-import { getDateFullString } from '@/utils/dateUtils';
+import { getDateFullString, sortByStartDate } from '@/utils/dateUtils';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
@@ -209,13 +209,7 @@ export default function PersonEditor({
     void getTimelinePieces(person.id)
       .then((pieces) => {
         if (isCurrent) {
-          setTimelinePieces(
-            pieces.sort((a, b) => {
-              if (!a.start_date) return b.start_date ? 1 : 0;
-              if (!b.start_date) return -1;
-              return b.start_date.localeCompare(a.start_date);
-            }),
-          );
+          setTimelinePieces(sortByStartDate(pieces, 'desc'));
         }
       })
       .catch((fetchError: unknown) => {

@@ -1,5 +1,25 @@
 type Separator = 'slash' | 'hyphen' | 'none';
 
+export const sortByStartDate = <T extends { start_date?: string | null }>(
+  items: T[],
+  order: 'asc' | 'desc' = 'asc',
+  missingDateOrder: 'first' | 'last' = 'last',
+): T[] =>
+  [...items].sort((a, b) => {
+    const dateA = a.start_date ? Date.parse(a.start_date) : NaN;
+    const dateB = b.start_date ? Date.parse(b.start_date) : NaN;
+    const hasDateA = !Number.isNaN(dateA);
+    const hasDateB = !Number.isNaN(dateB);
+
+    if (!hasDateA || !hasDateB) {
+      if (hasDateA === hasDateB) return 0;
+      if (missingDateOrder === 'first') return hasDateA ? 1 : -1;
+      return hasDateA ? -1 : 1;
+    }
+
+    return order === 'asc' ? dateA - dateB : dateB - dateA;
+  });
+
 const formatDate = (
   date: Date | string | null | undefined,
   options: Intl.DateTimeFormatOptions,
