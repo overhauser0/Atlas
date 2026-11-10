@@ -60,6 +60,7 @@ import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useConfirm } from '@/hooks/useConfirm';
 import { parseGleisLink } from '@/utils/schemeUtils';
 import { atlasFetch } from '@/utils/api';
+import { getDateFullString } from '@/utils/dateUtils';
 
 export default function Home() {
   // ============================================================================
@@ -330,7 +331,9 @@ export default function Home() {
             '親タスク期日調整',
             <>
               子タスクの期日が、親プロジェクト「
-              {parentTask.title}」の期日 ({parentTask.start_date}) を超えています。
+              {parentTask.title}」の期日 (
+              {getDateFullString(parentTask.start_date)})
+              を超えています。
               <br />
               <br />
               親プロジェクトの期日も延長しますか？

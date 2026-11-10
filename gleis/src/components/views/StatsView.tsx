@@ -14,6 +14,7 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { Task } from '@/types';
+import { sortByStartDate } from '@/utils/dateUtils';
 import Card from '@/components/ui/Card';
 import SimpleList from '@/components/ui/SimpleList';
 import MonthSelector from '@/components/ui/MonthSelector';
@@ -89,9 +90,9 @@ export default function StatsView({
       }
     });
 
-    thisMonthCompletedTasks.sort(
-      (a, b) =>
-        new Date(b.start_date!).getTime() - new Date(a.start_date!).getTime(),
+    const sortedThisMonthCompletedTasks = sortByStartDate(
+      thisMonthCompletedTasks,
+      'desc',
     );
 
     const thisMonthIncompletedTasks: Task[] = [];
@@ -174,7 +175,7 @@ export default function StatsView({
       firstDayOfWeek,
       thisMonthDaily,
       weekdayCounts,
-      thisMonthCompletedTasks,
+      thisMonthCompletedTasks: sortedThisMonthCompletedTasks,
       averagePace,
       peakCount,
       peakDateNum,

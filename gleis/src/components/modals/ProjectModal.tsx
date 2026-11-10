@@ -21,7 +21,7 @@ import Card from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
 import { atlasFetch } from '@/utils/api';
 import { getStatusColor } from '@/utils/miscellaneousUtils';
-import { getDateShortString } from '@/utils/dateUtils';
+import { getDateShortString, sortByStartDate } from '@/utils/dateUtils';
 import ProgressBar from '@/components/ui/ProgressBar';
 
 interface Props {
@@ -66,6 +66,7 @@ export default function ProjectModal({
   const totalCount = subTasks.length;
   const progressPercent =
     totalCount === 0 ? 0 : Math.round((completedCount / totalCount) * 100);
+  const sortedSubTasks = sortByStartDate(subTasks);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && inputValue.trim() !== '') {
@@ -253,7 +254,7 @@ export default function ProjectModal({
           {/* SimpleListコンポーネント */}
           <div className="min-h-0 flex-1 overflow-y-auto bg-black/40 rounded-xl border border-white/5 p-1 noir-scrollbar">
             <SimpleList
-              tasks={subTasks}
+              tasks={sortedSubTasks}
               onTaskClick={(task) => {
                 if (openTaskModal) openTaskModal(task);
               }}

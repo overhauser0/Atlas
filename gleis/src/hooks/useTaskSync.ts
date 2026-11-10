@@ -1,7 +1,11 @@
 // gleis/src/hooks/useTaskSync.ts
 import { useState, useCallback } from 'react';
 import { Task } from '@/types';
-import { getPieceDateRangeUpdate, isPastDate } from '@/utils/dateUtils';
+import {
+  getPieceDateRangeUpdate,
+  isPastDate,
+  sortByStartDate,
+} from '@/utils/dateUtils';
 import { atlasFetch } from '@/utils/api';
 
 export const useTaskSync = (
@@ -73,16 +77,13 @@ export const useTaskSync = (
           ),
         );
         setMeetingTasks(
-          data.pieces
-            .filter((t: Task) => {
+          sortByStartDate(
+            data.pieces.filter((t: Task) => {
               const topics = t.topics || [];
               return topics.includes('Meeting');
-            })
-            .sort((a: Task, b: Task) => {
-              const dateA = a.start_date ? new Date(a.start_date).getTime() : 0;
-              const dateB = b.start_date ? new Date(b.start_date).getTime() : 0;
-              return dateB - dateA;
             }),
+            'desc',
+          ),
         );
       } finally {
         setIsTasksLoading(false);

@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { Task, TaskStatus } from '@/types';
 import { atlasFetch } from '@/utils/api';
-import { getDateShortString } from '@/utils/dateUtils';
+import { getDateShortString, sortByStartDate } from '@/utils/dateUtils';
 import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
@@ -75,16 +75,7 @@ export default function KanbanView({
             // Doneカラムの場合はタスク一覧を表示しないため、強制的に空配列にする
             const colTasks = isDoneColumn
               ? []
-              : tasks
-                  .filter((t) => t.status === status)
-                  .sort((a, b) => {
-                    if (!a.start_date) return 1;
-                    if (!b.start_date) return -1;
-                    return (
-                      new Date(a.start_date).getTime() -
-                      new Date(b.start_date).getTime()
-                    );
-                  });
+              : sortByStartDate(tasks.filter((t) => t.status === status));
 
             return (
               <div

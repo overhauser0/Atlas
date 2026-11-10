@@ -1,7 +1,9 @@
 // atlas-server/src/db/client.ts
 import { Kysely, PostgresDialect } from 'kysely';
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import { Database } from './types';
+
+types.setTypeParser(types.builtins.DATE, (value) => value);
 
 // コネクションプールの設定
 const dialect = new PostgresDialect({

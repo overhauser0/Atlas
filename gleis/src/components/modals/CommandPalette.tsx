@@ -31,6 +31,7 @@ import {
 import type { LocalNote, ViewType, Task } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import { PaperlessDocument, SettingsTab } from '@/types';
+import { getDateShortString } from '@/utils/dateUtils';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -553,7 +554,7 @@ export default function CommandPalette({
                           {task.start_date && (
                             <span className="text-xs text-gray-500 flex items-center gap-1 font-mono">
                               <Calendar className="w-3 h-3 text-gray-600" />
-                              {task.start_date.substring(5)}
+                              {getDateShortString(task.start_date, 'hyphen')}
                             </span>
                           )}
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded border border-white/5 text-gray-400 bg-white/2 uppercase tracking-wider">
