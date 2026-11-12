@@ -87,10 +87,10 @@ const buildTimedEntries = (
     if (finalDate < day) return [];
 
     const startMinute =
-      entry.startDate === day ? timeToMinutes(entry.startTime) ?? 0 : 0;
+      entry.startDate === day ? (timeToMinutes(entry.startTime) ?? 0) : 0;
     const endMinute =
       entry.endDate === day
-        ? timeToMinutes(entry.endTime) ?? 1440
+        ? (timeToMinutes(entry.endTime) ?? 1440)
         : entry.endDate
           ? 1440
           : Math.min(startMinute + 60, 1440);
@@ -101,10 +101,7 @@ const buildTimedEntries = (
 
   const laneEnds: number[] = [];
   dayEntries
-    .sort(
-      (a, b) =>
-        a.startMinute - b.startMinute || a.endMinute - b.endMinute,
-    )
+    .sort((a, b) => a.startMinute - b.startMinute || a.endMinute - b.endMinute)
     .forEach((entry) => {
       let lane = laneEnds.findIndex((end) => end <= entry.startMinute);
       if (lane === -1) lane = laneEnds.length;
@@ -215,9 +212,7 @@ export default function WeekCalendarTab({
 
   const timedByDate = useMemo(
     () =>
-      new Map(
-        days.map(({ key }) => [key, buildTimedEntries(entries, key)]),
-      ),
+      new Map(days.map(({ key }) => [key, buildTimedEntries(entries, key)])),
     [entries, days],
   );
 
@@ -276,7 +271,7 @@ export default function WeekCalendarTab({
               gridTemplateColumns: `${TIME_COLUMN_WIDTH}px repeat(7, minmax(${DAY_WIDTH}px, 1fr))`,
             }}
           >
-            <div className="border-r border-gray-100" />
+            <div className="sticky left-0 z-40 border-r border-gray-100 bg-white" />
             {days.map(({ weekday, date, key }) => (
               <div
                 key={key}
@@ -306,17 +301,17 @@ export default function WeekCalendarTab({
               gridTemplateColumns: `${TIME_COLUMN_WIDTH}px repeat(7, minmax(${DAY_WIDTH}px, 1fr))`,
             }}
           >
-            <div className="flex items-start justify-end border-r border-gray-200 px-1 pt-2 text-[10px] font-semibold uppercase text-gray-400">
+            <div className="sticky left-0 z-30 flex items-start justify-end border-r border-gray-200 bg-gray-50 px-1 pt-2 text-[10px] font-semibold uppercase text-gray-400">
               終日
             </div>
             {days.map(({ key }) => (
               <div
                 key={key}
-                className={`min-h-11 border-r border-gray-200 p-1 last:border-r-0 ${
+                className={`border-r border-gray-200 p-1 last:border-r-0 ${
                   key === todayKey ? 'bg-amber-50/50' : ''
                 }`}
               >
-                <div className="flex max-h-24 flex-col gap-1 overflow-y-auto">
+                <div className="flex flex-col gap-1">
                   {(allDayByDate.get(key) || []).map((entry, index) => (
                     <button
                       key={`${entry.item.source}-${entry.item.id}-${index}`}
@@ -345,7 +340,7 @@ export default function WeekCalendarTab({
               gridTemplateColumns: `${TIME_COLUMN_WIDTH}px repeat(7, minmax(${DAY_WIDTH}px, 1fr))`,
             }}
           >
-            <div className="relative border-r border-gray-200 bg-white">
+            <div className="sticky left-0 z-20 border-r border-gray-200 bg-white">
               {Array.from({ length: 24 }, (_, hour) => (
                 <div
                   key={hour}
@@ -378,7 +373,9 @@ export default function WeekCalendarTab({
                     ((entry.endMinute - entry.startMinute) / 60) * HOUR_HEIGHT,
                   );
                   const startText =
-                    entry.startDate === key ? formatTime(entry.startTime) : '00:00';
+                    entry.startDate === key
+                      ? formatTime(entry.startTime)
+                      : '00:00';
                   const endText =
                     entry.endDate === key ? formatTime(entry.endTime) : '24:00';
                   return (

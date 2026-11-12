@@ -343,6 +343,7 @@ function AppMain() {
               onDiaryClick={handleDiaryClick}
               onOpenCreate={handleOpenCreate}
               onOpenDairyPhoto={handleOpenDailyPhoto}
+              isDetailModalOpen={detailModalConfig.isOpen}
             />
           )}
           {currentTab === 'Week' && (

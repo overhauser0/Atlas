@@ -26,6 +26,7 @@ interface CalendarTabProps {
   onDiaryClick: (diary: DiaryItem | null) => void;
   onOpenCreate: (item: Partial<LifeItem>) => void;
   onOpenDairyPhoto: (date: string) => void;
+  isDetailModalOpen: boolean;
 }
 
 export default function CalendarTab({
@@ -39,6 +40,7 @@ export default function CalendarTab({
   onDiaryClick,
   onOpenCreate,
   onOpenDairyPhoto,
+  isDetailModalOpen,
 }: CalendarTabProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -180,6 +182,8 @@ export default function CalendarTab({
 
   // ショートカットキー
   useEffect(() => {
+    if (isDetailModalOpen) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -194,7 +198,7 @@ export default function CalendarTab({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [isDetailModalOpen, prevMonth, nextMonth]);
 
   return (
     <div className="flex flex-col lg:flex-row h-full bg-gray-50 overflow-hidden">
