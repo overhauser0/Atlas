@@ -308,8 +308,8 @@ export default function DetailModal({
     }
   };
 
-  const isSaveBtnNeeds =
-    !item || (formData.source === 'NOTION' && Boolean(formData.id));
+  const isPiece = formData.source === 'NOTION' || formData.source === 'LOCAL';
+  const isSaveBtnNeeds = !item || (isPiece && Boolean(formData.id));
   const normalizedPersonSearchQuery = personSearchQuery
     .trim()
     .toLocaleLowerCase();
@@ -418,7 +418,7 @@ export default function DetailModal({
                 <ExternalLink className="w-4 h-4" />
               </button>
             )}
-            {item?.id && item.source != 'GCAL' && (
+            {item?.id && isPiece && (
               <div className="relative shrink-0" ref={moreMenuRef}>
                 <button
                   type="button"

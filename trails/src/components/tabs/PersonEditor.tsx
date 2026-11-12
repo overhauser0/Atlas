@@ -6,6 +6,7 @@ import {
   Camera,
   CalendarDays,
   ContactRound,
+  ExternalLink,
   Image,
   MoreVertical,
   Pencil,
@@ -19,6 +20,7 @@ import {
 import { Person, PersonPiece, PersonTimelinePiece } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import { getDateFullString, sortByStartDate } from '@/utils/dateUtils';
+import { getNotionLinkById } from '@/utils/miscellaneous';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
@@ -1535,6 +1537,21 @@ export default function PersonEditor({
             )}
 
             <div className="mt-6 flex justify-end gap-2">
+              {editingTimelinePiece.source === 'NOTION' && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    window.open(
+                      getNotionLinkById(editingTimelinePiece.id, 'notion'),
+                      '_self',
+                    )
+                  }
+                  className="mr-auto inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Notionで開く
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => {
