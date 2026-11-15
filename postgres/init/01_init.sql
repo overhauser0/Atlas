@@ -94,16 +94,6 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 -- 日記データ用テーブル
 CREATE TABLE IF NOT EXISTS diaries (
-    id VARCHAR(255) PRIMARY KEY, -- NotionのページID
-    name VARCHAR(255) NOT NULL,  -- yyyy-mm-dd形式の文字列
-    date VARCHAR(255),           -- 日付 (NotionのDateプロパティ)
-    rate VARCHAR(50),            -- ★☆☆☆☆ ～ ★★★★★
-    note TEXT,                   -- 日記本文
-    last_edited_time TIMESTAMP WITH TIME ZONE, -- Notion上の最終更新日時
-    synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP -- 同期日時
-);
-
-CREATE TABLE IF NOT EXISTS diaries_new (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   date DATE NOT NULL UNIQUE,
   rate INTEGER CHECK (rate >= 1 AND rate <= 5),
@@ -113,9 +103,6 @@ CREATE TABLE IF NOT EXISTS diaries_new (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- 日付での降順ソート・検索を高速化するインデックス
--- CREATE INDEX idx_diaries_date ON diaries (date DESC);
 
 -- Googl Calendarデータキャッシュ用テーブル
 CREATE TABLE IF NOT EXISTS google_events (
@@ -168,7 +155,7 @@ CREATE TABLE IF NOT EXISTS routine_tasks (
   note TEXT DEFAULT '',
   url TEXT DEFAULT '',
   
-  is_active BOOLEAN DEFAULT true, -- 一時無効化フラグ
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
@@ -251,7 +238,7 @@ CREATE TABLE person_pieces (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- アプリのメタデータ（最終同期時刻など）を保存するテーブル
+-- アプリのメタデータを保存するテーブル
 CREATE TABLE IF NOT EXISTS app_metadata (
     key VARCHAR(255) PRIMARY KEY,
     value TEXT NOT NULL,
@@ -263,7 +250,7 @@ INSERT INTO app_metadata (key, value)
 VALUES ('last_notion_sync_time', '1970-01-01T00:00:00Z')
 ON CONFLICT DO NOTHING;
 
--- インデックスの作成（検索の高速化）
+-- インデックスの作成
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_area ON notion_pieces_cache(area);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_status ON notion_pieces_cache(status);
 CREATE INDEX IF NOT EXISTS idx_notion_pieces_start_date ON notion_pieces_cache(start_date);
@@ -273,11 +260,9 @@ CREATE INDEX IF NOT EXISTS idx_local_pieces_area ON local_pieces(area);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_status ON local_pieces(status);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_start_date ON local_pieces(start_date);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_parent_id ON local_pieces(parent_id);
--- JSONB内部を検索したい場合（上級者向け・必要に応じて）
--- metadata内の特定のキーをよく検索するなら、GINインデックスが最強
--- CREATE INDEX IF NOT EXISTS idx_local_pieces_metadata ON local_pieces USING GIN (metadata);
 
--- 通知の既読/未読フラグ（今後カラムを追加予定なら）やカテゴリ検索用
+CREATE INDEX idx_diaries_date ON diaries (date DESC);
+
 CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
 

@@ -9,13 +9,28 @@ const isValidDate = (value: string) => {
   );
 };
 
-const DiaryDateSchema = z
+export const DiaryDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, '日付は yyyy-mm-dd 形式で指定してください')
   .refine(isValidDate, '有効な日付を指定してください');
 
+export const DiaryRangeQuerySchema = z
+  .object({
+    startDate: DiaryDateSchema.optional(),
+    endDate: DiaryDateSchema.optional(),
+  })
+  .refine(
+    ({ startDate, endDate }) =>
+      !startDate || !endDate || startDate <= endDate,
+    {
+      message: 'startDate は endDate 以前の日付を指定してください',
+      path: ['startDate'],
+    },
+  );
+
+export type DiaryRangeQuery = z.infer<typeof DiaryRangeQuerySchema>;
+
 const DiaryFieldsSchema = z.object({
-  date: DiaryDateSchema,
   rate: z.number().int().min(1).max(5).nullable(),
   content: z.string(),
   flag: z.boolean(),
@@ -24,7 +39,7 @@ const DiaryFieldsSchema = z.object({
 
 export const CreateDiarySchema = z.object({
   date: DiaryDateSchema,
-  rate: z.number().int().min(1).max(5).nullable().optional(),
+  rate: z.number().int().min(1).max(5).nullable().optional().default(null),
   content: z.string().optional().default(''),
   flag: z.boolean().optional().default(false),
   piece_ids: z.array(z.string().uuid()).optional().default([]),
@@ -32,11 +47,11 @@ export const CreateDiarySchema = z.object({
 
 export const UpdateDiarySchema = DiaryFieldsSchema.partial();
 
-export type Diary = z.infer<typeof DiaryFieldsSchema> & { id: string };
+export type Diary = z.infer<typeof CreateDiarySchema> & { id: string };
 export type CreateDiaryInput = z.infer<typeof CreateDiarySchema>;
 export type UpdateDiaryInput = z.infer<typeof UpdateDiarySchema>;
 
-export interface DiaryNewTable {
+export interface DiaryTable {
   id: Generated<string>;
   date: string;
   rate: number | null;
@@ -47,6 +62,6 @@ export interface DiaryNewTable {
   updated_at: Generated<Date>;
 }
 
-export type DiaryRow = Selectable<DiaryNewTable>;
-export type NewDiaryRow = Insertable<DiaryNewTable>;
-export type DiaryUpdateRow = Updateable<DiaryNewTable>;
+export type DiaryRow = Selectable<DiaryTable>;
+export type NewDiaryRow = Insertable<DiaryTable>;
+export type DiaryUpdateRow = Updateable<DiaryTable>;
