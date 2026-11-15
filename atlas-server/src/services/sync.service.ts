@@ -2,7 +2,6 @@
 
 import * as notionRepo from '../repositories/notion.repository';
 import * as pieceRepo from '../repositories/piece.repository';
-import * as diaryRepo from '../repositories/diary.repository';
 import * as metadataRepo from '../repositories/metadata.repository';
 import { extractParentIdFromNotionUrl } from '../utils/utils';
 import { DbPiece } from '../models/piece.model';
@@ -98,58 +97,4 @@ export const syncNotionToLocal = async () => {
     count: syncResults.length,
     timestamp: new Date().toISOString(),
   };
-};
-
-// Diary synchronization
-
-/** 日記の最終同期時刻を取得する。 */
-export const getLastDiarySyncTime = async () => {
-  return await metadataRepo.getLastSyncTimeByKey('last_diary_sync_time');
-};
-
-/** Notionから日記データを取得し、ローカルキャッシュを更新する。 */
-export const syncDiariesNotionToLocal = async () => {
-  try {
-    // 1. 前回の同期時刻を取得 (差分同期用)
-    const lastSyncStr = await metadataRepo.getLastSyncTimeByKey(
-      'last_diary_sync_time',
-    );
-    let lastSyncDate: Date | undefined;
-
-    // 初回('1970-01-01T...')でなければ Date オブジェクト化
-    if (lastSyncStr !== '1970-01-01T00:00:00Z') {
-      lastSyncDate = new Date(lastSyncStr);
-    }
-
-    // 2. Notionリポジトリから更新された日記データを取得
-    // ※ 削除検知を行わないため、差分同期を基本とします
-    const diaries = await notionRepo.getDiaryPages(lastSyncDate);
-
-    const syncResults = await Promise.all(
-      diaries.map(async (page: any) => {
-        return await diaryRepo.upsertDiary(
-          page,
-          new Date(page.last_edited_time),
-        );
-      }),
-    );
-
-    // 3. 同期が成功したら時刻を更新する
-    await metadataRepo.updateSyncTimeByKey(
-      'last_diary_sync_time',
-      new Date().toISOString(),
-    );
-
-    // 4. WebSocketでフロントエンドに日記データの更新を通知
-    broadcast(JSON.stringify({ type: 'REFRESH_DIARIES' }));
-
-    return {
-      status: 'SUCCESS',
-      count: syncResults.length,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (error) {
-    console.error('Error in syncDiariesNotionToLocal:', error);
-    throw error;
-  }
 };

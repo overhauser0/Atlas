@@ -103,6 +103,20 @@ CREATE TABLE IF NOT EXISTS diaries (
     synced_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP -- 同期日時
 );
 
+CREATE TABLE IF NOT EXISTS diaries_new (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  date DATE NOT NULL UNIQUE,
+  rate INTEGER CHECK (rate >= 1 AND rate <= 5),
+  content TEXT NOT NULL DEFAULT '',
+  flag BOOLEAN DEFAULT false,
+  piece_ids UUID[] NOT NULL DEFAULT '{}',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- 日付での降順ソート・検索を高速化するインデックス
+-- CREATE INDEX idx_diaries_date ON diaries (date DESC);
+
 -- Googl Calendarデータキャッシュ用テーブル
 CREATE TABLE IF NOT EXISTS google_events (
     id VARCHAR(255) PRIMARY KEY,

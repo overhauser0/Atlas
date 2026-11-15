@@ -1,46 +1,36 @@
 // atlas-server/src/repositories/diary.repository.ts
 
 import { db } from '../db/client';
+import { DiaryUpdateRow, NewDiaryRow } from '../models/diary.model';
 
 /** 日記を日付の降順で取得する。 */
 export const getDiaries = async () => {
   return await db
-    .selectFrom('diaries')
+    .selectFrom('diaries_new')
     .selectAll()
     .orderBy('date', 'desc')
     .execute();
 };
 
-/** 日記を追加または更新する。 */
-export const upsertDiary = async (diary: any, last_edited_time: Date) => {
-  const values = {
-    ...diary,
-    last_edited_time,
-  };
-
-  const upsertedDiary = await db
-    .insertInto('diaries')
-    .values(values as any)
-    .onConflict((oc) => oc.column('id').doUpdateSet(values as any))
+/** 日記を作成する。 */
+export const createDiary = async (diary: NewDiaryRow) => {
+  return await db
+    .insertInto('diaries_new')
+    .values(diary)
+    .onConflict((oc) => oc.column('date').doNothing())
     .returningAll()
     .executeTakeFirst();
-
-  return upsertedDiary;
 };
 
 /** 日記を更新する。 */
-export const updateDiary = async (id: string, updates: any) => {
-  const dbUpdates = {
-    ...updates,
-    last_edited_time: new Date(),
-  };
-
-  const updatedDiary = await db
-    .updateTable('diaries')
-    .set(dbUpdates as any)
+export const updateDiary = async (id: string, updates: DiaryUpdateRow) => {
+  return await db
+    .updateTable('diaries_new')
+    .set({
+      ...updates,
+      updated_at: new Date(),
+    })
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
-
-  return updatedDiary;
 };

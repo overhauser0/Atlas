@@ -1,25 +1,61 @@
 // atlas-server/src/services/diary.service.ts
 
-import { Diary, DiarySchema, UpdateDiarySchema } from '../models/diary.model';
+import {
+  CreateDiaryInput,
+  UpdateDiaryInput,
+} from '../models/diary.model';
 import * as notionRepo from '../repositories/notion.repository';
 import * as pieceRepo from '../repositories/piece.repository';
 import * as diaryRepo from '../repositories/diary.repository';
 import { broadcast } from '../utils/websocket';
 
-/** DBにキャッシュされている日記一覧を取得する。 */
+export class DiaryDateConflictError extends Error {
+  constructor(date: string) {
+    super(`A diary already exists for ${date}`);
+    this.name = 'DiaryDateConflictError';
+  }
+}
+
+const isUniqueConstraintViolation = (
+  error: unknown,
+): error is { code: string } =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  error.code === '23505';
+
+/** ローカルDBに保存されている日記一覧を取得する。 */
 export const getDiaries = async () => {
   return await diaryRepo.getDiaries();
 };
 
-/** DBにキャッシュされている日記を更新する。 */
-export const updateDiary = async (id: string, payload: Partial<Diary>) => {
-  const dbUpdates = UpdateDiarySchema.partial().parse(payload);
-
-  await notionRepo.updateDiaryPage(id, dbUpdates);
-  const result = await diaryRepo.updateDiary(id, dbUpdates);
+/** ローカルDBに日記を作成する。 */
+export const createDiary = async (payload: CreateDiaryInput) => {
+  const diary = await diaryRepo.createDiary(payload);
+  if (!diary) {
+    throw new DiaryDateConflictError(payload.date);
+  }
 
   broadcast(JSON.stringify({ type: 'REFRESH_DIARIES' }));
-  return result;
+  return diary;
+};
+
+/** ローカルDBの日記を更新する。 */
+export const updateDiary = async (id: string, payload: UpdateDiaryInput) => {
+  try {
+    const diary = await diaryRepo.updateDiary(id, payload);
+    if (!diary) {
+      return undefined;
+    }
+
+    broadcast(JSON.stringify({ type: 'REFRESH_DIARIES' }));
+    return diary;
+  } catch (error) {
+    if (isUniqueConstraintViolation(error)) {
+      throw new DiaryDateConflictError(payload.date ?? 'requested date');
+    }
+    throw error;
+  }
 };
 
 /** Notionページの本文ブロックを取得する。 */

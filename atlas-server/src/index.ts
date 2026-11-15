@@ -118,7 +118,7 @@ api.patch('/reviews/:pageId', reviewController.updateReview);
 
 // Diary
 api.get('/diaries', diaryController.getDiaries);
-api.post('/diaries/sync', diaryController.syncDiaries);
+api.post('/diaries', diaryController.createDiary);
 api.patch('/diaries/:id', diaryController.updateDiary);
 
 // Google Calendar

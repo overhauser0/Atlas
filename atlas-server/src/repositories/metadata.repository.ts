@@ -35,7 +35,3 @@ export const getLastNotionSyncTime = () =>
   getLastSyncTimeByKey('last_notion_sync_time');
 export const updateLastNotionSyncTime = (nowISO: string) =>
   updateSyncTimeByKey('last_notion_sync_time', nowISO);
-export const getLastDiarySyncTime = () =>
-  getLastSyncTimeByKey('last_diary_sync_time');
-export const updateLastDiarySyncTime = (nowISO: string) =>
-  updateSyncTimeByKey('last_diary_sync_time', nowISO);

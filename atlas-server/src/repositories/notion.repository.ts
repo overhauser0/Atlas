@@ -2,11 +2,6 @@
 
 import { Client } from '@notionhq/client';
 import { DbPiece, UpdatePieceInput } from '../models/piece.model';
-import {
-  CreateDiaryInput,
-  UpdateDiaryInput,
-  DiaryTable,
-} from '../models/diary.model';
 
 // Notion API configuration
 
@@ -14,7 +9,6 @@ const notionClient = new Client({ auth: process.env.NOTION_API_KEY });
 const NOTION_PIECE_DS_ID = process.env.NOTION_PIECE_DS_ID!;
 const NOTION_MONTHLY_DS_ID = process.env.NOTION_MONTHLY_DS_ID!;
 const NOTION_WEEKLY_DS_ID = process.env.NOTION_WEEKLY_DS_ID!;
-const NOTION_DIARY_DS_ID = process.env.NOTION_DIARY_DS_ID!;
 
 // Piece operations
 
@@ -248,99 +242,5 @@ export const updatePageTextProperty = async (
     properties: {
       [propertyName]: { rich_text: [{ text: { content: text } }] },
     },
-  });
-};
-
-// Diary operations
-
-export const getDiaryPages = async (
-  lastSyncTime?: Date,
-): Promise<DiaryTable[]> => {
-  if (!NOTION_DIARY_DS_ID)
-    throw new Error('NOTION_DIARY_DATABASE_ID is not defined');
-
-  let allPages: any[] = [];
-  let hasMore = true;
-  let cursor: string | undefined = undefined;
-
-  const queryArgs: any = {
-    data_source_id: NOTION_DIARY_DS_ID,
-    page_size: 100,
-  };
-
-  if (lastSyncTime) {
-    queryArgs.filter = {
-      timestamp: 'last_edited_time',
-      last_edited_time: { on_or_after: lastSyncTime.toISOString() },
-    };
-  }
-
-  while (hasMore) {
-    queryArgs.start_cursor = cursor;
-    const response = await notionClient.dataSources.query(queryArgs);
-
-    allPages = [...allPages, ...response.results];
-    hasMore = response.has_more;
-    cursor = response.next_cursor ?? undefined;
-  }
-
-  return allPages.map((page: any) => {
-    const props = page.properties;
-    return {
-      id: page.id,
-      name: props.Name?.title?.[0]?.plain_text || '',
-      date: props.Date?.date?.start || null,
-      rate: props.Rate?.select?.name || null,
-      note: props.Note?.rich_text?.[0]?.plain_text || null,
-      last_edited_time: page.last_edited_time,
-    };
-  });
-};
-
-/** Notionの既存 Diary ページを更新する。 */
-export const updateDiaryPage = async (
-  pageId: string,
-  diary: UpdateDiaryInput,
-) => {
-  const properties: any = {};
-
-  if (diary.name) {
-    properties.Name = { title: [{ text: { content: diary.name } }] };
-  }
-  if (diary.date) {
-    properties.Date = { date: { start: diary.date } };
-  }
-  if (diary.rate) {
-    properties.Rate = { select: { name: diary.rate } };
-  }
-  if (diary.note !== undefined && diary.note !== null) {
-    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
-  }
-
-  return await notionClient.pages.update({
-    page_id: pageId,
-    properties,
-  });
-};
-
-/** Notionの Diary ページを作成する。 */
-export const insertDiaryPage = async (diary: CreateDiaryInput) => {
-  const properties: any = {
-    Name: { title: [{ text: { content: diary.name } }] },
-  };
-
-  if (diary.date) {
-    properties.Date = { date: { start: diary.date } };
-  }
-  if (diary.rate) {
-    properties.Rate = { select: { name: diary.rate } };
-  }
-  if (diary.note !== undefined && diary.note !== null) {
-    properties.Note = { rich_text: [{ text: { content: diary.note } }] };
-  }
-
-  return await notionClient.pages.create({
-    parent: { data_source_id: NOTION_DIARY_DS_ID },
-    properties,
   });
 };

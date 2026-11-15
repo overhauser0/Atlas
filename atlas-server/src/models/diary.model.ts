@@ -1,57 +1,52 @@
 import { z } from 'zod';
-import { Generated, Selectable, Insertable, Updateable } from 'kysely';
+import { Generated, Insertable, Selectable, Updateable } from 'kysely';
 
-// ==========================================
-// 1. Zod Schemas (APIバリデーション用)
-// ==========================================
+const isValidDate = (value: string) => {
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+};
 
-export const DiarySchema = z.object({
-  id: z.string().optional(),
-  name: z
-    .string()
-    .optional()
-    .transform((v) => v ?? 'No Title'), // yyyy-mm-dd
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/, '日付は yyyy-mm-dd 形式で指定してください')
-    .nullable()
-    .optional(),
-  rate: z
-    .enum(['★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'])
-    .nullable()
-    .optional(),
-  note: z
-    .string()
-    .nullable()
-    .optional()
-    .transform((v) => v ?? ''),
+const DiaryDateSchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, '日付は yyyy-mm-dd 形式で指定してください')
+  .refine(isValidDate, '有効な日付を指定してください');
+
+const DiaryFieldsSchema = z.object({
+  date: DiaryDateSchema,
+  rate: z.number().int().min(1).max(5).nullable(),
+  content: z.string(),
+  flag: z.boolean(),
+  piece_ids: z.array(z.string().uuid()),
 });
 
-export const CreateDiarySchema = DiarySchema;
-export const UpdateDiarySchema = DiarySchema.partial();
+export const CreateDiarySchema = z.object({
+  date: DiaryDateSchema,
+  rate: z.number().int().min(1).max(5).nullable().optional(),
+  content: z.string().optional().default(''),
+  flag: z.boolean().optional().default(false),
+  piece_ids: z.array(z.string().uuid()).optional().default([]),
+});
 
-// ==========================================
-// 2. TypeScript Types (アプリ内で使い回す基本型)
-// ==========================================
+export const UpdateDiarySchema = DiaryFieldsSchema.partial();
 
-export type Diary = z.infer<typeof DiarySchema>;
+export type Diary = z.infer<typeof DiaryFieldsSchema> & { id: string };
 export type CreateDiaryInput = z.infer<typeof CreateDiarySchema>;
 export type UpdateDiaryInput = z.infer<typeof UpdateDiarySchema>;
 
-// ==========================================
-// 3. Database Table Interfaces (Kysely用)
-// ==========================================
-
-export interface DiaryTable {
-  id: string;
-  name: string;
-  date: string | null;
-  rate: string | null;
-  note: string | null;
-  last_edited_time: string;
+export interface DiaryNewTable {
+  id: Generated<string>;
+  date: string;
+  rate: number | null;
+  content: string;
+  flag: boolean | null;
+  piece_ids: string[];
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
 }
 
-// リポジトリ層で利用する便利な型
-export type DiaryRow = Selectable<DiaryTable>;
-export type NewDiaryRow = Insertable<DiaryTable>;
-export type DiaryUpdateRow = Updateable<DiaryTable>;
+export type DiaryRow = Selectable<DiaryNewTable>;
+export type NewDiaryRow = Insertable<DiaryNewTable>;
+export type DiaryUpdateRow = Updateable<DiaryNewTable>;
