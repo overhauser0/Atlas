@@ -1,46 +1,63 @@
 // src/hooks/useDiarySync.ts
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { atlasFetch } from '@/utils/api';
 import { DiaryItem } from '@/types';
 
-export const useDiarySync = (
-  isAuthenticated: boolean,
-  onSyncStart: () => void,
-  onSyncEnd: () => void,
-) => {
+interface DiaryRange {
+  startDate: string;
+  endDate: string;
+}
+
+export const useDiarySync = (isAuthenticated: boolean) => {
   const [diaries, setDiaries] = useState<DiaryItem[]>([]);
+  const activeRange = useRef<DiaryRange | null>(null);
+  const requestId = useRef(0);
 
-  const fetchDiaries = useCallback(async () => {
-    if (!isAuthenticated) return;
-    try {
-      const res = await atlasFetch('/diaries', { method: 'GET' });
-      if (res.ok) {
+  const fetchDiaries = useCallback(
+    async (startDate?: string, endDate?: string): Promise<boolean> => {
+      if (!isAuthenticated) return false;
+
+      if (startDate && endDate) {
+        const nextRange = { startDate, endDate };
+        const previousRange = activeRange.current;
+        if (
+          !previousRange ||
+          previousRange.startDate !== startDate ||
+          previousRange.endDate !== endDate
+        ) {
+          setDiaries([]);
+        }
+        activeRange.current = nextRange;
+      }
+
+      const range = activeRange.current;
+      if (!range) return false;
+
+      const currentRequestId = ++requestId.current;
+      try {
+        const params = new URLSearchParams({
+          startDate: range.startDate,
+          endDate: range.endDate,
+        });
+        const res = await atlasFetch(`/diaries?${params.toString()}`, {
+          method: 'GET',
+        });
+        if (!res.ok) {
+          throw new Error(`Failed to fetch diaries: ${res.status}`);
+        }
+
         const data = await res.json();
-
-        setDiaries(data.diaries || []);
+        if (currentRequestId === requestId.current) {
+          setDiaries(data.diaries || []);
+        }
+        return true;
+      } catch (e) {
+        console.error('Failed to fetch diaries', e);
+        return false;
       }
-    } catch (e) {
-      console.error('Failed to fetch diaries', e);
-    }
-  }, [isAuthenticated]);
+    },
+    [isAuthenticated],
+  );
 
-  const syncDiary = useCallback(async () => {
-    if (!isAuthenticated) return;
-    onSyncStart();
-    try {
-      const res = await atlasFetch('/diaries/sync', {
-        method: 'POST',
-      });
-      /*
-      if (res.ok) {
-        // 保存後、最新データを再取得
-        fetchDiaries();
-      }
-      */
-    } finally {
-      onSyncEnd();
-    }
-  }, [fetchDiaries, onSyncStart, onSyncEnd]);
-
-  return { diaries, fetchDiaries, syncDiary };
+  return { diaries, fetchDiaries };
 };

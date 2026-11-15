@@ -97,9 +97,11 @@ export interface DiaryEntry {
 }
 
 export interface DiaryItem {
-  id?: string;
-  name: string;
   date: string;
-  rate: string | null;
-  note: string | null;
+  rate: number | null;
+  content: string;
+  flag: boolean | null;
+  piece_ids: string[];
+  created_at?: string;
+  updated_at?: string;
 }

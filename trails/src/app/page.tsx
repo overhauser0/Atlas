@@ -135,13 +135,11 @@ function AppMain() {
     [fetchPieces],
   );
 
-  const { diaries, fetchDiaries, syncDiary } = useDiarySync(
-    isAuthenticated,
-    incrementRequest,
-    decrementRequest,
-  );
+  const { diaries, fetchDiaries } = useDiarySync(isAuthenticated);
   const handleRefreshDiaries = useCallback(
-    () => fetchDiaries(),
+    () => {
+      void fetchDiaries();
+    },
     [fetchDiaries],
   );
 
@@ -189,9 +187,8 @@ function AppMain() {
     if (!isAuthenticated) return;
     const isFirstTime = events.length === 0;
     fetchPieces(!isFirstTime);
-    fetchDiaries();
     fetchGoogleEvents();
-  }, [isAuthenticated, fetchPieces, fetchDiaries, fetchGoogleEvents]);
+  }, [isAuthenticated, fetchPieces, fetchGoogleEvents]);
 
   // ============================================================================
   // 4. Handlers
@@ -338,6 +335,7 @@ function AppMain() {
               data={events}
               task={tasks}
               diaries={diaries}
+              onDiaryMonthChange={fetchDiaries}
               googleEvents={googleEvents}
               onItemClick={openDetailModal}
               onDiaryClick={handleDiaryClick}
@@ -375,10 +373,7 @@ function AppMain() {
             <ConfigTab
               appSettings={appSettings}
               onUpdateSettings={setAppSettings}
-              onSync={() => {
-                handleNotionSync(true);
-                syncDiary();
-              }}
+              onSync={() => handleNotionSync(true)}
               onLogout={() => {
                 localStorage.removeItem('atlas_auth');
                 setIsAuthenticated(false);

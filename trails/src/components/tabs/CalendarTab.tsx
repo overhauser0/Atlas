@@ -21,6 +21,10 @@ interface CalendarTabProps {
   data: LifeItem[];
   task: LifeItem[];
   diaries: DiaryItem[];
+  onDiaryMonthChange: (
+    startDate: string,
+    endDate: string,
+  ) => Promise<boolean>;
   googleEvents: GoogleEvent[];
   onItemClick: (item: LifeItem) => void;
   onDiaryClick: (diary: DiaryItem | null) => void;
@@ -35,6 +39,7 @@ export default function CalendarTab({
   data,
   task,
   diaries,
+  onDiaryMonthChange,
   googleEvents,
   onItemClick,
   onDiaryClick,
@@ -83,27 +88,72 @@ export default function CalendarTab({
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
+  const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
+  const monthStart = getDateFullString(new Date(year, month, 1), 'hyphen');
+  const monthEnd = getDateFullString(new Date(year, month + 1, 0), 'hyphen');
+  const [loadedDiaryMonth, setLoadedDiaryMonth] = useState<string | null>(null);
+  const [diaryMonthLoadError, setDiaryMonthLoadError] = useState(false);
+  const [diaryRetryCount, setDiaryRetryCount] = useState(0);
+  const visibleDiaries =
+    loadedDiaryMonth === monthKey ? diaries : [];
 
   // カレンダー移動系のハンドラ
-  const prevMonth = useCallback(
-    () =>
-      setCurrentDate(
-        (date) => new Date(date.getFullYear(), date.getMonth() - 1, 1),
-      ),
-    [],
+  const changeMonth = useCallback(
+    (offset: number) => {
+      const nextMonth = new Date(year, month + offset, 1);
+      setLoadedDiaryMonth(null);
+      setCurrentDate(nextMonth);
+      setSelectedDate((date) => {
+        const lastDay = new Date(
+          nextMonth.getFullYear(),
+          nextMonth.getMonth() + 1,
+          0,
+        ).getDate();
+        return new Date(
+          nextMonth.getFullYear(),
+          nextMonth.getMonth(),
+          Math.min(date.getDate(), lastDay),
+        );
+      });
+    },
+    [year, month],
   );
-  const nextMonth = useCallback(
-    () =>
-      setCurrentDate(
-        (date) => new Date(date.getFullYear(), date.getMonth() + 1, 1),
-      ),
-    [],
-  );
+  const prevMonth = useCallback(() => changeMonth(-1), [changeMonth]);
+  const nextMonth = useCallback(() => changeMonth(1), [changeMonth]);
   const goToToday = () => {
     const today = new Date();
+    if (
+      today.getFullYear() !== year ||
+      today.getMonth() !== month
+    ) {
+      setLoadedDiaryMonth(null);
+    }
     setCurrentDate(today);
     setSelectedDate(today);
   };
+
+  useEffect(() => {
+    let isCurrent = true;
+    setDiaryMonthLoadError(false);
+    onDiaryMonthChange(monthStart, monthEnd).then((success) => {
+      if (!isCurrent) return;
+      if (success) {
+        setLoadedDiaryMonth(monthKey);
+      } else {
+        setDiaryMonthLoadError(true);
+      }
+    });
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [
+    monthKey,
+    monthStart,
+    monthEnd,
+    onDiaryMonthChange,
+    diaryRetryCount,
+  ]);
 
   // 選択日が変わったら下部リストを一番上にスクロール
   useEffect(() => {
@@ -171,13 +221,10 @@ export default function CalendarTab({
   const selectedDateStr = getDateFullString(selectedDate, 'hyphen');
   const selectedDayItems = getItemsForDate(selectedDate);
   const selectedDayDiary =
-    diaries.find(
-      (d) => d.name === selectedDateStr || d.date === selectedDateStr,
-    ) || null;
+    visibleDiaries.find((diary) => diary.date === selectedDateStr) || null;
   const isSelectedEntered = !!(
     selectedDayDiary &&
-    selectedDayDiary.note &&
-    selectedDayDiary.note.trim() !== ''
+    selectedDayDiary.content.trim() !== ''
   );
 
   // ショートカットキー
@@ -310,12 +357,10 @@ export default function CalendarTab({
               // 日記ステータスの判定
               const dateStr = getDateFullString(date, 'hyphen');
               const dayDiary =
-                diaries.find((d) => d.name === dateStr || d.date === dateStr) ||
-                null;
+                visibleDiaries.find((diary) => diary.date === dateStr) || null;
               const isEntered = !!(
                 dayDiary &&
-                dayDiary.note &&
-                dayDiary.note.trim() !== ''
+                dayDiary.content.trim() !== ''
               );
 
               // スタイリング
@@ -328,7 +373,15 @@ export default function CalendarTab({
               return (
                 <div
                   key={idx}
-                  onClick={() => setSelectedDate(date)} // セル全体タップで日付選択
+                  onClick={() => {
+                    setSelectedDate(date);
+                    if (!isCurrentMonth) {
+                      setLoadedDiaryMonth(null);
+                      setCurrentDate(
+                        new Date(date.getFullYear(), date.getMonth(), 1),
+                      );
+                    }
+                  }}
                   className={`
                     ${dayBgColor} flex flex-col p-1 md:p-1.5 transition-colors cursor-pointer relative
                     ${isSelected ? 'ring-2 ring-inset ring-primary-500 z-10' : ''}
@@ -342,9 +395,9 @@ export default function CalendarTab({
                       {date.getDate()}
                     </span>
                     {/* 日記の✓印 */}
-                    {!!dayDiary && (
+                    {isEntered && (
                       <Check
-                        className={`w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3px] ${isEntered ? 'text-green-500' : 'text-gray-200'}`}
+                        className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3px] text-green-500"
                       />
                     )}
                   </div>
@@ -413,21 +466,29 @@ export default function CalendarTab({
                 <Aperture className="w-4 h-4" />
               </button>
               {/* 日記入力 / 閲覧ボタン */}
-              {!!selectedDayDiary && (
+              {diaryMonthLoadError ? (
                 <button
-                  onClick={() => {
-                    if (selectedDayDiary) {
-                      onDiaryClick(selectedDayDiary);
-                    } else {
-                      // 新規作成
-                      onDiaryClick({
-                        name: selectedDateStr,
+                  onClick={() => setDiaryRetryCount((count) => count + 1)}
+                  className="text-xs text-red-600"
+                >
+                  日記を再取得
+                </button>
+              ) : (
+                <button
+                  disabled={loadedDiaryMonth !== monthKey}
+                  onClick={() =>
+                    onDiaryClick(
+                      selectedDayDiary || {
                         date: selectedDateStr,
-                        note: '',
-                      } as DiaryItem);
-                    }
-                  }}
-                  className={`flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 ${
+                        rate: null,
+                        content: '',
+                        flag: false,
+                        piece_ids: [],
+                      },
+                    )
+                  }
+                  aria-label="この日の日記を開く"
+                  className={`flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 ${
                     isSelectedEntered ? ' text-green-600' : ' text-gray-400 '
                   }`}
                 >

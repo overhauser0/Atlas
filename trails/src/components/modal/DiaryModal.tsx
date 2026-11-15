@@ -12,7 +12,7 @@ interface DiaryModalProps {
   onClose: () => void;
 }
 
-const RATES = ['★☆☆☆☆', '★★☆☆☆', '★★★☆☆', '★★★★☆', '★★★★★'];
+const RATES = [1, 2, 3, 4, 5];
 
 export default function DiaryModal({
   isOpen,
@@ -20,18 +20,26 @@ export default function DiaryModal({
   onClose,
 }: DiaryModalProps) {
   const [formData, setFormData] = useState<DiaryItem>({
-    id: '',
-    name: '',
     date: '',
-    note: '',
-    rate: '',
+    rate: null,
+    content: '',
+    flag: false,
+    piece_ids: [],
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   // モーダルが開くたびにステートを初期化
   useEffect(() => {
     if (isOpen && diary) {
-      setFormData(diary);
+      setFormData({
+        ...diary,
+        rate: diary.rate ?? null,
+        content: diary.content ?? '',
+        flag: diary.flag ?? false,
+        piece_ids: diary.piece_ids ?? [],
+      });
+      setSaveError('');
     }
   }, [isOpen, diary]);
 
@@ -39,21 +47,26 @@ export default function DiaryModal({
     setIsSaving(true);
 
     const payload = {
-      name: formData.name || 'No Title',
-      rate: formData.rate || '',
-      note: formData.note || '',
+      date: formData.date,
+      rate: formData.rate,
+      content: formData.content,
+      flag: formData.flag,
+      piece_ids: formData.piece_ids,
     };
     try {
-      const res = await atlasFetch(`/diaries/${formData.id}`, {
-        method: 'PATCH',
+      const res = await atlasFetch('/diaries', {
+        method: 'POST',
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        onClose();
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.message || 'Failed to save diary');
       }
+      onClose();
     } catch (e) {
-      console.error('Update failed', e);
+      console.error('Save failed', e);
+      setSaveError(e instanceof Error ? e.message : 'Failed to save diary');
     } finally {
       setIsSaving(false);
     }
@@ -64,9 +77,6 @@ export default function DiaryModal({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
 
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
-
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -76,7 +86,7 @@ export default function DiaryModal({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose, handleSave]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -86,7 +96,7 @@ export default function DiaryModal({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 bg-gray-50/50">
           <div>
-            <h3 className="text-sm font-bold text-gray-900">{formData.name}</h3>
+            <h3 className="text-sm font-bold text-gray-900">{formData.date}</h3>
             <p className="text-xs text-gray-500">Daily Log</p>
           </div>
           <button
@@ -105,17 +115,18 @@ export default function DiaryModal({
               Rate
             </label>
             <div className="flex flex-wrap gap-2">
-              {RATES.map((r) => (
+              {RATES.map((rate) => (
                 <button
-                  key={r}
-                  onClick={() => setFormData({ ...formData, rate: r })}
+                  key={rate}
+                  onClick={() => setFormData({ ...formData, rate })}
                   className={`px-3 py-1.5 text-xs rounded-md border transition-colors ${
-                    formData.rate === r
+                    formData.rate === rate
                       ? 'bg-black text-white border-black'
                       : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
                   }`}
                 >
-                  {r}
+                  {'★'.repeat(rate)}
+                  {'☆'.repeat(5 - rate)}
                 </button>
               ))}
             </div>
@@ -127,14 +138,19 @@ export default function DiaryModal({
               Note
             </label>
             <textarea
-              value={formData.note || ''}
+              value={formData.content}
               onChange={(e) =>
-                setFormData({ ...formData, note: e.target.value })
+                setFormData({ ...formData, content: e.target.value })
               }
               placeholder="How was your day?"
               className="w-full h-40 p-3 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:border-gray-400 resize-none"
             />
           </div>
+          {saveError && (
+            <p role="alert" className="text-sm text-red-600">
+              {saveError}
+            </p>
+          )}
         </div>
 
         {/* Footer */}
