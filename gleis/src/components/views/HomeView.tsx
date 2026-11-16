@@ -207,7 +207,7 @@ export default function HomeView({
       </div>
 
       {/* --- 3. FAB --- */}
-      <FAB onClick={() => openTaskModal()} />
+      <FAB onClick={() => openTaskModal({ start_date: targetDateString })} />
     </div>
   );
 }
