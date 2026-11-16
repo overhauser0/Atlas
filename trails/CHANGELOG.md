@@ -1,5 +1,9 @@
 # Changelog
 
+## 8.5.0
+
+- Spark追加
+
 ## 8.4.1
 
 - Weeklyレイアウト調整
