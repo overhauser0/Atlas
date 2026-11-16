@@ -15,6 +15,7 @@ import * as paperlessController from './controllers/paperless.controller';
 import * as routineController from './controllers/routine.controller';
 import * as taskPresetController from './controllers/task-preset.controller';
 import * as personController from './controllers/person.controller';
+import * as sparkController from './controllers/spark.controller';
 import { initWebSocket } from './utils/websocket';
 
 const app = new Hono();
@@ -121,6 +122,13 @@ api.get('/diaries', diaryController.getDiaries);
 api.get('/diaries/:date', diaryController.getDiaryByDate);
 api.post('/diaries', diaryController.upsertDiary);
 api.patch('/diaries/:date', diaryController.updateDiary);
+
+// Sparks
+api.get('/sparks', sparkController.getSparks);
+api.post('/sparks', sparkController.createSpark);
+api.patch('/sparks/:id/consume', sparkController.consumeSpark);
+api.post('/sparks/consume-bulk', sparkController.consumeSparksBulk);
+api.delete('/sparks/:id', sparkController.deleteSpark);
 
 // Google Calendar
 api.get('/calendar/events', calendarController.getEvents);

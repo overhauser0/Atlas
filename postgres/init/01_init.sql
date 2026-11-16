@@ -104,6 +104,16 @@ CREATE TABLE IF NOT EXISTS diaries (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS sparks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  content TEXT NOT NULL,
+  recorded_at TIMESTAMPTZ NOT NULL,
+  target_date DATE NOT NULL,
+  discord_message_id TEXT UNIQUE,
+  consumed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Googl Calendarデータキャッシュ用テーブル
 CREATE TABLE IF NOT EXISTS google_events (
     id VARCHAR(255) PRIMARY KEY,
@@ -261,7 +271,11 @@ CREATE INDEX IF NOT EXISTS idx_local_pieces_status ON local_pieces(status);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_start_date ON local_pieces(start_date);
 CREATE INDEX IF NOT EXISTS idx_local_pieces_parent_id ON local_pieces(parent_id);
 
-CREATE INDEX idx_diaries_date ON diaries (date DESC);
+CREATE INDEX IF NOT EXISTS idx_diaries_date ON diaries (date DESC);
+
+CREATE INDEX IF NOT EXISTS idx_sparks_unconsumed_target_date 
+  ON sparks (target_date, recorded_at ASC) 
+  WHERE consumed_at IS NULL;
 
 CREATE INDEX IF NOT EXISTS idx_notifications_category ON notifications(category);
 CREATE INDEX IF NOT EXISTS idx_notifications_created_at ON notifications(created_at);
