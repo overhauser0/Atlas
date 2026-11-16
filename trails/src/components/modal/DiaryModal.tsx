@@ -3,17 +3,20 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ArrowLeft,
+  Calendar,
   Camera,
   Check,
-  ExternalLink,
+  ChevronLeft,
+  ChevronRight,
   Loader2,
   Plus,
   Sparkles,
   X,
 } from 'lucide-react';
-import { DiaryItem } from '@/types';
+import { DiaryItem, LifeItem } from '@/types';
 import { atlasFetch } from '@/utils/api';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
+import ListItem from '@/components/ui/ListItem';
 
 export interface SparkItem {
   id: string;
@@ -24,29 +27,17 @@ export interface SparkItem {
   consumed_at?: string | null;
 }
 
-export interface ImmichAssetItem {
-  id: string;
-  thumbhash?: string | null;
-  originalFileName?: string;
-  localDateTime?: string;
-  exif?: {
-    make?: string | null;
-    model?: string | null;
-    focalLength?: number | null;
-  } | null;
-}
-
 interface DiaryModalProps {
   isOpen: boolean;
   diary: DiaryItem | null;
+  lifeItems: LifeItem[];
   onClose: () => void;
+  onChangeDate?: (date: string) => void | Promise<void>;
+  onSelectLifeItem?: (item: LifeItem) => void;
 }
 
 const RATES = [1, 2, 3, 4, 5];
-const IMMICH_BASE_URL =
-  process.env.NEXT_PUBLIC_IMMICH_URL || 'https://immich.piova.app';
 
-// 通常のUTC/ISO文字列用（Sparkのrecorded_atなど）
 function formatTime(isoString: string): string {
   try {
     return new Date(isoString).toLocaleTimeString('ja-JP', {
@@ -58,62 +49,25 @@ function formatTime(isoString: string): string {
   }
 }
 
-// ImmichのlocalDateTime用（すでにローカル時刻のため、タイムゾーン二重変換を防ぐ）
-function formatLocalAssetTime(localDateTime?: string): string {
-  if (!localDateTime) return '';
-  const match = localDateTime.match(/T(\d{2}:\d{2})/);
-  if (match) return match[1];
-  return formatTime(localDateTime);
-}
-
-// atlasFetch経由でImmichのサムネイルを描画するコンポーネント
-function ImmichThumbnail({
-  assetId,
-  alt = '',
-  className = '',
-}: {
-  assetId: string;
-  alt?: string;
-  className?: string;
-}) {
-  const [objectUrl, setObjectUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let isCancelled = false;
-    let currentUrl: string | null = null;
-
-    (async () => {
-      try {
-        const res = await atlasFetch(`/immich/assets/${assetId}/thumbnail`);
-        if (!res.ok || isCancelled) return;
-        const blob = await res.blob();
-        if (isCancelled) return;
-        currentUrl = URL.createObjectURL(blob);
-        setObjectUrl(currentUrl);
-      } catch (e) {
-        console.error('Failed to load Immich thumbnail', e);
-      }
-    })();
-
-    return () => {
-      isCancelled = true;
-      if (currentUrl) {
-        URL.revokeObjectURL(currentUrl);
-      }
-    };
-  }, [assetId]);
-
-  if (!objectUrl) {
-    return <div className={`bg-gray-100 animate-pulse ${className}`} />;
-  }
-
-  return <img src={objectUrl} alt={alt} loading="lazy" className={className} />;
+// タイムゾーンズレを防ぐ YYYY-MM-DD の日付加減算ヘルパー
+function shiftDate(dateStr: string, days: number): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  const date = new Date(y, m - 1, d + days);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
 export default function DiaryModal({
   isOpen,
   diary,
+  lifeItems,
   onClose,
+  onChangeDate,
+  onSelectLifeItem,
 }: DiaryModalProps) {
   const [formData, setFormData] = useState<DiaryItem>({
     date: '',
@@ -124,9 +78,6 @@ export default function DiaryModal({
   });
   const [sparks, setSparks] = useState<SparkItem[]>([]);
   const [photos, setPhotos] = useState<Asset[]>([]);
-  const [previewPhoto, setPreviewPhoto] = useState<ImmichAssetItem | null>(
-    null,
-  );
 
   const [saveStatus, setSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
@@ -200,7 +151,7 @@ export default function DiaryModal({
     [persistDiary],
   );
 
-  // 画面オープン時の初期化 & Sparks・Immich当日写真の並列取得
+  // 画面オープン時・日付変更時の初期化 & Sparks・Immich写真の並列取得
   useEffect(() => {
     if (!isOpen || !diary) return;
 
@@ -219,7 +170,6 @@ export default function DiaryModal({
     setSaveError('');
     setSparks([]);
     setPhotos([]);
-    setPreviewPhoto(null);
 
     let isCancelled = false;
 
@@ -238,7 +188,7 @@ export default function DiaryModal({
       }
     })();
 
-    // 2. Immich当日写真の取得（既存の POST /immich/search を使用）
+    // 2. Immich当日写真の取得
     (async () => {
       try {
         const res = await atlasFetch('/immich/search', {
@@ -247,9 +197,7 @@ export default function DiaryModal({
         });
         if (!res.ok || isCancelled) return;
         const json = await res.json();
-        const items: ImmichAssetItem[] = Array.isArray(json)
-          ? json
-          : (json.data ?? []);
+        const items: Asset[] = Array.isArray(json) ? json : (json.data ?? []);
 
         const sorted = [...items].sort((a, b) =>
           (a.localDateTime ?? '').localeCompare(b.localDateTime ?? ''),
@@ -277,21 +225,43 @@ export default function DiaryModal({
     onClose();
   }, [onClose, persistDiary]);
 
+  // 前日・翌日への移動（未保存分があれば保存してから親へ通知）
+  const handleNavigateDate = useCallback(
+    async (days: number) => {
+      if (!formData.date || !onChangeDate) return;
+      const targetDate = shiftDate(formData.date, days);
+      if (!targetDate) return;
+
+      if (saveTimerRef.current) {
+        clearTimeout(saveTimerRef.current);
+      }
+      if (isDirtyRef.current) {
+        await persistDiary(latestDataRef.current);
+      }
+      try {
+        await onChangeDate(targetDate);
+      } catch (e) {
+        console.error('Failed to change diary date', e);
+        setSaveStatus('error');
+        setSaveError(
+          e instanceof Error ? e.message : 'Failed to change diary date',
+        );
+      }
+    },
+    [formData.date, onChangeDate, persistDiary],
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (!isOpen) return;
       if (e.key === 'Escape') {
         e.preventDefault();
-        if (previewPhoto) {
-          setPreviewPhoto(null);
-        } else {
-          handleClose();
-        }
+        handleClose();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, previewPhoto, handleClose]);
+  }, [isOpen, handleClose]);
 
   const handlePromoteSpark = async (spark: SparkItem) => {
     const timeLabel = formatTime(spark.recorded_at);
@@ -357,15 +327,39 @@ export default function DiaryModal({
       {/* Sticky Header */}
       <header className="sticky top-0 z-10 shrink-0 bg-gray-50/80 backdrop-blur-md border-b border-gray-200/70">
         <div className="w-full px-4 md:px-6 h-14 flex items-center justify-between">
-          <button
-            onClick={handleClose}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 py-1.5 pr-3 rounded-lg transition-colors"
-          >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="text-sm font-bold text-gray-900 tracking-tight">
-              {formData.date}
-            </span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 py-1.5 pr-2 rounded-lg transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+              <span className="text-sm font-bold text-gray-900 tracking-tight">
+                {formData.date}
+              </span>
+            </button>
+
+            {onChangeDate && (
+              <div className="flex space-x-1">
+                <button
+                  type="button"
+                  onClick={() => handleNavigateDate(-1)}
+                  disabled={saveStatus === 'saving'}
+                  className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleNavigateDate(1)}
+                  disabled={saveStatus === 'saving'}
+                  className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40"
+                >
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+          </div>
 
           <div className="flex items-center gap-2 text-xs">
             {saveStatus === 'saving' && (
@@ -382,6 +376,7 @@ export default function DiaryModal({
             )}
             {saveStatus === 'error' && (
               <button
+                type="button"
                 onClick={() => persistDiary(latestDataRef.current)}
                 className="text-red-600 font-medium underline"
               >
@@ -392,7 +387,7 @@ export default function DiaryModal({
         </div>
       </header>
 
-      {/* Main Content: スマホは縦1カラム、md以上は左(情報)・右(テキスト)の2ペイン */}
+      {/* Main Content */}
       <main className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col">
         {saveError && (
           <div className="px-4 md:px-6 pt-4 shrink-0">
@@ -406,9 +401,9 @@ export default function DiaryModal({
         )}
 
         <div className="w-full flex-1 md:h-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-5 p-4 md:p-6 pb-12 md:pb-6 md:overflow-hidden">
-          {/* 左ペイン：メタデータ・写真・Sparks・関連Piece */}
+          {/* 左ペイン：メタデータ・本日のLifeItem・写真・Sparks */}
           <div className="md:col-span-5 lg:col-span-4 space-y-3 md:overflow-y-auto md:pr-1">
-            {/* Metadata Grid */}
+            {/* Rate Card */}
             <div className="grid grid-cols-2 gap-3">
               <section className="col-span-2 bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
                 <div className="flex items-center justify-between mb-2.5">
@@ -450,6 +445,29 @@ export default function DiaryModal({
                 </div>
               </section>
             </div>
+
+            {/* 本日の LifeItem Bento Card */}
+            {lifeItems.length > 0 && (
+              <section className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-2">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    Life Items ({lifeItems.length})
+                  </span>
+                </div>
+
+                <div className="divide-y divide-gray-100 -mx-2">
+                  {lifeItems.map((item) => (
+                    <ListItem
+                      key={item.id}
+                      item={item}
+                      slim
+                      onItemClick={() => onSelectLifeItem?.(item)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Immich Daily Photos Bento Card */}
             {photos.length > 0 && (
@@ -523,18 +541,6 @@ export default function DiaryModal({
                 </ul>
               </section>
             )}
-
-            {/* Linked Pieces Slot */}
-            {formData.piece_ids && formData.piece_ids.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
-                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                  Linked Pieces ({formData.piece_ids.length})
-                </span>
-                <p className="text-xs text-gray-500">
-                  {formData.piece_ids.length} 件の Piece が紐づいています
-                </p>
-              </section>
-            )}
           </div>
 
           {/* 右ペイン：Main Note (Markdown) Bento Card */}
@@ -562,61 +568,6 @@ export default function DiaryModal({
           </section>
         </div>
       </main>
-
-      {/* Photo Lightbox Overlay */}
-      {previewPhoto && (
-        <div
-          onClick={() => setPreviewPhoto(null)}
-          className="fixed inset-0 z-60 bg-black/90 backdrop-blur-sm flex flex-col justify-between p-4 animate-in fade-in duration-150"
-        >
-          <div className="flex items-center justify-between text-white">
-            <div className="flex items-center gap-2 text-xs font-mono text-white/75">
-              <span>{formatLocalAssetTime(previewPhoto.localDateTime)}</span>
-              {previewPhoto.exif?.model && (
-                <span className="text-white/50">
-                  · {previewPhoto.exif.model}
-                  {previewPhoto.exif.focalLength
-                    ? ` (${previewPhoto.exif.focalLength}mm)`
-                    : ''}
-                </span>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setPreviewPhoto(null)}
-              className="p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-          </div>
-
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex-1 flex items-center justify-center my-4 overflow-hidden"
-          >
-            <ImmichThumbnail
-              assetId={previewPhoto.id}
-              alt={previewPhoto.originalFileName || ''}
-              className="max-w-full max-h-full object-contain rounded-lg"
-            />
-          </div>
-
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex justify-center pb-2"
-          >
-            <a
-              href={`${IMMICH_BASE_URL}/photos/${previewPhoto.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors"
-            >
-              <span>Immichで開く</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

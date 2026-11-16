@@ -40,6 +40,7 @@ interface Props {
   className?: string; // コンポーネント全体への追加クラス
   description?: string;
   isActive?: boolean;
+  slim?: boolean; // 追加：Modalやカード内向けのコンパクト表示
   onMouseEnter?: () => void;
   onItemClick: () => void;
 }
@@ -48,10 +49,11 @@ export default function ListItem({
   item,
   icon,
   iconClassName,
-  iconWrapperClassName = 'bg-gray-100', // デフォルト背景色
+  iconWrapperClassName = 'bg-gray-100',
   className = '',
   description,
   isActive = false,
+  slim = false,
   onMouseEnter,
   onItemClick,
 }: Props) {
@@ -63,42 +65,69 @@ export default function ListItem({
     : item.status === 'Done'
       ? 'text-green-500'
       : 'text-gray-500';
-  const displayIcon = <IconComponent className={`w-5 h-5 ${addIconClass}`} />;
+
+  const displayIcon = (
+    <IconComponent
+      className={`${slim ? 'w-3.5 h-3.5' : 'w-5 h-5'} ${addIconClass}`}
+    />
+  );
 
   return (
     <div
       onClick={onItemClick}
       onMouseEnter={onMouseEnter}
-      className={`p-4 flex items-center gap-4 cursor-pointer transition-colors ${isActive ? 'bg-primary-50 hover:bg-primary-50' : 'hover:bg-gray-50'} ${className}`}
+      className={`${
+        slim ? 'py-2 px-2.5 gap-2.5 rounded-xl' : 'p-4 gap-4'
+      } flex items-center cursor-pointer transition-colors ${
+        isActive ? 'bg-primary-50 hover:bg-primary-50' : 'hover:bg-gray-50'
+      } ${className}`}
     >
-      {/* アイコンの背景枠に iconWrapperClassName を適用 */}
+      {/* アイコンの背景枠 */}
       <div
-        className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${iconWrapperClassName}`}
+        className={`${
+          slim ? 'w-7 h-7 rounded-lg' : 'w-10 h-10 rounded-xl'
+        } flex items-center justify-center shrink-0 ${iconWrapperClassName}`}
       >
         {displayIcon}
       </div>
 
+      {/* タイトル・メタ情報 */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-gray-900 truncate">{item.title}</p>
-        {description && (
+        <p
+          className={`${
+            slim
+              ? 'text-xs font-semibold text-gray-800'
+              : 'text-sm font-bold text-gray-900'
+          } truncate`}
+        >
+          {item.title}
+        </p>
+
+        {!slim && description && (
           <p className="text-xs text-gray-500 truncate mt-0.5">{description}</p>
         )}
-        <div className="flex gap-2 mt-1 flex-wrap">
-          {item.fkw?.map((tag) => (
-            <span key={tag} className="trails-badge">
-              #{tag}
-            </span>
-          ))}
-        </div>
+
+        {!slim && item.fkw && item.fkw.length > 0 && (
+          <div className="flex gap-2 mt-1 flex-wrap">
+            {item.fkw.map((tag) => (
+              <span key={tag} className="trails-badge">
+                #{tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center gap-2">
-        {item.start_date && (
+      {/* 日付・シェブロン */}
+      <div className="flex items-center gap-2 shrink-0">
+        {!slim && item.start_date && (
           <span className="text-xs text-gray-400 font-medium">
             {item.start_date.slice(5, 10).replace('-', '/')}
           </span>
         )}
-        <ChevronRight className="w-4 h-4 text-gray-300" />
+        <ChevronRight
+          className={`${slim ? 'w-3.5 h-3.5' : 'w-4 h-4'} text-gray-300`}
+        />
       </div>
     </div>
   );

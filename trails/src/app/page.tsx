@@ -47,6 +47,7 @@ import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
 import { ToastProvider } from '@/components/ui/Toast';
+import { atlasFetch } from '@/utils/api';
 
 // メニュー定義
 const MAIN_TABS = [
@@ -136,12 +137,9 @@ function AppMain() {
   );
 
   const { diaries, fetchDiaries } = useDiarySync(isAuthenticated);
-  const handleRefreshDiaries = useCallback(
-    () => {
-      void fetchDiaries();
-    },
-    [fetchDiaries],
-  );
+  const handleRefreshDiaries = useCallback(() => {
+    void fetchDiaries();
+  }, [fetchDiaries]);
 
   useAtlasWebSocket(handleRefreshPieces, handleRefreshDiaries);
 
@@ -229,6 +227,34 @@ function AppMain() {
   const handleDiaryClick = (diary: DiaryItem | null) => {
     setDiaryModalConfig({ isOpen: true, diary });
   };
+
+  const handleChangeDiaryDate = useCallback(
+    async (date: string) => {
+      let nextDiary = diaries.find((item) => item.date === date) ?? null;
+
+      if (!nextDiary) {
+        const res = await atlasFetch(`/diaries/${date}`);
+        if (res.ok) {
+          const json = await res.json();
+          nextDiary = json.diary ?? null;
+        } else if (res.status !== 404) {
+          throw new Error(`Failed to fetch diary: ${res.status}`);
+        }
+      }
+
+      setDiaryModalConfig((prev) => ({
+        ...prev,
+        diary: nextDiary ?? {
+          date,
+          rate: null,
+          content: '',
+          flag: false,
+          piece_ids: [],
+        },
+      }));
+    },
+    [diaries],
+  );
 
   const handleOpenDailyPhoto = (date: string) => {
     setSelectedPhotoDate(date);
@@ -480,9 +506,15 @@ function AppMain() {
       <DiaryModal
         isOpen={diaryModalConfig.isOpen}
         diary={diaryModalConfig.diary}
+        lifeItems={items.filter(
+          (item) =>
+            item.start_date?.slice(0, 10) === diaryModalConfig.diary?.date,
+        )}
         onClose={() =>
           setDiaryModalConfig((prev) => ({ ...prev, isOpen: false }))
         }
+        onChangeDate={handleChangeDiaryDate}
+        onSelectLifeItem={(item) => openDetailModal(item)}
       />
       <DailyPhotoModal
         isOpen={isPhotoModalOpen}
