@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
+import { addDays, toDateKey, toLocalDate } from '@/utils/date';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface Props {
@@ -35,20 +36,6 @@ interface TimedEntry extends CalendarEntry {
 const HOUR_HEIGHT = 64;
 const DAY_WIDTH = 132;
 const TIME_COLUMN_WIDTH = 52;
-
-const dateKey = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-const parseDateKey = (key: string) => {
-  const [year, month, day] = key.slice(0, 10).split('-').map(Number);
-  return new Date(year, month - 1, day);
-};
-
-const addDays = (date: Date, count: number) => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + count);
-  return result;
-};
 
 const getSunday = (date: Date) => {
   const result = new Date(date);
@@ -133,12 +120,12 @@ export default function WeekCalendarTab({
         return {
           weekday: getWeekdayLabel(date),
           date,
-          key: dateKey(date),
+          key: toDateKey(date),
         };
       }),
     [weekStart],
   );
-  const todayKey = dateKey(new Date());
+  const todayKey = toDateKey(new Date());
 
   const entries = useMemo(() => {
     const calendarItems: CalendarEntry[] = [
@@ -196,10 +183,13 @@ export default function WeekCalendarTab({
     entries
       .filter((entry) => entry.isAllDay)
       .forEach((entry) => {
-        const finalDate =
+        const parsedEndDate =
           entry.isGoogleEvent && entry.endDate
-            ? dateKey(addDays(parseDateKey(entry.endDate), -1))
-            : entry.endDate || entry.startDate;
+            ? toLocalDate(entry.endDate)
+            : null;
+        const finalDate = parsedEndDate
+          ? toDateKey(addDays(parsedEndDate, -1))
+          : entry.endDate || entry.startDate;
         days.forEach(({ key }) => {
           if (key >= entry.startDate && key <= finalDate) {
             const dayEntries = byDate.get(key) || [];

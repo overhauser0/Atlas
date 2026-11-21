@@ -12,7 +12,11 @@ import {
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
-import { getDateShortString, getDateFullString } from '@/utils/dateUtils';
+import {
+  getDateShortString,
+  getDateFullString,
+  toLocalDate,
+} from '@/utils/date';
 import CalendarItem from '@/components/ui/CalendarItem';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
@@ -189,15 +193,8 @@ export default function CalendarTab({
   }, [year, month]);
 
   // アイテムから日付を取得するヘルパー
-  const getItemDate = (item: LifeItem): Date | null => {
-    const dateStr = item.start_date || (item as any).createdAt;
-    if (!dateStr) return null;
-    const datePart = dateStr.slice(0, 10);
-    const [year, month, day] = datePart.split('-').map(Number);
-    if (!year || !month || !day) return null;
-    const date = new Date(year, month - 1, day);
-    return Number.isNaN(date.getTime()) ? null : date;
-  };
+  const getItemDate = (item: LifeItem): Date | null =>
+    toLocalDate(item.start_date || (item as any).createdAt);
 
   // 特定の日のアイテムを取得し、タスクを上にする
   const getItemsForDate = (date: Date) => {

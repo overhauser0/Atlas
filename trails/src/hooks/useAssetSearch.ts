@@ -1,5 +1,5 @@
 import useSWR from 'swr';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { Asset } from '@/components/ui/AssetGrid';
 
 interface AssetSearchFilters {

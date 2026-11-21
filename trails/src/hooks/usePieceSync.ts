@@ -1,8 +1,8 @@
 // gleis/src/hooks/usePieceSync.ts
 import { useState, useCallback } from 'react';
 import { LifeItem } from '@/types';
-import { atlasFetch } from '@/utils/api';
-import { markCategory, judgeDefaultIcon } from '@/utils/grouping';
+import { atlasFetch } from '@/lib/api';
+import { markCategory, judgeDefaultIcon } from '@/utils/piece';
 
 export const usePieceSync = (
   isAuthenticated: boolean,

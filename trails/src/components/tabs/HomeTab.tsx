@@ -5,7 +5,7 @@ import { Archive, ChevronRight, Plane, Sparkles, Tags } from 'lucide-react';
 import { Views, LifeItem } from '@/types';
 import ListItem from '../ui/ListItem';
 import JapanMapWidget from '../JapanMapWidget';
-import { sortByStartDate } from '@/utils/dateUtils';
+import { sortByStartDate } from '@/utils/piece';
 
 interface Props {
   onNavigate: (tab: Views) => void;

@@ -14,8 +14,13 @@ import {
   X,
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
-import { atlasFetch } from '@/utils/api';
-import { getDateFullString } from '@/utils/dateUtils';
+import { atlasFetch } from '@/lib/api';
+import {
+  formatJaDateWithWeekday,
+  formatTimeFromIso,
+  getDateFullString,
+  shiftDateKey,
+} from '@/utils/date';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 import ListItem from '@/components/ui/ListItem';
@@ -39,38 +44,6 @@ interface DiaryModalProps {
 }
 
 const RATES = [1, 2, 3, 4, 5];
-
-function formatTime(isoString: string): string {
-  try {
-    return new Date(isoString).toLocaleTimeString('ja-JP', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return '';
-  }
-}
-
-// タイムゾーンズレを防ぐ YYYY-MM-DD の日付加減算ヘルパー
-function shiftDate(dateStr: string, days: number): string {
-  if (!dateStr) return '';
-  const [y, m, d] = dateStr.split('-').map(Number);
-  if (!y || !m || !d) return dateStr;
-  const date = new Date(y, m - 1, d + days);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
-function formatDiaryDateLabel(dateStr: string): string {
-  if (!dateStr) return '';
-  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
-  if (!y || !m || !d) return dateStr;
-  const date = new Date(y, m - 1, d);
-  const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
-  return `${y}年${m}月${d}日 (${weekday})`;
-}
 
 export default function DiaryModal({
   isOpen,
@@ -263,7 +236,7 @@ export default function DiaryModal({
   const handleNavigateDate = useCallback(
     (days: number) => {
       if (!formData.date) return;
-      void handleSelectDate(shiftDate(formData.date, days));
+      void handleSelectDate(shiftDateKey(formData.date, days));
     },
     [formData.date, handleSelectDate],
   );
@@ -285,7 +258,7 @@ export default function DiaryModal({
   }, [isOpen, handleClose]);
 
   const handlePromoteSpark = async (spark: SparkItem) => {
-    const timeLabel = formatTime(spark.recorded_at);
+    const timeLabel = formatTimeFromIso(spark.recorded_at);
     const formattedLine = timeLabel
       ? `- **${timeLabel}** ${spark.content}`
       : `- ${spark.content}`;
@@ -319,7 +292,7 @@ export default function DiaryModal({
     if (sparks.length === 0) return;
     const targetIds = sparks.map((s) => s.id);
     const lines = sparks.map((s) => {
-      const timeLabel = formatTime(s.recorded_at);
+      const timeLabel = formatTimeFromIso(s.recorded_at);
       return timeLabel ? `- **${timeLabel}** ${s.content}` : `- ${s.content}`;
     });
 
@@ -347,7 +320,7 @@ export default function DiaryModal({
     <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col animate-in fade-in duration-150">
       <FullscreenHeader
         title="日記"
-        subtitle={formatDiaryDateLabel(formData.date)}
+        subtitle={formatJaDateWithWeekday(formData.date)}
         onBack={handleClose}
         backLabel="戻る"
         actions={
@@ -555,7 +528,7 @@ export default function DiaryModal({
                     >
                       <div className="min-w-0 flex-1">
                         <span className="text-[11px] font-mono text-gray-400 mr-2">
-                          {formatTime(spark.recorded_at)}
+                          {formatTimeFromIso(spark.recorded_at)}
                         </span>
                         <span className="text-sm text-gray-800 whitespace-pre-wrap break-words">
                           {spark.content}

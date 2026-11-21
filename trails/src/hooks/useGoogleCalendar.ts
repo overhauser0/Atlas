@@ -1,6 +1,6 @@
 // src/hooks/useGoogleCalendar.ts
 import { useState, useCallback } from 'react';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 
 export interface GoogleEvent {
   id: string;

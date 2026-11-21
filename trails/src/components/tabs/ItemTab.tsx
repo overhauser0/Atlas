@@ -20,7 +20,8 @@ import {
   Wine,
 } from 'lucide-react';
 import { ItemTabPreset, LifeItem } from '@/types';
-import { groupItemsByYear } from '@/utils/grouping';
+import { JA_WEEKDAYS, toDateKey, toLocalDate } from '@/utils/date';
+import { groupItemsByYear } from '@/utils/piece';
 import ListItem from '@/components/ui/ListItem';
 import PageHeader from '@/components/ui/PageHeader';
 
@@ -56,19 +57,6 @@ const PRESET_HEADER_ICONS: Record<ItemTabPreset, React.ReactNode> = {
 };
 
 export type ItemView = 'List' | 'Cal' | 'Stats';
-
-const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
-
-const toLocalDate = (date: string | null): Date | null => {
-  if (!date) return null;
-  const [year, month, day] = date.slice(0, 10).split('-').map(Number);
-  if (!year || !month || !day) return null;
-  const parsed = new Date(year, month - 1, day);
-  return Number.isNaN(parsed.getTime()) ? null : parsed;
-};
-
-const getDateKey = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
 export default function ItemTab({
   preset,
@@ -148,7 +136,7 @@ export default function ItemTab({
     filteredItems.forEach((item) => {
       const date = toLocalDate(item.start_date);
       if (!date) return;
-      const key = getDateKey(date);
+      const key = toDateKey(date);
       const items = map.get(key) ?? [];
       items.push(item);
       map.set(key, items);
@@ -156,7 +144,7 @@ export default function ItemTab({
     return map;
   }, [filteredItems]);
 
-  const selectedDateItems = itemsByDate.get(getDateKey(selectedDate)) ?? [];
+  const selectedDateItems = itemsByDate.get(toDateKey(selectedDate)) ?? [];
 
   const stats = useMemo(() => {
     const completed = filteredItems.filter(
@@ -356,7 +344,7 @@ export default function ItemTab({
                 </div>
               </header>
               <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
-                {WEEKDAYS.map((weekday) => (
+                {JA_WEEKDAYS.map((weekday) => (
                   <div
                     key={weekday}
                     className="py-2 text-center text-[10px] font-semibold text-gray-400 sm:text-xs"
@@ -367,10 +355,10 @@ export default function ItemTab({
               </div>
               <div className="grid grid-cols-7 gap-px bg-gray-100">
                 {calendarDays.map(({ date, isCurrentMonth }) => {
-                  const dateKey = getDateKey(date);
+                  const dateKey = toDateKey(date);
                   const dayItems = itemsByDate.get(dateKey) ?? [];
-                  const isSelected = dateKey === getDateKey(selectedDate);
-                  const isToday = dateKey === getDateKey(new Date());
+                  const isSelected = dateKey === toDateKey(selectedDate);
+                  const isToday = dateKey === toDateKey(new Date());
 
                   return (
                     <button
@@ -433,7 +421,7 @@ export default function ItemTab({
                 {selectedDate.getFullYear()}/
                 {String(selectedDate.getMonth() + 1).padStart(2, '0')}/
                 {String(selectedDate.getDate()).padStart(2, '0')} (
-                {WEEKDAYS[selectedDate.getDay()]})
+                {JA_WEEKDAYS[selectedDate.getDay()]})
               </h3>
               {selectedDateItems.length ? (
                 <div className="trails-card divide-y divide-gray-100 overflow-hidden">

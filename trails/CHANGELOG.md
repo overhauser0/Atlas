@@ -1,5 +1,10 @@
 # Changelog
 
+## 8.5.1
+
+- Antigravityでリファクタ
+- Yeary Digest追加
+
 ## 8.5.0
 
 - Spark追加

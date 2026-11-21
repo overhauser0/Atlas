@@ -11,7 +11,8 @@ import {
   X,
 } from 'lucide-react';
 import { Person } from '@/types';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
+import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import PageHeader from '@/components/ui/PageHeader';
 import PersonEditor from '@/components/tabs/PersonEditor';
 
@@ -286,15 +287,11 @@ export default function PeopleTab() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <h2 className="truncate text-sm font-bold text-gray-900">
-                        {[person.family_name, person.given_name]
-                          .filter(Boolean)
-                          .join(' ')}
+                        {formatPersonName(person)}
                       </h2>
                       {(person.ruby_family_name || person.ruby_given_name) && (
                         <p className="mt-0.5 truncate text-xs text-gray-500">
-                          {[person.ruby_family_name, person.ruby_given_name]
-                            .filter(Boolean)
-                            .join(' ')}
+                          {formatPersonRuby(person)}
                         </p>
                       )}
                       {person.tags && person.tags.length > 0 && (

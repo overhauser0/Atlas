@@ -16,8 +16,9 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { LifeItem, Person } from '@/types';
-import { atlasFetch } from '@/utils/api';
-import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneous';
+import { atlasFetch } from '@/lib/api';
+import { formatPersonName } from '@/utils/person';
+import { getStatusColor, getNotionLinkById } from '@/utils/piece';
 
 const STATUSES = ['INBOX', 'Waiting', 'Going', 'Done'];
 type LinkedPerson = Pick<Person, 'id' | 'family_name' | 'given_name'>;
@@ -658,9 +659,7 @@ export default function DetailModal({
                           key={person.id}
                           className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600"
                         >
-                          {[person.family_name, person.given_name]
-                            .filter(Boolean)
-                            .join(' ')}
+                          {formatPersonName(person)}
                         </span>
                       ))}
                     </div>
@@ -716,11 +715,7 @@ export default function DetailModal({
                               onClick={() => void handleLinkPerson(person)}
                               className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50"
                             >
-                              <span>
-                                {[person.family_name, person.given_name]
-                                  .filter(Boolean)
-                                  .join(' ')}
-                              </span>
+                              <span>{formatPersonName(person)}</span>
                               {isLinkingPerson ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
                               ) : (

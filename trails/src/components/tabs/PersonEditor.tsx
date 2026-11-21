@@ -17,9 +17,10 @@ import {
   X,
 } from 'lucide-react';
 import { Person, PersonPiece, PersonTimelinePiece } from '@/types';
-import { atlasFetch } from '@/utils/api';
-import { getDateFullString, sortByStartDate } from '@/utils/dateUtils';
-import { getNotionLinkById } from '@/utils/miscellaneous';
+import { atlasFetch } from '@/lib/api';
+import { getDateFullString } from '@/utils/date';
+import { formatPersonName, formatPersonRuby } from '@/utils/person';
+import { getNotionLinkById, sortByStartDate } from '@/utils/piece';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
@@ -880,9 +881,7 @@ export default function PersonEditor({
   const isReadOnly = person !== null && !isEditing;
   const linkLabel =
     linkModalType === 'immich_person_id' ? 'Immich' : 'Google Contacts';
-  const fullName = person
-    ? [person.family_name, person.given_name].filter(Boolean).join(' ')
-    : '';
+  const fullName = person ? formatPersonName(person) : '';
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-gray-100">
@@ -894,9 +893,7 @@ export default function PersonEditor({
           person
             ? isEditing
               ? '人物情報を編集します'
-              : [person.ruby_family_name, person.ruby_given_name]
-                  .filter(Boolean)
-                  .join(' ') || '人物の詳細'
+              : formatPersonRuby(person) || '人物の詳細'
             : '人物情報を登録します'
         }
         onBack={onClose}

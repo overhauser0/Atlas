@@ -1,6 +1,6 @@
 // src/hooks/useDiarySync.ts
 import { useState, useCallback, useRef } from 'react';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { DiaryItem } from '@/types';
 
 interface DiaryRange {

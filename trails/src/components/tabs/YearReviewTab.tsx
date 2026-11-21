@@ -25,12 +25,19 @@ import {
   Wine,
 } from 'lucide-react';
 import { DiaryItem, ItemTabPreset, LifeItem, Views } from '@/types';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { useImmichStats } from '@/hooks/useImmichStats';
-import JapanMapWidget, { normalizePref } from '@/components/JapanMapWidget';
+import JapanMapWidget from '@/components/JapanMapWidget';
 import ListItem from '@/components/ui/ListItem';
 import PageHeader from '@/components/ui/PageHeader';
-import { sortByStartDate } from '@/utils/dateUtils';
+import {
+  formatJaDateWithWeekday,
+  getMonthIndexFromDate,
+  getYearFromDate,
+  toDateKey,
+} from '@/utils/date';
+import { sortByStartDate } from '@/utils/piece';
+import { normalizePref } from '@/utils/prefecture';
 
 interface YearReviewTabProps {
   items: LifeItem[];
@@ -128,30 +135,6 @@ const TOPIC_META: {
     badgeClass: 'bg-teal-50 text-teal-600',
   },
 ];
-
-const getYearFromDate = (dateStr: string | null | undefined): number | null => {
-  if (!dateStr || dateStr.length < 4) return null;
-  const parsed = Number(dateStr.slice(0, 4));
-  return Number.isInteger(parsed) && parsed > 1900 ? parsed : null;
-};
-
-const getMonthIndexFromDate = (
-  dateStr: string | null | undefined,
-): number | null => {
-  if (!dateStr || dateStr.length < 7) return null;
-  const parsed = Number(dateStr.slice(5, 7));
-  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 12
-    ? parsed - 1
-    : null;
-};
-
-const formatJaDate = (dateStr: string) => {
-  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
-  if (!y || !m || !d) return dateStr;
-  const date = new Date(y, m - 1, d);
-  const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
-  return `${m}/${d} (${weekday})`;
-};
 
 export default function YearReviewTab({
   items,
@@ -431,7 +414,7 @@ export default function YearReviewTab({
 
     const cursor = new Date(jan1);
     while (cursor <= dec31) {
-      const key = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+      const key = toDateKey(cursor);
       cells.push({ date: key, count: dailyCounts[key] || 0 });
       cursor.setDate(cursor.getDate() + 1);
     }
@@ -974,7 +957,7 @@ export default function YearReviewTab({
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-xs font-bold text-gray-900">
-                          {formatJaDate(diary.date)}
+                          {formatJaDateWithWeekday(diary.date, 'short')}
                         </span>
                         <div className="flex items-center gap-1.5">
                           {diary.flag && (
@@ -1089,7 +1072,7 @@ export default function YearReviewTab({
                             {idx + 1}
                           </span>
                           <span className="text-xs font-bold text-gray-800">
-                            {formatJaDate(day.date)}
+                            {formatJaDateWithWeekday(day.date, 'short')}
                           </span>
                         </div>
                         <span className="text-sm font-black text-gray-900 sm:mt-1 tabular-nums">
