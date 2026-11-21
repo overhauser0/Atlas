@@ -27,6 +27,9 @@ import {
   Repeat,
   Cpu,
   Activity,
+  BriefcaseBusiness,
+  ClipboardList,
+  Keyboard,
 } from 'lucide-react';
 import type { LocalNote, ViewType, Task } from '@/types';
 import { atlasFetch } from '@/lib/api';
@@ -129,6 +132,12 @@ export default function CommandPalette({
         action: () => onNavigate('calendar'),
       },
       {
+        id: 'nav-meeting',
+        label: 'Go to Meeting',
+        icon: BriefcaseBusiness,
+        action: () => onNavigate('meeting'),
+      },
+      {
         id: 'nav-review',
         label: 'Go to Review',
         icon: ClipboardPenLine,
@@ -139,6 +148,12 @@ export default function CommandPalette({
         label: 'Go to Note',
         icon: FileText,
         action: () => onNavigate('note'),
+      },
+      {
+        id: 'nav-documents',
+        label: 'Go to Documents',
+        icon: FileStack,
+        action: () => onNavigate('documents'),
       },
       {
         id: 'nav-agent',
@@ -165,16 +180,28 @@ export default function CommandPalette({
         action: () => onOpenSetting('routine'),
       },
       {
+        id: 'nav-setting-presets',
+        label: 'Go to Presets Settings',
+        icon: ClipboardList,
+        action: () => onOpenSetting('presets'),
+      },
+      {
         id: 'nav-setting-agent',
         label: 'Go to Agent Settings',
         icon: Cpu,
-        action: () => onOpenSetting('routine'),
+        action: () => onOpenSetting('ai'),
       },
       {
         id: 'nav-setting-network',
         label: 'Go to Network Settings',
         icon: Activity,
-        action: () => onOpenSetting('routine'),
+        action: () => onOpenSetting('network'),
+      },
+      {
+        id: 'nav-setting-shortcuts',
+        label: 'Go to Shortcuts Settings',
+        icon: Keyboard,
+        action: () => onOpenSetting('shortcuts'),
       },
       {
         id: 'nav-settings',
