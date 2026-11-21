@@ -1,10 +1,11 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
+import type { AppSettings } from '@/types';
 import { useToast } from './ui/Toast';
 
 interface Props {
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 export default function AlarmHandler({ appSettings, setAppSettings }: Props) {

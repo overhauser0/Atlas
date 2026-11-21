@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getAutoDeviceName } from '@/utils/getAutoDeviceName';
+import { getAutoDeviceName } from '@/lib/device';
 
 export function useAtlasWebSocket(
   onRefreshPieces: (force: boolean) => void,

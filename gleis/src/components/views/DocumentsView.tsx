@@ -2,7 +2,6 @@
 
 import { useMemo, useState, type DragEvent } from 'react';
 import {
-  Search,
   ExternalLink,
   Plus,
   FileStack,
@@ -11,8 +10,9 @@ import {
   Loader2,
 } from 'lucide-react';
 import { PaperlessDocument, Task } from '@/types';
-import { getDateFullString } from '@/utils/dateUtils';
+import { getDateFullString } from '@/utils/date';
 import { IconButton } from '@/components/ui/IconButton';
+import SearchBar from '@/components/ui/SearchBar';
 
 interface Props {
   documents: PaperlessDocument[];
@@ -92,21 +92,21 @@ export default function DocumentsView({
     >
       {/* ドラッグ中・アップロード中のオーバーレイ */}
       {(isDragging || isUploading) && (
-        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-lg border-2 border-dashed border-blue-500/50">
+        <div className="absolute inset-0 z-50 pointer-events-none flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm rounded-2xl border-2 border-dashed border-neon/50">
           {isUploading ? (
             <>
-              <Loader2 className="w-10 h-10 text-blue-400 animate-spin mb-3" />
-              <p className="text-sm font-medium text-blue-200">
+              <Loader2 className="w-10 h-10 text-neon animate-spin mb-3" />
+              <p className="text-sm font-medium text-white">
                 Processing Document...
               </p>
-              <p className="text-xs text-blue-300/70 mt-1">
+              <p className="text-xs text-gray-400 mt-1">
                 Paperless-ngx is working on it
               </p>
             </>
           ) : (
             <>
-              <UploadCloud className="w-10 h-10 text-blue-400 mb-3 animate-bounce" />
-              <p className="text-sm font-medium text-blue-200">
+              <UploadCloud className="w-10 h-10 text-neon mb-3 animate-bounce" />
+              <p className="text-sm font-medium text-white">
                 Drop PDF to Upload
               </p>
             </>
@@ -114,19 +114,12 @@ export default function DocumentsView({
         </div>
       )}
       <div className="flex flex-col h-full">
-        <div className="p-4">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-4 w-4 text-gray-500 group-focus-within:text-neon transition-colors" />
-            </div>
-            <input
-              type="text"
-              placeholder="Search documents..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-white/5 border border-white/10 rounded-lg pl-10 pr-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-white/20 transition-all"
-            />
-          </div>
+        <div className="p-4 border-b border-white/5 bg-white/2 shrink-0">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Search documents..."
+          />
         </div>
 
         <div className="flex-1 overflow-y-auto space-y-2 p-4 noir-scrollbar">
@@ -142,7 +135,7 @@ export default function DocumentsView({
             filteredDocuments.map((doc) => (
               <div
                 key={doc.id}
-                className="group grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] items-center gap-x-3 gap-y-2 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-lg cursor-pointer transition-colors sm:flex sm:justify-between"
+                className="group grid grid-cols-[minmax(0,1fr)_auto] grid-rows-[auto_auto_auto] items-center gap-x-3 gap-y-2 p-3 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-colors sm:flex sm:justify-between"
               >
                 <div className="col-start-1 row-span-3 flex min-w-0 flex-col gap-2 sm:flex-row">
                   <div className="flex items-center gap-2 min-w-0">
@@ -154,7 +147,7 @@ export default function DocumentsView({
 
                   <div className="flex flex-nowrap items-center gap-2 shrink-0">
                     {doc.document_type && (
-                      <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 border border-blue-500/20 shrink-0">
+                      <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded bg-neon/10 text-neon border border-neon/20 shrink-0">
                         <Layers className="w-3 h-3" />
                         {doc.document_type}
                       </span>

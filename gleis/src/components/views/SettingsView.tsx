@@ -10,7 +10,7 @@ import {
   Bell,
   ClipboardList,
 } from 'lucide-react';
-import { DeviceInfo, Task, SettingsTab } from '@/types';
+import { AppSettings, DeviceInfo, Task, SettingsTab } from '@/types';
 
 // --- Sub Components ---
 import GeneralSettings from './settings/GeneralSettings';
@@ -22,8 +22,8 @@ import NotificationsView from './settings/Notifications';
 import PresetSettings from './settings/PresetSettings';
 
 interface Props {
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   wsStatus?: 'connected' | 'connecting' | 'disconnected';
   connectedDevices?: DeviceInfo[];
   ownDeviceId?: string;

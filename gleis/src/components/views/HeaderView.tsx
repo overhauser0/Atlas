@@ -2,10 +2,12 @@
 import React from 'react';
 import { Menu, Zap, Loader2, Search } from 'lucide-react';
 
+import type { AppSettings } from '@/types';
+
 interface HeaderViewProps {
   currentTime: Date | null;
   hasNotifications: boolean;
-  appSettings: any;
+  appSettings: AppSettings;
   setIsMobileMenuOpen: (isOpen: boolean) => void;
   isQuickAlarmOpen: boolean;
   setIsQuickAlarmOpen: (isOpen: boolean) => void;
@@ -25,7 +27,7 @@ export default function HeaderView({
   isSyncing,
   onOpenCommandPalette,
 }: HeaderViewProps) {
-  const today = new Date();
+  const today = currentTime ?? new Date();
   const longDate = today.toLocaleDateString('en-US', {
     weekday: 'long',
     month: 'long',

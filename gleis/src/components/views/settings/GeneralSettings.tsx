@@ -1,12 +1,13 @@
 'use client';
 import React from 'react';
 import { Monitor, RefreshCw, Bell, Clock, Zap, Info } from 'lucide-react';
+import type { AppSettings } from '@/types';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import packageJson from '../../../../package.json';
 
 interface Props {
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 export default function GeneralSettings({

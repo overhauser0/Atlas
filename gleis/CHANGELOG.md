@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.0
+
+- Antigravityでリファクタ
+
 ## 2.1.0
 
 - 単純なdateから、startとend、timeを追加

@@ -1,11 +1,12 @@
 'use client';
 import React from 'react';
+import type { AppSettings } from '@/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 export default function QuickAlarmModal({

@@ -1,6 +1,6 @@
 // src/hooks/useNotificationSync.ts
 import { useState, useCallback, useEffect } from 'react';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 
 export const useNotificationSync = (isAuthenticated: boolean) => {
   const [notifications, setNotifications] = useState<any[]>([]);

@@ -24,13 +24,14 @@ import {
 import { Task, TaskStatus } from '@/types';
 import ConfirmModal from '@/components/modals/ConfirmModal';
 import { useToast } from '@/components/ui/Toast';
-import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
 import {
-  getDateFullString,
+  getNotionLinkById,
   getPieceDateRangeUpdate,
-} from '@/utils/dateUtils';
-import { atlasFetch } from '@/utils/api';
-import { triggerHaptics } from '@/utils/haptics';
+  getStatusColor,
+} from '@/utils/task';
+import { getDateFullString } from '@/utils/date';
+import { atlasFetch } from '@/lib/api';
+import { triggerHaptics } from '@/lib/haptics';
 import { useConfirm } from '@/hooks/useConfirm';
 import ApplyTaskPresetModal from '@/components/modals/ApplyTaskPresetModal';
 

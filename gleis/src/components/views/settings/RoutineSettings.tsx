@@ -11,7 +11,7 @@ import {
   CalendarClock,
 } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 export interface RoutineTask {

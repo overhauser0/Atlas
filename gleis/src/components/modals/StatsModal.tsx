@@ -8,7 +8,7 @@ import {
   BarChart3,
 } from 'lucide-react';
 import { Task } from '@/types';
-import { getThisWeekMonday } from '@/utils/dateUtils';
+import { getThisWeekMonday } from '@/utils/date';
 import SimpleList from '@/components/ui/SimpleList';
 
 interface StatsModalProps {

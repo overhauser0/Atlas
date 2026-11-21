@@ -1,12 +1,9 @@
 // gleis/src/hooks/useTaskSync.ts
 import { useState, useCallback } from 'react';
 import { Task } from '@/types';
-import {
-  getPieceDateRangeUpdate,
-  isPastDate,
-  sortByStartDate,
-} from '@/utils/dateUtils';
-import { atlasFetch } from '@/utils/api';
+import { isPastDate } from '@/utils/date';
+import { getPieceDateRangeUpdate, sortByStartDate } from '@/utils/task';
+import { atlasFetch } from '@/lib/api';
 
 export const useTaskSync = (
   isAuthenticated: boolean,

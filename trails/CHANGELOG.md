@@ -2,17 +2,17 @@
 
 ## 8.5.1
 
-- Antigravityでリファクタ
 - Yeary Digest追加
 
 ## 8.5.0
 
-- Spark追加
+- Antigravityでリファクタ
 
 ## 8.4.1
 
 - Weeklyレイアウト調整
 - Timelineビューのモーダルを調整
+- Spark追加
 
 ## 8.4.0
 

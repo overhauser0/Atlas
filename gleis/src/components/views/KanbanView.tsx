@@ -1,29 +1,31 @@
 'use client';
 import { useState } from 'react';
+import { ExternalLink, HardDrive, Calendar } from 'lucide-react';
+import { SubTaskProgressMap, Task, TaskStatus } from '@/types';
+import { atlasFetch } from '@/lib/api';
+import { getDateShortString } from '@/utils/date';
 import {
-  ExternalLink,
-  HardDrive,
-  Calendar,
-  ListChecks,
-  CornerDownRight,
-} from 'lucide-react';
-import { Task, TaskStatus } from '@/types';
-import { atlasFetch } from '@/utils/api';
-import { getDateShortString, sortByStartDate } from '@/utils/dateUtils';
-import { getStatusColor, getNotionLinkById } from '@/utils/miscellaneousUtils';
+  getNotionLinkById,
+  getStatusColor,
+  sortByStartDate,
+} from '@/utils/task';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
 import { IconButton } from '@/components/ui/IconButton';
+import TaskBadges from '@/components/ui/TaskBadges';
+import { useToast } from '@/components/ui/Toast';
 
 // カンバンで表示するステータスに 'Done' を追加
 const KANBAN_COLUMNS = ['INBOX', 'Waiting', 'Going', 'Done'] as const;
 
 interface Props {
   tasks: Task[];
-  subTaskMap: Record<string, { total: number; done: number }>;
+  subTaskMap: SubTaskProgressMap;
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
 }
 
 export default function KanbanView({
@@ -32,8 +34,11 @@ export default function KanbanView({
   loading,
   setTasks,
   openTaskModal,
+  onSyncStart,
+  onSyncEnd,
 }: Props) {
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const onDrop = async (targetStatus: TaskStatus) => {
     if (!draggingTaskId) return;
@@ -43,7 +48,9 @@ export default function KanbanView({
       return;
     }
 
-    // クライアント側の状態を更新
+    const previousTask = task;
+
+    // クライアント側の状態を楽観的に更新
     setTasks((prev) =>
       prev.map((t) =>
         t.id === draggingTaskId ? { ...t, status: targetStatus } : t,
@@ -51,15 +58,28 @@ export default function KanbanView({
     );
     setDraggingTaskId(null);
 
-    // バックエンドの更新（ステータス変更を送信）
-    await atlasFetch(`/pieces/${task.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        ...task,
-        status: targetStatus,
-        source: task.source,
-      }),
-    });
+    // バックエンドの更新（ステータス変更のみ送信）
+    onSyncStart();
+    try {
+      const res = await atlasFetch(`/pieces/${task.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          status: targetStatus,
+          source: task.source,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to update status (${res.status})`);
+      }
+    } catch (err) {
+      console.warn('Kanban status update failed:', err);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === previousTask.id ? previousTask : t)),
+      );
+      addToast('ステータスの更新に失敗しました', 'alert');
+    } finally {
+      onSyncEnd();
+    }
   };
 
   return (
@@ -110,10 +130,6 @@ export default function KanbanView({
 
                   {colTasks.map((task) => {
                     const countData = subTaskMap[task.id];
-                    const isAllDone =
-                      countData &&
-                      countData.total > 0 &&
-                      countData.done === countData.total;
                     return (
                       <Card
                         key={task.id}
@@ -158,29 +174,10 @@ export default function KanbanView({
                               <Calendar className="w-3 h-3" />
                               <span>{getDateShortString(task.start_date)}</span>
                             </div>
-                            {task.parent_id && (
-                              <div
-                                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-violet-400/10 border-violet-400/20"
-                                title="Has Parent Project"
-                              >
-                                <CornerDownRight className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                              </div>
-                            )}
-                            {countData && (
-                              <div
-                                className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
-                                  isAllDone
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-                                    : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                                }`}
-                                title="Subtasks progress"
-                              >
-                                <ListChecks className="w-3 h-3" />
-                                <span>
-                                  {countData.done}/{countData.total}
-                                </span>
-                              </div>
-                            )}
+                            <TaskBadges
+                              hasParent={Boolean(task.parent_id)}
+                              subTaskProgress={countData}
+                            />
                           </div>
 
                           <button

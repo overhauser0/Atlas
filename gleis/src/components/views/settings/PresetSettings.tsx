@@ -10,9 +10,9 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
-import { getStatusColor } from '@/utils/miscellaneousUtils';
+import { getStatusColor } from '@/utils/task';
 import type { TaskStatus } from '@/types';
 
 const PRESET_STATUSES: TaskStatus[] = ['INBOX', 'Waiting', 'Going', 'Done'];

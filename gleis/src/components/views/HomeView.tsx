@@ -1,29 +1,28 @@
 'use client';
 import React, { useMemo, useState } from 'react';
-import { Task } from '@/types';
+import { SubTaskProgressMap, Task } from '@/types';
 import {
   ArrowRight,
   ExternalLink,
   HardDrive,
   Award,
-  ListChecks,
-  CornerDownRight,
 } from 'lucide-react';
 import {
   getStatusColor,
   sortTasksByStatus,
   getNotionLinkById,
-} from '@/utils/miscellaneousUtils';
-import { getCalendarDateKey, getDateFullString } from '@/utils/dateUtils';
+} from '@/utils/task';
+import { getCalendarDateKey, getDateFullString } from '@/utils/date';
 import DateSelector from '@/components/ui/DateSelector';
 import FAB from '@/components/ui/FAB';
 import Card from '@/components/ui/Card';
 import { IconButton } from '@/components/ui/IconButton';
 import SimpleList from '@/components/ui/SimpleList';
+import TaskBadges from '@/components/ui/TaskBadges';
 
 interface HomeViewProps {
   tasks: Task[];
-  subTaskMap: Record<string, { total: number; done: number }>;
+  subTaskMap: SubTaskProgressMap;
   openTaskModal: (task?: Partial<Task>) => void;
   completedTasks: Task[];
   wrapperTasks: Task[];
@@ -88,10 +87,6 @@ export default function HomeView({
               ) : (
                 sortedTargetTasks.map((task) => {
                   const countData = subTaskMap[task.id];
-                  const isAllDone =
-                    countData &&
-                    countData.total > 0 &&
-                    countData.done === countData.total;
                   return (
                     <Card
                       key={task.id}
@@ -113,29 +108,10 @@ export default function HomeView({
                       </div>
 
                       <div className="flex items-center gap-1 md:gap-2">
-                        {task.parent_id && (
-                          <div
-                            className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-violet-400/10 border-violet-400/20"
-                            title="Has Parent Project"
-                          >
-                            <CornerDownRight className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                          </div>
-                        )}
-                        {countData && (
-                          <div
-                            className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
-                              isAllDone
-                                ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-                                : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                            }`}
-                            title="Subtasks progress"
-                          >
-                            <ListChecks className="w-3 h-3" />
-                            <span>
-                              {countData.done}/{countData.total}
-                            </span>
-                          </div>
-                        )}
+                        <TaskBadges
+                          hasParent={Boolean(task.parent_id)}
+                          subTaskProgress={countData}
+                        />
                         {task.source === 'NOTION' && (
                           <IconButton
                             icon={<ExternalLink />}

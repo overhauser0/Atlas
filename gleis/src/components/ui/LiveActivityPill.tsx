@@ -9,7 +9,7 @@ import {
   Clock,
   X,
 } from 'lucide-react';
-import { triggerHaptics } from '@/utils/haptics';
+import { triggerHaptics } from '@/lib/haptics';
 
 export interface LiveActivityItem {
   id: string;

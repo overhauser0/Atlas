@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Calendar, ClipboardList, LoaderCircle, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Task } from '@/types';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 interface PresetChild {

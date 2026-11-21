@@ -1,21 +1,28 @@
 'use client';
 import { useState } from 'react';
-import { Task } from '@/types';
-import { getPieceDateRangeUpdate } from '@/utils/dateUtils';
-import { getStatusColor, sortTasksByStatus } from '@/utils/miscellaneousUtils';
-import { atlasFetch } from '@/utils/api';
+import { AppSettings, Task } from '@/types';
+import { getCalendarDateKey } from '@/utils/date';
+import {
+  getPieceDateRangeUpdate,
+  getStatusColor,
+  sortTasksByStatus,
+} from '@/utils/task';
+import { atlasFetch } from '@/lib/api';
 import MonthSelector from '@/components/ui/MonthSelector';
 import FAB from '@/components/ui/FAB';
+import { useToast } from '@/components/ui/Toast';
 
 interface Props {
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
   tasks: Task[];
   completedTasks: Task[];
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
   onOpenStats: (date: Date) => void;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -29,9 +36,12 @@ export default function CalendarView({
   setTasks,
   openTaskModal,
   onOpenStats,
+  onSyncStart,
+  onSyncEnd,
 }: Props) {
   const [targetDate, setTargetDate] = useState(new Date());
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   // トグルの状態管理（設定に保存）
   const showCompleted = appSettings?.showCompletedInCalendar ?? false;
@@ -46,17 +56,19 @@ export default function CalendarView({
   const lastDayOfMonth = new Date(year, month + 1, 0);
   const daysInMonth = lastDayOfMonth.getDate();
   const startingDayOfWeek = firstDayOfMonth.getDay();
+  const todayDateKey = getCalendarDateKey(new Date());
 
   // D&D処理
   const onDrop = async (newDateStr: string) => {
     if (!draggingTaskId) return;
     const task = displayTasks.find((t) => t.id === draggingTaskId);
 
-    if (!task || task.start_date === newDateStr) {
+    if (!task || getCalendarDateKey(task.start_date) === newDateStr) {
       setDraggingTaskId(null);
       return;
     }
 
+    const previousTask = task;
     const dateUpdates = getPieceDateRangeUpdate(
       task.start_date,
       task.end_date,
@@ -70,13 +82,27 @@ export default function CalendarView({
     );
     setDraggingTaskId(null);
 
-    await atlasFetch(`/pieces/${task.id}`, {
-      method: 'PATCH',
-      body: JSON.stringify({
-        ...dateUpdates,
-        source: task.source,
-      }),
-    });
+    onSyncStart();
+    try {
+      const res = await atlasFetch(`/pieces/${task.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...dateUpdates,
+          source: task.source,
+        }),
+      });
+      if (!res.ok) {
+        throw new Error(`Failed to update task date (${res.status})`);
+      }
+    } catch (err) {
+      console.warn('Calendar drop update failed:', err);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === previousTask.id ? previousTask : t)),
+      );
+      addToast('タスクの保存に失敗しました', 'alert');
+    } finally {
+      onSyncEnd();
+    }
   };
 
   const handleRightClick = (e: React.MouseEvent, dateStr: string) => {
@@ -126,10 +152,11 @@ export default function CalendarView({
 
               // この日のタスクをフィルタリング (表示対象のタスク群から)
               const dayTasks = sortTasksByStatus(
-                displayTasks.filter((t) => t.start_date?.startsWith(dateStr)),
+                displayTasks.filter(
+                  (t) => getCalendarDateKey(t.start_date) === dateStr,
+                ),
               );
-              const isToday =
-                new Date().toISOString().split('T')[0] === dateStr;
+              const isToday = todayDateKey === dateStr;
 
               return (
                 <div
@@ -137,13 +164,13 @@ export default function CalendarView({
                   onDragOver={(e) => e.preventDefault()}
                   onDrop={() => onDrop(dateStr)}
                   onContextMenu={(e) => handleRightClick(e, dateStr)}
-                  className={`p-2 rounded-xl border ${isToday ? 'border-blue-500/50 bg-blue-500/5' : 'border-white/5 noir-glass'} flex flex-col gap-1.5 transition-colors hover:border-white/10 min-h-25 overflow-hidden`}
+                  className={`p-2 rounded-xl border ${isToday ? 'border-neon/50 bg-neon/5' : 'border-white/5 noir-glass'} flex flex-col gap-1.5 transition-colors hover:border-white/10 min-h-25 overflow-hidden`}
                 >
                   <div
-                    className={`text-xs font-medium text-right ${isToday ? 'text-blue-400' : 'text-gray-400'}`}
+                    className={`text-xs font-medium text-right cursor-pointer ${isToday ? 'text-neon' : 'text-gray-400'}`}
                     title="Open Stats"
                     onClick={() => {
-                      onOpenStats(new Date(dateStr));
+                      onOpenStats(new Date(year, month, day));
                     }}
                   >
                     {day}

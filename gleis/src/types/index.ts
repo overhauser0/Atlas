@@ -52,7 +52,6 @@ export const VALID_VIEWS = [
   'calendar',
   'meeting',
   'review',
-  'notifications',
   'note',
   'aiagent',
   'stats',
@@ -71,6 +70,21 @@ export interface DeviceInfo {
   deviceName: string;
   clientType: 'extension' | 'gleis' | string;
 }
+
+export interface AppSettings {
+  shrinkEmptyPastDays: boolean;
+  syncInterval: number;
+  notificationInterval: number;
+  alarmTime: string;
+  wakeLockEnabled: boolean;
+  showCompletedInCalendar: boolean;
+  isChargedModel: boolean;
+}
+
+export type SubTaskProgressMap = Record<
+  string,
+  { total: number; done: number }
+>;
 
 export type SettingsTab =
   | 'general'

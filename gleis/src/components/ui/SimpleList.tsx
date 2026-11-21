@@ -1,8 +1,8 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
-import { getStatusColor } from '@/utils/miscellaneousUtils';
-import { getDateShortString } from '@/utils/dateUtils';
+import { getStatusColor } from '@/utils/task';
+import { getDateShortString } from '@/utils/date';
 
 interface SimpleListProps {
   tasks: Task[];

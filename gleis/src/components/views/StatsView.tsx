@@ -14,7 +14,7 @@ import {
   PlayCircle,
 } from 'lucide-react';
 import { Task } from '@/types';
-import { sortByStartDate } from '@/utils/dateUtils';
+import { sortByStartDate } from '@/utils/task';
 import Card from '@/components/ui/Card';
 import SimpleList from '@/components/ui/SimpleList';
 import MonthSelector from '@/components/ui/MonthSelector';

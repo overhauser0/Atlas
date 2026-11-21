@@ -11,7 +11,7 @@ import {
   Timer,
   Clock,
 } from 'lucide-react';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { Task } from '@/types';
 
 interface FocusModalProps {
@@ -99,17 +99,24 @@ export default function FocusModal({
       if (!task?.id) return;
       setIsSaving(true);
       try {
-        await atlasFetch(`/pieces/${task.id}`, {
+        const res = await atlasFetch(`/pieces/${task.id}`, {
           method: 'PATCH',
-          body: JSON.stringify({ note: updatedNote }),
+          body: JSON.stringify({
+            note: updatedNote,
+            ...(task.source ? { source: task.source } : {}),
+          }),
         });
+        if (!res.ok) {
+          throw new Error(`Failed to auto-save note (${res.status})`);
+        }
       } catch (e) {
         console.error('Failed to auto-save note:', e);
+        addToast('メモの自動保存に失敗しました', 'alert');
       } finally {
         setIsSaving(false);
       }
     },
-    [task?.id],
+    [task?.id, task?.source, addToast],
   );
 
   const handleNoteChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -126,13 +133,20 @@ export default function FocusModal({
   const handleCompleteTask = async () => {
     if (!task?.id) return;
     try {
-      await atlasFetch(`/pieces/${task.id}`, {
+      const res = await atlasFetch(`/pieces/${task.id}`, {
         method: 'PATCH',
-        body: JSON.stringify({ status: 'DONE' }),
+        body: JSON.stringify({
+          status: 'Done',
+          ...(task.source ? { source: task.source } : {}),
+        }),
       });
+      if (!res.ok) {
+        throw new Error(`Failed to complete task (${res.status})`);
+      }
       addToast('タスクを完了にしました！お疲れ様でした！', 'info');
       onClose();
     } catch (e) {
+      console.error('Failed to complete task:', e);
       addToast('ステータスの更新に失敗しました', 'alert');
     }
   };

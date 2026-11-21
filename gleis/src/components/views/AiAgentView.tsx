@@ -12,7 +12,8 @@ import {
   Zap,
   ShieldCheck,
 } from 'lucide-react';
-import { atlasFetch } from '@/utils/api';
+import type { AppSettings } from '@/types';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 
 // ==========================================
@@ -28,8 +29,8 @@ export interface Agent {
 interface AiAgentViewProps {
   onSyncStart?: () => void;
   onSyncEnd?: () => void;
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 // ==========================================

@@ -1,27 +1,13 @@
-// --- 「今週の月曜日（0時0分0秒）」を取得する共通関数 ---
+type Separator = 'slash' | 'hyphen' | 'none';
+
+/** 今週の月曜日（0時0分0秒）を取得する */
 export const getThisWeekMonday = (baseDate: Date = new Date()): Date => {
   const d = new Date(baseDate);
   const dayOfWeek = d.getDay();
-  // 日曜(0)なら6日前、それ以外なら(曜日-1)日前が月曜日
   const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
   d.setDate(d.getDate() - diffToMonday);
   d.setHours(0, 0, 0, 0);
   return d;
-};
-
-// 今週の月曜日以前かどうかを判定する関数
-export const isOverdue = (dueDateStr: string | null): boolean => {
-  if (!dueDateStr) return true; // 日付未定はOverdue(Inbox)扱い
-  const taskDate = getCalendarDateKey(dueDateStr);
-  const thisMonday = getThisWeekMondayDateKey();
-  return taskDate !== null && taskDate < thisMonday;
-};
-
-export const isPastDate = (dateStr: string | null): boolean => {
-  if (!dateStr) return false;
-  const date = getCalendarDateKey(dateStr);
-  const today = getCalendarDateKey(new Date());
-  return date !== null && today !== null && date < today;
 };
 
 export const getCalendarDateKey = (
@@ -63,66 +49,26 @@ export const getThisWeekMondayDateKey = (
   return addCalendarDays(dateKey, -daysSinceMonday);
 };
 
-export const getPieceDateRangeUpdate = (
-  originalStartDate: string | null | undefined,
-  originalEndDate: string | null | undefined,
-  newStartDate: string,
-) => {
-  if (!newStartDate) {
-    return {
-      start_date: null,
-      ...(originalEndDate ? { end_date: null } : {}),
-    };
-  }
+/** 今週の月曜日以前（または日付未設定）かどうかを判定する */
+export const isOverdue = (dueDateStr: string | null): boolean => {
+  if (!dueDateStr) return true;
+  const taskDate = getCalendarDateKey(dueDateStr);
+  const thisMonday = getThisWeekMondayDateKey();
+  return taskDate !== null && taskDate < thisMonday;
+};
 
-  const originalStartDateKey = originalStartDate?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-  const originalEndDateKey = originalEndDate?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
-  if (!originalStartDateKey || !originalEndDateKey) {
-    return { start_date: newStartDate };
-  }
-
-  const originalStart = new Date(`${originalStartDateKey}T00:00:00Z`);
-  const originalEnd = new Date(`${originalEndDateKey}T00:00:00Z`);
-  const newStart = new Date(`${newStartDate}T00:00:00Z`);
-  if (
-    Number.isNaN(originalStart.getTime()) ||
-    Number.isNaN(originalEnd.getTime()) ||
-    Number.isNaN(newStart.getTime())
-  ) {
-    return { start_date: newStartDate };
-  }
-
-  const duration = originalEnd.getTime() - originalStart.getTime();
-  const newEndDate = new Date(newStart.getTime() + duration)
-    .toISOString()
-    .slice(0, 10);
-  return { start_date: newStartDate, end_date: newEndDate };
+/** 今日より過去の日付かどうかを判定する */
+export const isPastDate = (dateStr: string | null): boolean => {
+  if (!dateStr) return false;
+  const date = getCalendarDateKey(dateStr);
+  const today = getCalendarDateKey(new Date());
+  return date !== null && today !== null && date < today;
 };
 
 export const getCurrentYearMonth = () => {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`;
 };
-
-type Separator = 'slash' | 'hyphen' | 'none';
-
-export const sortByStartDate = <T extends { start_date?: string | null }>(
-  items: T[],
-  order: 'asc' | 'desc' = 'asc',
-): T[] =>
-  [...items].sort((a, b) => {
-    const dateA = a.start_date ? Date.parse(a.start_date) : NaN;
-    const dateB = b.start_date ? Date.parse(b.start_date) : NaN;
-    const hasDateA = !Number.isNaN(dateA);
-    const hasDateB = !Number.isNaN(dateB);
-
-    if (!hasDateA || !hasDateB) {
-      if (hasDateA === hasDateB) return 0;
-      return hasDateA ? -1 : 1;
-    }
-
-    return order === 'asc' ? dateA - dateB : dateB - dateA;
-  });
 
 const formatDate = (
   date: Date | string | null | undefined,
@@ -133,10 +79,7 @@ const formatDate = (
 
   try {
     const d = typeof date === 'string' ? new Date(date) : date;
-
-    if (isNaN(d.getTime())) {
-      return '';
-    }
+    if (Number.isNaN(d.getTime())) return '';
 
     const baseDateString = new Intl.DateTimeFormat('ja-JP', {
       ...options,

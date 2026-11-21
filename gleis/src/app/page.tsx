@@ -51,18 +51,58 @@ import LiveActivityPill, {
 // --- Types & Utils & Hooks ---
 import type { Task, ViewType, SettingsTab, LocalNote } from '@/types';
 import { isViewType } from '@/types';
+import { useAppSettings } from '@/hooks/useAppSettings';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
+import { useNoteSync } from '@/hooks/useNoteSync';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
 import { usePaperless } from '@/hooks/usePaperless';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useConfirm } from '@/hooks/useConfirm';
-import { parseGleisLink } from '@/utils/schemeUtils';
-import { atlasFetch } from '@/utils/api';
-import { getDateFullString } from '@/utils/dateUtils';
+import { parseGleisLink } from '@/utils/scheme';
+import { getDateFullString } from '@/utils/date';
 
-export default function Home() {
+const NAV_GROUPS: {
+  label: string;
+  items: {
+    id: ViewType;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+  }[];
+}[] = [
+  {
+    label: 'Tasks',
+    items: [
+      { id: 'home', icon: LayoutDashboard, label: 'Home' },
+      { id: 'weekly', icon: Columns2, label: 'Weekly' },
+      { id: 'kanban', icon: Kanban, label: 'Kanban' },
+      { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
+    ],
+  },
+  {
+    label: 'Workspace',
+    items: [
+      { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
+      { id: 'review', icon: ClipboardPenLine, label: 'Review' },
+      { id: 'note', icon: FileText, label: 'Note' },
+      { id: 'documents', icon: FileStack, label: 'Document' },
+    ],
+  },
+  {
+    label: 'Insights & AI',
+    items: [
+      { id: 'aiagent', icon: Bot, label: 'Agent' },
+      { id: 'stats', icon: ChartNoAxesCombined, label: 'Stats' },
+    ],
+  },
+  {
+    label: 'System',
+    items: [{ id: 'settings', icon: Settings, label: 'Settings' }],
+  },
+];
+
+function HomeContent() {
   // ============================================================================
   // 1. Primitive States (基本状態)
   // ============================================================================
@@ -70,13 +110,7 @@ export default function Home() {
   // Auth & Settings
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
-  const [appSettings, setAppSettings] = useState({
-    shrinkEmptyPastDays: true,
-    syncInterval: 5,
-    notificationInterval: 30,
-    alarmTime: '',
-    wakeLockEnabled: true,
-  });
+  const { appSettings, setAppSettings } = useAppSettings();
 
   // Global UI & View
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -84,8 +118,6 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
   const [isWakeLockActive, setIsWakeLockActive] = useState(false);
-  const [notes, setNotes] = useState<LocalNote[]>([]);
-  const [areNotesLoading, setAreNotesLoading] = useState(true);
   const [selectedNote, setSelectedNote] = useState<LocalNote | null>(null);
 
   // Data Loading State
@@ -135,20 +167,11 @@ export default function Home() {
   const { addToast } = useToast();
   const { confirm, confirmProps } = useConfirm();
 
-  const fetchNotes = useCallback(async () => {
-    setAreNotesLoading(true);
-    try {
-      const response = await atlasFetch('/notes');
-      if (!response.ok) throw new Error('Failed to fetch notes');
-      const data = await response.json();
-      setNotes(data.notes ?? data);
-    } catch (error) {
-      console.error(error);
-      addToast('ノートの取得に失敗しました', 'alert');
-    } finally {
-      setAreNotesLoading(false);
-    }
-  }, [addToast]);
+  const handleNoteError = useCallback(
+    (msg: string) => addToast(msg, 'alert'),
+    [addToast],
+  );
+  const { notes, areNotesLoading, fetchNotes } = useNoteSync(handleNoteError);
 
   const incrementRequest = useCallback(
     () => setActiveRequests((prev) => prev + 1),
@@ -364,16 +387,6 @@ export default function Home() {
     setIsAuthChecking(false);
   }, []);
 
-  // 設定のロード・保存
-  useEffect(() => {
-    const saved = localStorage.getItem('gleis_settings');
-    if (saved) setAppSettings(JSON.parse(saved));
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('gleis_settings', JSON.stringify(appSettings));
-  }, [appSettings]);
-
   // 初回のデータフェッチ処理
   const hasFetchedInitial = useRef(false);
   useEffect(() => {
@@ -384,12 +397,7 @@ export default function Home() {
       fetchNotes();
       hasFetchedInitial.current = true;
     }
-  }, [isAuthenticated, fetchTasks, fetchDocuments, fetchNotes]);
-
-  useEffect(() => {
-    window.addEventListener('refresh_notes', fetchNotes);
-    return () => window.removeEventListener('refresh_notes', fetchNotes);
-  }, [fetchNotes]);
+  }, [isAuthenticated, fetchTasks, fetchNotifications, fetchDocuments, fetchNotes]);
 
   // 時計と自動同期のタイマー
   useEffect(() => {
@@ -427,7 +435,9 @@ export default function Home() {
 
     if (gleisLink) {
       if (gleisLink.type === 'view') {
-        if (isViewType(gleisLink.target)) {
+        if (gleisLink.target === 'notifications') {
+          handleOpenSetting('notifications');
+        } else if (isViewType(gleisLink.target)) {
           handleViewChange(gleisLink.target);
         } else {
           console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
@@ -467,7 +477,6 @@ export default function Home() {
   }
 
   return (
-    <ToastProvider>
       <div
         id="appwindow"
         className="flex h-screen overflow-hidden text-gray-200 relative bg-black"
@@ -524,34 +533,39 @@ export default function Home() {
               Gleis
             </div>
           </div>
-          <nav className="flex flex-col gap-2 flex-1 overflow-y-auto overflow-x-hidden noir-scrollbar-hidden">
-            {[
-              { id: 'home', icon: LayoutDashboard, label: 'Home' },
-              { id: 'kanban', icon: Kanban, label: 'Kanban' },
-              { id: 'weekly', icon: Columns2, label: 'Weekly' },
-              { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
-              { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
-              { id: 'review', icon: ClipboardPenLine, label: 'Review' },
-              { id: 'note', icon: FileText, label: 'Note' },
-              { id: 'documents', icon: FileStack, label: 'Document' },
-              { id: 'aiagent', icon: Bot, label: 'Agent' },
-              {
-                id: 'stats',
-                icon: ChartNoAxesCombined,
-                label: 'Stats',
-              },
-              { id: 'settings', icon: Settings, label: 'Settings' },
-            ].map((item) => (
-              <button
-                key={item.id}
-                onClick={() => handleViewChange(item.id as ViewType)}
-                className={`flex items-center gap-4 p-3 rounded-xl transition-colors ${currentView === item.id ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white'}`}
+          <nav className="flex flex-col gap-3 flex-1 overflow-y-auto overflow-x-hidden noir-scrollbar-hidden">
+            {NAV_GROUPS.map((group, groupIndex) => (
+              <div
+                key={group.label}
+                className={
+                  groupIndex > 0 ? 'pt-3 border-t border-white/5 space-y-1' : 'space-y-1'
+                }
               >
-                <item.icon className="w-5 h-5 shrink-0" />
-                <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity font-medium whitespace-nowrap">
-                  {item.label}
-                </span>
-              </button>
+                <div className="px-3 mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-gray-600 whitespace-nowrap sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity">
+                  {group.label}
+                </div>
+                {group.items.map((item) => {
+                  const isActive = currentView === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleViewChange(item.id)}
+                      className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-xl transition-colors ${
+                        isActive
+                          ? 'bg-white/10 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
+                      }`}
+                    >
+                      <item.icon
+                        className={`w-5 h-5 shrink-0 ${isActive ? 'text-neon' : ''}`}
+                      />
+                      <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity text-sm font-medium whitespace-nowrap">
+                        {item.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             ))}
           </nav>
 
@@ -631,6 +645,8 @@ export default function Home() {
                 loading={isTasksLoading}
                 setTasks={setTasks}
                 openTaskModal={(task) => openTaskModal(task)}
+                onSyncStart={incrementRequest}
+                onSyncEnd={decrementRequest}
               />
             )}
             {currentView === 'calendar' && (
@@ -643,6 +659,8 @@ export default function Home() {
                 setTasks={setTasks}
                 openTaskModal={(task) => openTaskModal(task)}
                 onOpenStats={handleOpenStats}
+                onSyncStart={incrementRequest}
+                onSyncEnd={decrementRequest}
               />
             )}
             {currentView === 'meeting' && (
@@ -661,6 +679,7 @@ export default function Home() {
                 onNoteOpened={() => setSelectedNote(null)}
                 onSyncStart={incrementRequest}
                 onSyncEnd={decrementRequest}
+                confirm={confirm}
               />
             )}
             {currentView === 'aiagent' && (
@@ -786,6 +805,13 @@ export default function Home() {
           />
         </div>
       </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <ToastProvider>
+      <HomeContent />
     </ToastProvider>
   );
 }

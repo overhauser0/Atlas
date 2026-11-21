@@ -10,7 +10,7 @@ export const triggerHaptics = (ms: number | number[] = 12) => {
   ) {
     try {
       navigator.vibrate(ms);
-    } catch (e) {
+    } catch {
       // ブラウザの制約等で失敗した場合はサイレントに無視
     }
   }

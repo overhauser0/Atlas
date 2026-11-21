@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   ArrowLeft,
   Pin,
@@ -13,9 +13,11 @@ import {
   PenLine,
 } from 'lucide-react';
 import type { LocalNote } from '@/types';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import { IconButton } from '@/components/ui/IconButton';
+import FAB from '@/components/ui/FAB';
+import SearchBar from '@/components/ui/SearchBar';
 
 // ==========================================
 // 1. Types
@@ -29,6 +31,12 @@ interface NoteViewProps {
   onNoteOpened: () => void;
   onSyncStart?: () => void;
   onSyncEnd?: () => void;
+  confirm: (
+    title: string,
+    message: React.ReactNode,
+    confirmText?: string,
+    cancelText?: string,
+  ) => Promise<boolean>;
 }
 
 // ==========================================
@@ -42,10 +50,22 @@ export default function NoteView({
   onNoteOpened,
   onSyncStart,
   onSyncEnd,
+  confirm,
 }: NoteViewProps) {
   const { addToast } = useToast();
 
   const [activeNote, setActiveNote] = useState<LocalNote | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const filteredNotes = useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return notes;
+    return notes.filter(
+      (note) =>
+        note.title?.toLocaleLowerCase().includes(query) ||
+        note.content?.toLocaleLowerCase().includes(query),
+    );
+  }, [notes, searchQuery]);
 
   useEffect(() => {
     if (selectedNote) {
@@ -61,6 +81,7 @@ export default function NoteView({
         method: 'POST',
         body: JSON.stringify({ title: 'New Note' }),
       });
+      if (!response.ok) throw new Error(`Failed to create note (${response.status})`);
       const newNote = await response.json();
       await onRefresh();
       setActiveNote(newNote);
@@ -80,6 +101,7 @@ export default function NoteView({
           onRefresh();
         }}
         addToast={addToast}
+        confirm={confirm}
         onSyncStart={onSyncStart}
         onSyncEnd={onSyncEnd}
       />
@@ -88,17 +110,27 @@ export default function NoteView({
 
   return (
     <div className="flex flex-col h-full overflow-hidden animate-fade-in relative">
+      <div className="p-4 border-b border-white/5 bg-white/2 shrink-0">
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search notes (title, content)..."
+        />
+      </div>
+
       <div className="flex-1 overflow-y-auto noir-scrollbar p-4">
         {isLoading ? (
           <div className="text-center text-gray-500 mt-10">Loading...</div>
-        ) : notes.length === 0 ? (
+        ) : filteredNotes.length === 0 ? (
           <div className="h-full flex flex-col items-center justify-center text-gray-500 space-y-3">
             <FileText className="w-8 h-8 opacity-50" />
-            <p className="text-sm">No notes found.</p>
+            <p className="text-sm">
+              {searchQuery ? 'No matching notes found.' : 'No notes found.'}
+            </p>
           </div>
         ) : (
           <div className="space-y-3 pb-24">
-            {notes.map((note) => (
+            {filteredNotes.map((note) => (
               <div
                 key={note.id}
                 onClick={() => setActiveNote(note)}
@@ -150,12 +182,11 @@ export default function NoteView({
         )}
       </div>
 
-      <button
+      <FAB
         onClick={handleCreateNew}
-        className="fixed bottom-6 right-6 md:bottom-8 md:right-8 w-14 h-14 bg-neon rounded-full flex items-center justify-center text-white shadow-[0_0_20px_rgba(0,112,243,0.3)] hover:scale-105 transition-transform z-40 border border-white/20"
-      >
-        <PenLine className="w-6 h-6 ml-0.5" />
-      </button>
+        icon={<PenLine className="w-6 h-6 ml-0.5" />}
+        ariaLabel="Create new note"
+      />
     </div>
   );
 }
@@ -167,12 +198,14 @@ function EditorView({
   note,
   onClose,
   addToast,
+  confirm,
   onSyncStart,
   onSyncEnd,
 }: {
   note: LocalNote;
   onClose: () => void;
-  addToast: any;
+  addToast: (msg: string, type?: 'info' | 'alert') => void;
+  confirm: NoteViewProps['confirm'];
   onSyncStart?: () => void;
   onSyncEnd?: () => void;
 }) {
@@ -238,10 +271,18 @@ function EditorView({
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('このノートを削除しますか？')) return;
+    const confirmed = await confirm(
+      'ノートの削除',
+      'このノートを削除しますか？この操作は取り消せません。',
+      '削除する',
+      'キャンセル',
+    );
+    if (!confirmed) return;
+
     onSyncStart?.();
     try {
-      await atlasFetch(`/notes/${note.id}`, { method: 'DELETE' });
+      const res = await atlasFetch(`/notes/${note.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(`Failed to delete note (${res.status})`);
       addToast('ノートを削除しました', 'info');
       onClose();
     } catch (e) {
@@ -252,12 +293,17 @@ function EditorView({
   };
 
   const handlePromote = async (promoteType: 'Task' | 'Note') => {
-    if (
-      !window.confirm(
-        `Notionの [ ${promoteType} ] として昇格させますか？\n（昇格後、このローカルノートは削除されます）`,
-      )
-    )
-      return;
+    const confirmed = await confirm(
+      'Notion へ昇格',
+      <>
+        Notion の [ {promoteType} ] として昇格させますか？
+        <br />
+        （昇格後、このローカルノートは削除されます）
+      </>,
+      '昇格する',
+      'キャンセル',
+    );
+    if (!confirmed) return;
 
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
 
@@ -281,7 +327,10 @@ function EditorView({
 
       if (!createRes.ok) throw new Error('Promotion failed');
 
-      await atlasFetch(`/notes/${note.id}`, { method: 'DELETE' });
+      const deleteRes = await atlasFetch(`/notes/${note.id}`, {
+        method: 'DELETE',
+      });
+      if (!deleteRes.ok) throw new Error('Failed to delete original note');
 
       addToast(`Notionへ昇格しました (${promoteType})`, 'info');
       onClose();
@@ -368,7 +417,7 @@ function EditorView({
             lineHeight: '26px',
             backgroundAttachment: 'local', // スクロール時に線も一緒に動くようにする
           }}
-          className="noir-scrollbar w-full flex-1 bg-transparent border-t border-white-300 text-gray-300 text-base focus:outline-none placeholder:text-gray-600 resize-none z-10 pt-0.5"
+          className="noir-scrollbar w-full flex-1 bg-transparent border-t border-white/10 text-gray-300 text-base focus:outline-none placeholder:text-gray-600 resize-none z-10 pt-0.5"
         />
 
         <div className="flex items-center gap-3 bg-white/5 border border-white/5 rounded-xl p-2 focus-within:border-white/20 transition-colors z-10">

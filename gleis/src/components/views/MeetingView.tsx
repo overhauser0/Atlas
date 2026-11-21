@@ -2,10 +2,11 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FileText, Plus, Clock, Search } from 'lucide-react';
+import { FileText, Plus, Clock } from 'lucide-react';
 import { Task } from '@/types';
-import { getDateFullString } from '@/utils/dateUtils';
+import { getDateFullString } from '@/utils/date';
 import SimpleList from '@/components/ui/SimpleList';
+import SearchBar from '@/components/ui/SearchBar';
 
 interface MeetingProps {
   meetingTasks: Task[];
@@ -160,18 +161,11 @@ export default function MeetingView({
         </div>
 
         {/* 検索バー */}
-        <div className="relative group">
-          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-4 w-4 text-gray-500 group-focus-within:text-neon transition-colors" />
-          </div>
-          <input
-            type="text"
-            placeholder="Search meetings (title, notes, tags)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-black/20 border border-white/10 text-gray-200 text-sm rounded-lg pl-9 pr-4 py-2 focus:outline-none focus:border-white/30 focus:ring-1 focus:ring-white/30 transition-all placeholder:text-gray-600"
-          />
-        </div>
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search meetings (title, notes, tags)..."
+        />
       </div>
 
       {/* メイン: グループ化されたリスト */}

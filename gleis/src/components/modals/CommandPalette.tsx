@@ -29,9 +29,9 @@ import {
   Activity,
 } from 'lucide-react';
 import type { LocalNote, ViewType, Task } from '@/types';
-import { atlasFetch } from '@/utils/api';
+import { atlasFetch } from '@/lib/api';
 import { PaperlessDocument, SettingsTab } from '@/types';
-import { getDateShortString } from '@/utils/dateUtils';
+import { getDateShortString } from '@/utils/date';
 
 interface CommandPaletteProps {
   isOpen: boolean;

@@ -1,35 +1,31 @@
 'use client';
 import { useState, useMemo } from 'react';
-import {
-  ExternalLink,
-  HardDrive,
-  ListChecks,
-  CornerDownRight,
-} from 'lucide-react';
-import { Task } from '@/types';
+import { ExternalLink, HardDrive } from 'lucide-react';
+import { AppSettings, SubTaskProgressMap, Task } from '@/types';
 import {
   addCalendarDays,
   getCalendarDateKey,
-  getPieceDateRangeUpdate,
   getThisWeekMondayDateKey,
   isOverdue,
-} from '@/utils/dateUtils';
-import { atlasFetch } from '@/utils/api';
+} from '@/utils/date';
+import { atlasFetch } from '@/lib/api';
 import {
   COLUMNS,
+  getPieceDateRangeUpdate,
   getStatusColor,
   sortTasksByStatus,
   getNotionLinkById,
-} from '@/utils/miscellaneousUtils';
+} from '@/utils/task';
 import Card from '@/components/ui/Card';
 import FAB from '@/components/ui/FAB';
 import { IconButton } from '@/components/ui/IconButton';
+import TaskBadges from '@/components/ui/TaskBadges';
 import { useToast } from '@/components/ui/Toast';
 
 interface Props {
-  appSettings: { shrinkEmptyPastDays: boolean };
+  appSettings: Pick<AppSettings, 'shrinkEmptyPastDays'>;
   tasks: Task[];
-  subTaskMap: Record<string, { total: number; done: number }>;
+  subTaskMap: SubTaskProgressMap;
   loading: boolean;
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
   openTaskModal: (task?: Partial<Task>) => void;
@@ -70,6 +66,7 @@ export default function WeeklyView({
       newDateStr,
     );
 
+    const previousTask = task;
     setTasks((prev) =>
       prev.map((t) =>
         t.id === draggingTaskId ? { ...t, ...dateUpdates } : t,
@@ -79,15 +76,21 @@ export default function WeeklyView({
 
     onSyncStart();
     try {
-      await atlasFetch(`/pieces/${task.id}`, {
+      const res = await atlasFetch(`/pieces/${task.id}`, {
         method: 'PATCH',
         body: JSON.stringify({
           ...dateUpdates,
           source: task.source,
         }),
       });
+      if (!res.ok) {
+        throw new Error(`Failed to update task (${res.status})`);
+      }
     } catch (err) {
       console.warn('Fetch Error', err);
+      setTasks((prev) =>
+        prev.map((t) => (t.id === previousTask.id ? previousTask : t)),
+      );
       addToast('タスクの保存に失敗しました', 'alert');
     } finally {
       onSyncEnd();
@@ -208,10 +211,6 @@ export default function WeeklyView({
                 <div className="flex-1 overflow-y-auto pr-2 pb-12 flex flex-col gap-3 noir-scrollbar">
                   {colTasks.map((task) => {
                     const countData = subTaskMap[task.id];
-                    const isAllDone =
-                      countData &&
-                      countData.total > 0 &&
-                      countData.done === countData.total;
                     return (
                       <Card
                         key={task.id}
@@ -253,29 +252,10 @@ export default function WeeklyView({
                         </div>
                         <div className="flex items-center justify-between mt-auto h-6">
                           <div className="flex flex-wrap items-center gap-1.5 overflow-hidden">
-                            {task.parent_id && (
-                              <div
-                                className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border bg-violet-400/10 border-violet-400/20"
-                                title="Has Parent Project"
-                              >
-                                <CornerDownRight className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                              </div>
-                            )}
-                            {countData && (
-                              <div
-                                className={`flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded font-mono shrink-0 border ${
-                                  isAllDone
-                                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 shadow-[0_0_8px_rgba(16,185,129,0.15)]'
-                                    : 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                                }`}
-                                title="Subtasks progress"
-                              >
-                                <ListChecks className="w-3 h-3" />
-                                <span>
-                                  {countData.done}/{countData.total}
-                                </span>
-                              </div>
-                            )}
+                            <TaskBadges
+                              hasParent={Boolean(task.parent_id)}
+                              subTaskProgress={countData}
+                            />
 
                             {task.topics?.map((t: any) => (
                               <span
