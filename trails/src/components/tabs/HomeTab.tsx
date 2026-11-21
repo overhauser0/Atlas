@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import { Archive, Plane, Tags } from 'lucide-react';
+import { Archive, ChevronRight, Plane, Sparkles, Tags } from 'lucide-react';
 import { Views, LifeItem } from '@/types';
 import ListItem from '../ui/ListItem';
 import JapanMapWidget from '../JapanMapWidget';
@@ -68,6 +68,27 @@ export default function HomeTab({
     <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8">
       {/* 2. リスト・グリッド部分のみスクロール */}
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
+        <button
+          type="button"
+          onClick={() => onNavigate('Review')}
+          className="w-full mb-6 bg-white rounded-3xl shadow-sm border border-gray-100 px-5 py-4 flex items-center justify-between gap-4 hover:shadow-md hover:border-primary-200 transition-all group text-left"
+        >
+          <div className="flex items-center gap-3.5 min-w-0">
+            <div className="w-11 h-11 rounded-2xl bg-primary-50 text-primary-500 flex items-center justify-center shrink-0 group-hover:bg-primary-500 group-hover:text-white transition-colors">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div className="min-w-0">
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                Annual Summary
+              </p>
+              <h2 className="text-base font-bold text-gray-900 truncate">
+                {new Date().getFullYear()} Year in Review
+              </h2>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-primary-500 group-hover:translate-x-0.5 transition-all shrink-0" />
+        </button>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* 左カラム */}
           <div className="space-y-6">

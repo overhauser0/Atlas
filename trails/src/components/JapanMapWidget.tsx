@@ -8,6 +8,9 @@ import ListItem from './ui/ListItem';
 interface Props {
   data: LifeItem[];
   onItemClick?: (item: LifeItem) => void; // アイテムクリック用に追加
+  title?: string;
+  subtitle?: string;
+  headerRight?: React.ReactNode;
 }
 
 // 座標データ
@@ -62,14 +65,20 @@ const JP_PREFS = [
 ];
 
 // 都道府県名の表記ゆれを吸収するヘルパー関数
-const normalizePref = (prefName: string) => {
+export const normalizePref = (prefName: string) => {
   let p = prefName.replace(/(府|県)$/, '');
   if (p === '東京都') p = '東京';
   if (p === '北海') p = '北海道';
   return p;
 };
 
-export default function JapanMapWidget({ data, onItemClick }: Props) {
+export default function JapanMapWidget({
+  data,
+  onItemClick,
+  title = 'Footprints',
+  subtitle = 'Japan Map',
+  headerRight,
+}: Props) {
   // モーダルで表示中の県名を管理 (null なら閉じた状態)
   const [selectedPref, setSelectedPref] = useState<string | null>(null);
 
@@ -104,18 +113,21 @@ export default function JapanMapWidget({ data, onItemClick }: Props) {
     <>
       <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col items-center">
         {/* ヘッダー部分 */}
-        <div className="flex items-center gap-3 w-full mb-6">
-          <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-500">
-            <Map className="w-5 h-5" />
+        <div className="flex items-center justify-between gap-3 w-full mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center text-sky-500">
+              <Map className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
+                {subtitle}
+              </p>
+              <h2 className="text-lg font-bold text-gray-900 leading-none">
+                {title}
+              </h2>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">
-              Japan Map
-            </p>
-            <h2 className="text-lg font-bold text-gray-900 leading-none">
-              Footprints
-            </h2>
-          </div>
+          {headerRight}
         </div>
 
         {/* 日本地図グリッド */}

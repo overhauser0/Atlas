@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Compass,
   Archive,
@@ -19,6 +19,10 @@ import {
   Wine,
   UsersRound,
   CalendarDays,
+  Sparkles,
+  Notebook,
+  ChevronDown,
+  ChevronRight,
 } from 'lucide-react';
 import {
   ITEM_TAB_PRESETS,
@@ -35,6 +39,7 @@ import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 
 import HomeTab from '@/components/tabs/HomeTab';
+import YearReviewTab from '@/components/tabs/YearReviewTab';
 import CalendarTab from '@/components/tabs/CalendarTab';
 import WeekCalendarTab from '@/components/tabs/WeekCalendarTab';
 import PhotoTab from '@/components/tabs/PhotoTab';
@@ -48,15 +53,24 @@ import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
 import { ToastProvider } from '@/components/ui/Toast';
 import { atlasFetch } from '@/utils/api';
+import { getDateFullString } from '@/utils/dateUtils';
 
-// メニュー定義
-const MAIN_TABS = [
-  { id: 'Home', label: 'Home', icon: <Compass /> },
-  { id: 'Calendar', label: 'Calendar', icon: <CalendarIcon /> },
-  { id: 'Week', label: 'Week', icon: <CalendarDays /> },
-] as const;
+// メニュー定義（役割別に整理）
+const OVERVIEW_TABS = [
+  { id: 'Home' as const, label: 'Home', icon: <Compass /> },
+  { id: 'Review' as const, label: 'Year in Review', icon: <Sparkles /> },
+];
 
-const EXTRA_TABS = [
+const CALENDAR_TABS = [
+  { id: 'Calendar' as const, label: 'Monthly', icon: <CalendarIcon /> },
+  { id: 'Week' as const, label: 'Weekly', icon: <CalendarDays /> },
+];
+
+const PIECE_TABS: {
+  id: ItemTabPreset;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   { id: 'Task', label: 'Task', icon: <CheckSquare /> },
   { id: 'Bucket', label: 'Bucket', icon: <Archive /> },
   { id: 'Travel', label: 'Travel', icon: <Plane /> },
@@ -66,9 +80,12 @@ const EXTRA_TABS = [
   { id: 'Golf', label: 'Golf', icon: <LandPlot /> },
   { id: 'Article', label: 'Article', icon: <Newspaper /> },
   { id: 'Liqueur', label: 'Liqueur', icon: <Wine /> },
-  { id: 'People', label: 'People', icon: <UsersRound /> },
-  { id: 'Photo', label: 'Immich', icon: <Aperture /> },
-] as const;
+];
+
+const LIBRARY_TABS = [
+  { id: 'People' as const, label: 'People', icon: <UsersRound /> },
+  { id: 'Photo' as const, label: 'Immich', icon: <Aperture /> },
+];
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
   Task: 'List',
@@ -100,6 +117,8 @@ function AppMain() {
   const [currentTab, setCurrentTab] = useState<Views>('Home');
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [isCalendarGroupOpen, setIsCalendarGroupOpen] = useState(true);
+  const [isPieceGroupOpen, setIsPieceGroupOpen] = useState(true);
 
   const [activeRequests, setActiveRequests] = useState(0);
   const incrementRequest = () => setActiveRequests((prev) => prev + 1);
@@ -222,11 +241,45 @@ function AppMain() {
   const handleTabChange = (tab: Views) => {
     setCurrentTab(tab);
     setIsMoreSheetOpen(false);
+    if (tab === 'Calendar' || tab === 'Week') {
+      setIsCalendarGroupOpen(true);
+    } else if (ITEM_TAB_PRESETS.includes(tab as ItemTabPreset)) {
+      setIsPieceGroupOpen(true);
+    }
   };
 
   const handleDiaryClick = (diary: DiaryItem | null) => {
     setDiaryModalConfig({ isOpen: true, diary });
   };
+
+  const handleOpenTodayDiary = useCallback(async () => {
+    const todayStr = getDateFullString(new Date(), 'hyphen');
+    setIsMoreSheetOpen(false);
+    let targetDiary = diaries.find((item) => item.date === todayStr) ?? null;
+
+    if (!targetDiary) {
+      try {
+        const res = await atlasFetch(`/diaries/${todayStr}`);
+        if (res.ok) {
+          const json = await res.json();
+          targetDiary = json.diary ?? null;
+        }
+      } catch (e) {
+        console.error('Failed to fetch today diary', e);
+      }
+    }
+
+    setDiaryModalConfig({
+      isOpen: true,
+      diary: targetDiary ?? {
+        date: todayStr,
+        rate: null,
+        content: '',
+        flag: false,
+        piece_ids: [],
+      },
+    });
+  }, [diaries]);
 
   const handleChangeDiaryDate = useCallback(
     async (date: string) => {
@@ -299,42 +352,88 @@ function AppMain() {
 
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="w-full flex items-center gap-3 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors mb-6"
+            className="w-full flex items-center gap-3 px-4 py-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200 transition-colors mb-5"
           >
             <Search className="w-5 h-5" />
             <span className="text-sm font-medium">Search...</span>
           </button>
         </div>
 
-        <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
-          {MAIN_TABS.map((tab) => (
-            <SidebarItem
-              key={tab.id}
-              icon={tab.icon}
-              label={tab.label}
-              isActive={currentTab === tab.id}
-              onClick={() => handleTabChange(tab.id as Views)}
-            />
-          ))}
+        <nav className="flex-1 px-4 pb-4 space-y-4 overflow-y-auto no-scrollbar">
+          {/* Overview */}
+          <div className="space-y-1">
+            {OVERVIEW_TABS.map((tab) => (
+              <SidebarItem
+                key={tab.id}
+                icon={tab.icon}
+                label={tab.label}
+                isActive={currentTab === tab.id}
+                onClick={() => handleTabChange(tab.id)}
+              />
+            ))}
+          </div>
 
-          <div className="my-4 border-t border-gray-100" />
+          {/* Calendar グループ */}
+          <SidebarGroup
+            label="Calendar"
+            isOpen={isCalendarGroupOpen}
+            onToggle={() => setIsCalendarGroupOpen((open) => !open)}
+          >
+            {CALENDAR_TABS.map((tab) => (
+              <SidebarItem
+                key={tab.id}
+                icon={tab.icon}
+                label={tab.label}
+                isActive={currentTab === tab.id}
+                compact
+                onClick={() => handleTabChange(tab.id)}
+              />
+            ))}
+          </SidebarGroup>
 
-          {EXTRA_TABS.map((tab) => (
+          {/* Piece グループ */}
+          <SidebarGroup
+            label="Piece"
+            isOpen={isPieceGroupOpen}
+            onToggle={() => setIsPieceGroupOpen((open) => !open)}
+          >
+            {PIECE_TABS.map((tab) => (
+              <SidebarItem
+                key={tab.id}
+                icon={tab.icon}
+                label={tab.label}
+                isActive={currentTab === tab.id}
+                compact
+                onClick={() => handleTabChange(tab.id)}
+              />
+            ))}
+          </SidebarGroup>
+
+          <div className="border-t border-gray-100 pt-3 space-y-1">
             <SidebarItem
-              key={tab.id}
-              icon={tab.icon}
-              label={tab.label}
-              isActive={currentTab === tab.id}
-              onClick={() => handleTabChange(tab.id as Views)}
+              icon={<Notebook />}
+              label="Diary"
+              badge="Today"
+              isActive={diaryModalConfig.isOpen}
+              onClick={() => void handleOpenTodayDiary()}
             />
-          ))}
+            {LIBRARY_TABS.map((tab) => (
+              <SidebarItem
+                key={tab.id}
+                icon={tab.icon}
+                label={tab.label}
+                isActive={currentTab === tab.id}
+                onClick={() => handleTabChange(tab.id)}
+              />
+            ))}
+          </div>
         </nav>
 
         <div className="p-4 border-t border-gray-100">
           <SidebarItem
             icon={<Settings />}
             label="Settings"
-            isActive={false}
+            isActive={currentTab === 'Settings'}
             onClick={() => handleTabChange('Settings')}
           />
         </div>
@@ -344,14 +443,22 @@ function AppMain() {
           右メインコンテンツエリア
           ============================================================ */}
       <div className="flex-1 flex flex-col min-w-0 relative">
-        {/* メインビュー（スマホ版のヘッダーは削除されました） */}
         <main className="flex-1 overflow-hidden relative">
           {currentTab === 'Home' && (
             <HomeTab
               events={events}
               tasks={tasks}
-              onNavigate={setCurrentTab}
+              onNavigate={handleTabChange}
               onItemClick={openDetailModal}
+            />
+          )}
+          {currentTab === 'Review' && (
+            <YearReviewTab
+              items={items}
+              onNavigate={handleTabChange}
+              onItemClick={openDetailModal}
+              onDiaryClick={handleDiaryClick}
+              onOpenDailyPhoto={handleOpenDailyPhoto}
             />
           )}
           {currentTab === 'Calendar' && (
@@ -410,25 +517,28 @@ function AppMain() {
         </main>
 
         {/* ============================================================
-            [スマホ版] ボトムナビゲーション
+            [スマホ版] ボトムナビゲーション（4枠: Search / Home / Calendar / More）
             ============================================================ */}
         <div className="md:hidden shrink-0 bg-white/80 backdrop-blur-xl border-t border-gray-200 pb-safe z-40">
-          <nav className="flex justify-around items-center px-2 pt-2 pb-4">
+          <nav className="grid grid-cols-4 items-center px-2 pt-2 pb-4">
             <MobileNavButton
               icon={<Search />}
               label="Search"
               isActive={false}
               onClick={() => setIsSearchOpen(true)}
             />
-            {MAIN_TABS.map((tab) => (
-              <MobileNavButton
-                key={tab.id}
-                icon={tab.icon}
-                label={tab.label}
-                isActive={currentTab === tab.id}
-                onClick={() => handleTabChange(tab.id as Views)}
-              />
-            ))}
+            <MobileNavButton
+              icon={<Compass />}
+              label="Home"
+              isActive={currentTab === 'Home'}
+              onClick={() => handleTabChange('Home')}
+            />
+            <MobileNavButton
+              icon={<CalendarIcon />}
+              label="Calendar"
+              isActive={currentTab === 'Calendar' || currentTab === 'Week'}
+              onClick={() => handleTabChange('Calendar')}
+            />
             <MobileNavButton
               icon={<MoreHorizontal />}
               label="More"
@@ -440,7 +550,7 @@ function AppMain() {
       </div>
 
       {/* ============================================================
-          [スマホ版] More ボトムシート
+          [スマホ版] More ボトムシート（カテゴリ別整理）
           ============================================================ */}
       {isMoreSheetOpen && (
         <div className="md:hidden fixed inset-0 z-50 flex flex-col justify-end">
@@ -448,29 +558,156 @@ function AppMain() {
             className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setIsMoreSheetOpen(false)}
           />
-          <div className="relative bg-white rounded-t-3xl pt-2 pb-8 px-6 animate-in slide-in-from-bottom-full duration-300 max-h-[90%] overflow-y-auto no-scrollbar">
-            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" />
-            <div className="flex flex-col gap-1">
-              {EXTRA_TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id as Views)}
-                  className="flex items-center gap-4 px-4 py-4 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-700 font-bold"
-                >
-                  <div className="w-6 h-6 text-primary-500 [&>svg]:w-full [&>svg]:h-full">
-                    {tab.icon}
-                  </div>
-                  {tab.label}
-                </button>
-              ))}
-              <div className="my-2 border-t border-gray-100" />
-              <button
-                onClick={() => handleTabChange('Settings')}
-                className="flex items-center gap-4 px-4 py-4 rounded-2xl hover:bg-gray-50 active:bg-gray-100 transition-colors text-gray-700 font-bold"
-              >
-                <div className="w-6 h-6 text-gray-500 [&>svg]:w-full [&>svg]:h-full">
-                  <Settings />
+          <div className="relative bg-white rounded-t-3xl pt-2 pb-8 px-5 animate-in slide-in-from-bottom-full duration-300 max-h-[88%] overflow-y-auto no-scrollbar space-y-5">
+            <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-2" />
+
+            {/* Year in Review */}
+            <button
+              type="button"
+              onClick={() => handleTabChange('Review')}
+              className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl border transition-colors ${
+                currentTab === 'Review'
+                  ? 'bg-primary-50 border-primary-200 text-primary-700'
+                  : 'bg-gray-50 border-gray-100 text-gray-800 active:bg-gray-100'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary-100/80 text-primary-600 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5" />
                 </div>
+                <div className="text-left">
+                  <p className="text-sm font-bold leading-tight">
+                    Year in Review
+                  </p>
+                  <p className="text-[11px] text-gray-500">
+                    1年の振り返りダッシュボード
+                  </p>
+                </div>
+              </div>
+              <ChevronRight className="w-4 h-4 text-gray-400" />
+            </button>
+
+            {/* Calendar */}
+            <section>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
+                Calendar
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {CALENDAR_TABS.map((tab) => {
+                  const isActive = currentTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex items-center justify-center gap-2.5 px-3 py-3 rounded-2xl text-sm font-bold transition-colors border ${
+                        isActive
+                          ? 'bg-primary-50 border-primary-200 text-primary-700'
+                          : 'bg-gray-50 border-gray-100 text-gray-700 active:bg-gray-100'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 [&>svg]:w-full [&>svg]:h-full ${
+                          isActive ? 'text-primary-600' : 'text-gray-400'
+                        }`}
+                      >
+                        {tab.icon}
+                      </div>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Piece（3列タイルグリッド） */}
+            <section>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
+                Piece
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                {PIECE_TABS.map((tab) => {
+                  const isActive = currentTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl border transition-colors ${
+                        isActive
+                          ? 'bg-primary-50 border-primary-200 text-primary-700'
+                          : 'bg-gray-50 border-gray-100 text-gray-700 active:bg-gray-100'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 [&>svg]:w-full [&>svg]:h-full ${
+                          isActive ? 'text-primary-600' : 'text-primary-500'
+                        }`}
+                      >
+                        {tab.icon}
+                      </div>
+                      <span className="text-xs font-bold truncate max-w-full">
+                        {tab.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Diary / People / Immich */}
+            <section>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
+                Library
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handleOpenTodayDiary()}
+                  className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl border border-gray-100 bg-gray-50 text-gray-700 active:bg-gray-100 transition-colors"
+                >
+                  <Notebook className="w-5 h-5 text-emerald-600" />
+                  <span className="text-xs font-bold">Diary</span>
+                </button>
+                {LIBRARY_TABS.map((tab) => {
+                  const isActive = currentTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => handleTabChange(tab.id)}
+                      className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl border transition-colors ${
+                        isActive
+                          ? 'bg-primary-50 border-primary-200 text-primary-700'
+                          : 'bg-gray-50 border-gray-100 text-gray-700 active:bg-gray-100'
+                      }`}
+                    >
+                      <div
+                        className={`w-5 h-5 [&>svg]:w-full [&>svg]:h-full ${
+                          isActive ? 'text-primary-600' : 'text-gray-500'
+                        }`}
+                      >
+                        {tab.icon}
+                      </div>
+                      <span className="text-xs font-bold">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+
+            {/* Settings */}
+            <div className="pt-2 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => handleTabChange('Settings')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors font-bold text-sm ${
+                  currentTab === 'Settings'
+                    ? 'bg-primary-50 text-primary-700'
+                    : 'text-gray-600 hover:bg-gray-50 active:bg-gray-100'
+                }`}
+              >
+                <Settings className="w-5 h-5 text-gray-400" />
                 Settings
               </button>
             </div>
@@ -536,32 +773,79 @@ export default function AppPage() {
 // ============================================================================
 // UI Components
 // ============================================================================
+function SidebarGroup({
+  label,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  label: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="border-t border-gray-100 pt-3">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between px-3 py-1.5 text-[11px] font-bold uppercase tracking-widest text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <span>{label}</span>
+        {isOpen ? (
+          <ChevronDown className="w-3.5 h-3.5" />
+        ) : (
+          <ChevronRight className="w-3.5 h-3.5" />
+        )}
+      </button>
+      {isOpen && <div className="mt-1 space-y-0.5">{children}</div>}
+    </div>
+  );
+}
+
 function SidebarItem({
   icon,
   label,
+  badge,
   isActive,
+  compact = false,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
+  badge?: string;
   isActive: boolean;
+  compact?: boolean;
   onClick: () => void;
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+      className={`w-full flex items-center justify-between gap-2 rounded-xl text-sm font-bold transition-all ${
+        compact ? 'px-3.5 py-2' : 'px-4 py-2.5'
+      } ${
         isActive
           ? 'bg-primary-50 text-primary-700'
           : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
       }`}
     >
-      <div
-        className={`w-5 h-5 [&>svg]:w-full [&>svg]:h-full ${isActive ? 'text-primary-600' : 'text-gray-400'}`}
-      >
-        {icon}
+      <div className="flex items-center gap-3 min-w-0">
+        <div
+          className={`shrink-0 [&>svg]:w-full [&>svg]:h-full ${
+            compact ? 'w-4 h-4' : 'w-5 h-5'
+          } ${isActive ? 'text-primary-600' : 'text-gray-400'}`}
+        >
+          {icon}
+        </div>
+        <span className="truncate">{label}</span>
       </div>
-      {label}
+      {badge && (
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -579,8 +863,9 @@ function MobileNavButton({
 }) {
   return (
     <button
+      type="button"
       onClick={onClick}
-      className={`flex flex-col items-center gap-1 w-16 ${isActive ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
+      className={`flex flex-col items-center justify-center gap-1 ${isActive ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'}`}
     >
       <div className="w-6 h-6 [&>svg]:w-full [&>svg]:h-full">{icon}</div>
       <span className="text-[10px] font-bold">{label}</span>
