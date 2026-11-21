@@ -29,6 +29,7 @@ import { atlasFetch } from '@/utils/api';
 import { useImmichStats } from '@/hooks/useImmichStats';
 import JapanMapWidget, { normalizePref } from '@/components/JapanMapWidget';
 import ListItem from '@/components/ui/ListItem';
+import PageHeader from '@/components/ui/PageHeader';
 import { sortByStartDate } from '@/utils/dateUtils';
 
 interface YearReviewTabProps {
@@ -500,56 +501,48 @@ export default function YearReviewTab({
     <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8">
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32 space-y-6">
         {/* ヘッダー & 年切替 */}
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 shrink-0 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-500">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                Year in Review
-              </h1>
-              <p className="text-sm text-gray-500">
-                {selectedYear}年の振り返り
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            {selectedYear !== currentYear && (
-              <button
-                type="button"
-                onClick={() => setSelectedYear(currentYear)}
-                className="px-3 py-2 text-xs font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 rounded-xl transition-colors"
-              >
-                今年
-              </button>
-            )}
-            <div className="inline-flex items-center bg-white border border-gray-200 rounded-xl p-1 shadow-xs">
-              <button
-                type="button"
-                aria-label="前の年"
-                disabled={selectedYear <= minYear}
-                onClick={() => setSelectedYear((y) => y - 1)}
-                className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <span className="px-3 text-sm font-black text-gray-900 tabular-nums">
-                {selectedYear}
-              </span>
-              <button
-                type="button"
-                aria-label="次の年"
-                disabled={selectedYear >= maxYear}
-                onClick={() => setSelectedYear((y) => y + 1)}
-                className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100 disabled:opacity-30 transition-colors"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </header>
+        <PageHeader
+          icon={<Sparkles />}
+          title="Year in Review"
+          subtitle={`${selectedYear}年の振り返り`}
+          className="mb-0"
+          actions={
+            <>
+              {selectedYear !== currentYear && (
+                <button
+                  type="button"
+                  onClick={() => setSelectedYear(currentYear)}
+                  className="trails-nav-btn"
+                >
+                  今年
+                </button>
+              )}
+              <div className="inline-flex items-center gap-1.5">
+                <button
+                  type="button"
+                  aria-label="前の年"
+                  disabled={selectedYear <= minYear}
+                  onClick={() => setSelectedYear((y) => y - 1)}
+                  className="trails-nav-icon-btn"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <span className="min-w-14 text-center text-sm font-black text-gray-900 tabular-nums">
+                  {selectedYear}
+                </span>
+                <button
+                  type="button"
+                  aria-label="次の年"
+                  disabled={selectedYear >= maxYear}
+                  onClick={() => setSelectedYear((y) => y + 1)}
+                  className="trails-nav-icon-btn"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </>
+          }
+        />
 
         {/* 年クイック選択ピル（複数年がある場合） */}
         {availableYears.length > 1 && (

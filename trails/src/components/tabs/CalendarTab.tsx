@@ -14,6 +14,7 @@ import { DiaryItem, LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 import { getDateShortString, getDateFullString } from '@/utils/dateUtils';
 import CalendarItem from '@/components/ui/CalendarItem';
+import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface CalendarTabProps {
   appSettings: any;
@@ -251,89 +252,86 @@ export default function CalendarTab({
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-gray-50 overflow-hidden relative">
-      {/* ヘッダー（Weeklyとデザインを統一） */}
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 md:px-6 z-20">
-        <div className="min-w-0">
-          <h1 className="text-base font-bold text-gray-900 md:text-lg">
-            月間カレンダー
-          </h1>
-          <p className="truncate text-xs text-gray-500">
-            {year}年{month + 1}月
-          </p>
-        </div>
-
-        <div className="flex shrink-0 items-center gap-2 md:gap-4">
-          <div className="hidden md:flex items-center gap-3">
-            {/* タスク表示トグル */}
-            <label
-              className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showTasks ? 'text-teal-700' : 'text-gray-400'}`}
-            >
-              <input
-                type="checkbox"
-                checked={showTasks}
-                onChange={() =>
-                  onUpdateSettings({
-                    ...appSettings,
-                    showTaskInCal: !showTasks,
-                  })
-                }
-                className="sr-only"
-              />
-              <div
-                className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showTasks ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300'}`}
+      <FullscreenHeader
+        title="月間カレンダー"
+        subtitle={`${year}年${month + 1}月`}
+        actions={
+          <>
+            <div className="hidden md:flex items-center gap-3">
+              {/* タスク表示トグル */}
+              <label
+                className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showTasks ? 'text-teal-700' : 'text-gray-400'}`}
               >
-                {showTasks && <Check className="h-3 w-3" strokeWidth={3} />}
-              </div>
-              Tasks
-            </label>
-            {/* Google表示トグル */}
-            <label
-              className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showGcal ? 'text-indigo-700' : 'text-gray-400'}`}
-            >
-              <input
-                type="checkbox"
-                checked={showGcal}
-                onChange={() =>
-                  onUpdateSettings({ ...appSettings, showGcalInCal: !showGcal })
-                }
-                className="sr-only"
-              />
-              <div
-                className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showGcal ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-gray-300'}`}
+                <input
+                  type="checkbox"
+                  checked={showTasks}
+                  onChange={() =>
+                    onUpdateSettings({
+                      ...appSettings,
+                      showTaskInCal: !showTasks,
+                    })
+                  }
+                  className="sr-only"
+                />
+                <div
+                  className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showTasks ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300'}`}
+                >
+                  {showTasks && <Check className="h-3 w-3" strokeWidth={3} />}
+                </div>
+                Tasks
+              </label>
+              {/* Google表示トグル */}
+              <label
+                className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showGcal ? 'text-indigo-700' : 'text-gray-400'}`}
               >
-                {showGcal && <Check className="h-3 w-3" strokeWidth={3} />}
-              </div>
-              Google
-            </label>
-          </div>
+                <input
+                  type="checkbox"
+                  checked={showGcal}
+                  onChange={() =>
+                    onUpdateSettings({
+                      ...appSettings,
+                      showGcalInCal: !showGcal,
+                    })
+                  }
+                  className="sr-only"
+                />
+                <div
+                  className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showGcal ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-gray-300'}`}
+                >
+                  {showGcal && <Check className="h-3 w-3" strokeWidth={3} />}
+                </div>
+                Google
+              </label>
+            </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <button
-              type="button"
-              onClick={goToToday}
-              className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              今日
-            </button>
-            <button
-              type="button"
-              aria-label="前の月"
-              onClick={prevMonth}
-              className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="次の月"
-              onClick={nextMonth}
-              className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-      </header>
+            <div className="flex shrink-0 items-center gap-2">
+              <button
+                type="button"
+                onClick={goToToday}
+                className="trails-nav-btn"
+              >
+                今日
+              </button>
+              <button
+                type="button"
+                aria-label="前の月"
+                onClick={prevMonth}
+                className="trails-nav-icon-btn"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                aria-label="次の月"
+                onClick={nextMonth}
+                className="trails-nav-icon-btn"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </>
+        }
+      />
 
       <div className="flex flex-1 min-h-0 flex-col lg:flex-row overflow-hidden">
         {/* =========================================

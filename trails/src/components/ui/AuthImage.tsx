@@ -70,7 +70,7 @@ export default function AuthImage({
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       {hasError ? (
-        <div className="absolute inset-0 flex items-center justify-center bg-slate-200 dark:bg-zinc-800 text-slate-400">
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 text-gray-400">
           <svg
             className="w-6 h-6 opacity-50"
             fill="none"
@@ -87,7 +87,7 @@ export default function AuthImage({
         </div>
       ) : !imgSrc ? (
         // 読み込み中のスケルトン
-        <div className="absolute inset-0 animate-pulse bg-slate-200 dark:bg-zinc-800" />
+        <div className="absolute inset-0 animate-pulse bg-gray-200" />
       ) : (
         // 読み込み完了後の画像
         <img

@@ -1,8 +1,15 @@
 'use client';
 
-import { LogOut, RefreshCw, Calendar, ContactRound } from 'lucide-react';
+import {
+  LogOut,
+  RefreshCw,
+  Calendar,
+  ContactRound,
+  Settings,
+} from 'lucide-react';
 import { useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import PageHeader from '@/components/ui/PageHeader';
 import packageJson from '../../../package.json';
 
 interface Props {
@@ -23,7 +30,6 @@ export default function ConfigTab({
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
   const { addToast } = useToast();
 
-  // トグルが切り替わったときの処理
   const handleToggleTask = () => {
     onUpdateSettings({
       ...appSettings,
@@ -77,94 +83,109 @@ export default function ConfigTab({
   };
 
   return (
-    <div className="flex flex-col h-full max-w-3xl mx-auto w-full p-6 md:p-8 overflow-y-auto no-scrollbar">
-      {/* ヘッダー */}
-      <div className="mb-8">
-        <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-      </div>
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-5 pt-5 md:px-8 md:pt-8">
+      <div className="flex-1 overflow-y-auto pb-32 no-scrollbar">
+        <PageHeader
+          icon={<Settings />}
+          title="Settings"
+          subtitle="表示設定と外部サービス同期"
+        />
 
-      {/* 設定項目 */}
-      <div className="flex-1 space-y-3">
-        <section className="space-y-2">
-          <h3 className="flex items-center gap-2 px-1 text-sm font-bold text-gray-500">
-            <Calendar className="w-4 h-4" />
-            Calendar Display
-          </h3>
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm divide-y divide-gray-100 overflow-hidden">
-            <div className="flex items-center justify-between w-full p-4 text-gray-900 font-bold">
-              <span>Show Tasks in Calendar</span>
-              <label className="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showTaskInCal}
-                  onChange={handleToggleTask}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-11 h-6 rounded-full transition-colors ${showTaskInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
-                />
-                <div
-                  className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showTaskInCal ? 'translate-x-5' : 'translate-x-0'}`}
-                />
-              </label>
-            </div>
+        <div className="max-w-3xl space-y-6">
+          <section className="space-y-2.5">
+            <h2 className="trails-section-label flex items-center gap-1.5 px-1">
+              <Calendar className="h-3.5 w-3.5 text-primary-500" />
+              Calendar Display
+            </h2>
+            <div className="trails-card divide-y divide-gray-100 overflow-hidden">
+              <div className="flex w-full items-center justify-between p-5 font-bold text-gray-900">
+                <span className="text-sm">Show Tasks in Calendar</span>
+                <label className="relative inline-flex cursor-pointer select-none items-center">
+                  <input
+                    type="checkbox"
+                    checked={showTaskInCal}
+                    onChange={handleToggleTask}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`h-6 w-11 rounded-full transition-colors ${showTaskInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
+                  />
+                  <div
+                    className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${showTaskInCal ? 'translate-x-5' : 'translate-x-0'}`}
+                  />
+                </label>
+              </div>
 
-            <div className="flex items-center justify-between w-full p-4 text-gray-900 font-bold">
-              <span>Show Google Events</span>
-              <label className="relative inline-flex items-center cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={showGcalInCal}
-                  onChange={handleToggleGoogleEvents}
-                  className="sr-only"
-                />
-                <div
-                  className={`w-11 h-6 rounded-full transition-colors ${showGcalInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
-                />
-                <div
-                  className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow transition-transform ${showGcalInCal ? 'translate-x-5' : 'translate-x-0'}`}
-                />
-              </label>
+              <div className="flex w-full items-center justify-between p-5 font-bold text-gray-900">
+                <span className="text-sm">Show Google Events</span>
+                <label className="relative inline-flex cursor-pointer select-none items-center">
+                  <input
+                    type="checkbox"
+                    checked={showGcalInCal}
+                    onChange={handleToggleGoogleEvents}
+                    className="sr-only"
+                  />
+                  <div
+                    className={`h-6 w-11 rounded-full transition-colors ${showGcalInCal ? 'bg-primary-500' : 'bg-gray-200'}`}
+                  />
+                  <div
+                    className={`absolute left-1 top-1 h-4 w-4 rounded-full bg-white shadow transition-transform ${showGcalInCal ? 'translate-x-5' : 'translate-x-0'}`}
+                  />
+                </label>
+              </div>
             </div>
+          </section>
+
+          <section className="space-y-2.5">
+            <h2 className="trails-section-label px-1">Sync &amp; Account</h2>
+            <div className="space-y-3">
+              <button
+                type="button"
+                onClick={onSync}
+                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-gray-900 transition-colors hover:border-primary-300"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                  <RefreshCw className="h-5 w-5" />
+                </div>
+                Sync with Notion
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSyncGoogleContacts}
+                disabled={isSyncingContacts}
+                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-gray-900 transition-colors hover:border-primary-300 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                  <ContactRound className="h-5 w-5" />
+                </div>
+                {isSyncingContacts ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 animate-spin" />
+                    Syncing Google Contacts...
+                  </>
+                ) : (
+                  'Sync Google Contacts'
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={onLogout}
+                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-red-600 transition-colors hover:border-red-300"
+              >
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                  <LogOut className="h-5 w-5" />
+                </div>
+                Sign Out
+              </button>
+            </div>
+          </section>
+
+          <div className="pt-4 text-center text-xs text-gray-400">
+            Trails {packageJson.version}
           </div>
-        </section>
-
-        <button
-          onClick={onSync}
-          className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 transition-colors text-gray-900 font-bold"
-        >
-          <RefreshCw className="w-5 h-5 text-primary-500" />
-          Sync with Notion
-        </button>
-
-        <button
-          type="button"
-          onClick={handleSyncGoogleContacts}
-          disabled={isSyncingContacts}
-          className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-primary-300 disabled:cursor-not-allowed disabled:opacity-60 transition-colors text-gray-900 font-bold"
-        >
-          <ContactRound className="w-5 h-5 text-primary-500" />
-          {isSyncingContacts ? (
-            <>
-              <RefreshCw className="h-4 w-4 animate-spin" />
-              Syncing Google Contacts...
-            </>
-          ) : (
-            'Sync Google Contacts'
-          )}
-        </button>
-
-        <button
-          onClick={onLogout}
-          className="flex items-center gap-4 w-full p-4 bg-white rounded-2xl border border-gray-200 shadow-sm hover:border-red-300 transition-colors text-red-600 font-bold"
-        >
-          <LogOut className="w-5 h-5" />
-          Sign Out
-        </button>
-      </div>
-
-      <div className="text-center text-xs text-gray-400 p-4 mt-8">
-        Trails {packageJson.version}
+        </div>
       </div>
     </div>
   );

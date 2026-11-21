@@ -68,7 +68,7 @@ export default function AssetGrid({
 
   if (isLoading) {
     return (
-      <div className="py-12 text-center text-slate-500 animate-pulse">
+      <div className="py-12 text-center text-gray-500 animate-pulse">
         Loading assets...
       </div>
     );
@@ -77,7 +77,7 @@ export default function AssetGrid({
   if (!assets || assets.length === 0) {
     if (emptyMessage === false) return null;
     return (
-      <div className="py-12 text-center text-slate-500">{emptyMessage}</div>
+      <div className="py-12 text-center text-gray-400">{emptyMessage}</div>
     );
   }
 
@@ -86,8 +86,8 @@ export default function AssetGrid({
     : 'flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 no-scrollbar';
 
   const itemClass = wrap
-    ? 'relative group aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 focus:outline-none focus:ring-2 focus:ring-black'
-    : 'relative group shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-black';
+    ? 'relative group aspect-square rounded-xl overflow-hidden bg-gray-100 focus:outline-none focus:ring-2 focus:ring-primary-500'
+    : 'relative group shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-gray-100 border border-gray-200/80 focus:outline-none focus:ring-2 focus:ring-primary-500';
 
   return (
     <>

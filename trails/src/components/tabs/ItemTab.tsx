@@ -2,17 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Archive,
+  Beer,
   CalendarDays,
   ChartNoAxesColumn,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Repeat2,
+  LandPlot,
+  Lightbulb,
   List,
+  Mountain,
+  Newspaper,
+  Plane,
   Plus,
+  Repeat2,
+  Wine,
 } from 'lucide-react';
 import { ItemTabPreset, LifeItem } from '@/types';
 import { groupItemsByYear } from '@/utils/grouping';
 import ListItem from '@/components/ui/ListItem';
+import PageHeader from '@/components/ui/PageHeader';
 
 interface Props {
   preset: ItemTabPreset;
@@ -31,6 +41,18 @@ const ITEM_ICONS: Partial<Record<ItemTabPreset, string>> = {
   Golf: 'LandPlot',
   Article: 'Newspaper',
   Liqueur: 'Wine',
+};
+
+const PRESET_HEADER_ICONS: Record<ItemTabPreset, React.ReactNode> = {
+  Task: <CheckSquare />,
+  Bucket: <Archive />,
+  Travel: <Plane />,
+  Drinking: <Beer />,
+  Climbing: <Mountain />,
+  'R-Escape': <Lightbulb />,
+  Golf: <LandPlot />,
+  Article: <Newspaper />,
+  Liqueur: <Wine />,
 };
 
 export type ItemView = 'List' | 'Cal' | 'Stats';
@@ -122,16 +144,16 @@ export default function ItemTab({
   }, [currentMonth]);
 
   const itemsByDate = useMemo(() => {
-    const grouped = new Map<string, LifeItem[]>();
+    const map = new Map<string, LifeItem[]>();
     filteredItems.forEach((item) => {
       const date = toLocalDate(item.start_date);
       if (!date) return;
       const key = getDateKey(date);
-      const items = grouped.get(key) ?? [];
+      const items = map.get(key) ?? [];
       items.push(item);
-      grouped.set(key, items);
+      map.set(key, items);
     });
-    return grouped;
+    return map;
   }, [filteredItems]);
 
   const selectedDateItems = itemsByDate.get(getDateKey(selectedDate)) ?? [];
@@ -183,20 +205,50 @@ export default function ItemTab({
   };
 
   return (
-    <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8 relative">
-      <div className="shrink-0 flex bg-gray-200 p-1 rounded-xl mb-4">
+    <div className="relative mx-auto flex h-full w-full max-w-5xl flex-col px-5 pt-5 md:px-8 md:pt-8">
+      <PageHeader
+        icon={PRESET_HEADER_ICONS[preset]}
+        title={preset}
+        subtitle={`${filteredItems.length}件の記録`}
+        className="mb-4"
+        actions={
+          preset === 'Bucket' ? (
+            <button
+              type="button"
+              onClick={() =>
+                setBucketStatus((status) =>
+                  status === 'UNDONE' ? 'DONE' : 'UNDONE',
+                )
+              }
+              aria-label={`Currently showing ${bucketStatus === 'UNDONE' ? 'undone' : 'done'} items. Switch to ${bucketStatus === 'UNDONE' ? 'done' : 'undone'}.`}
+              className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3.5 py-2 text-xs font-semibold text-gray-700 shadow-xs transition-colors hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
+            >
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  bucketStatus === 'UNDONE' ? 'bg-primary-500' : 'bg-emerald-500'
+                }`}
+                aria-hidden="true"
+              />
+              {bucketStatus === 'UNDONE' ? 'Undone' : 'Done'}
+              <Repeat2 className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
+      />
+
+      <div className="mb-4 flex shrink-0 rounded-xl bg-gray-200/80 p-1">
         {(
           [
-            { id: 'List', label: 'List', icon: <List className="w-4 h-4" /> },
+            { id: 'List', label: 'List', icon: <List className="h-4 w-4" /> },
             {
               id: 'Cal',
               label: 'Cal',
-              icon: <CalendarDays className="w-4 h-4" />,
+              icon: <CalendarDays className="h-4 w-4" />,
             },
             {
               id: 'Stats',
               label: 'Stats',
-              icon: <ChartNoAxesColumn className="w-4 h-4" />,
+              icon: <ChartNoAxesColumn className="h-4 w-4" />,
             },
           ] as const
         ).map((view) => (
@@ -205,9 +257,9 @@ export default function ItemTab({
             type="button"
             onClick={() => onViewChange(preset, view.id)}
             aria-pressed={activeView === view.id}
-            className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`flex flex-1 items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all ${
               activeView === view.id
-                ? 'bg-white shadow text-gray-900'
+                ? 'bg-white text-gray-900 shadow-xs'
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -217,42 +269,18 @@ export default function ItemTab({
         ))}
       </div>
 
-      {preset === 'Bucket' && (
-        <div className="mb-4 flex shrink-0 items-center justify-end gap-2">
-          <button
-            type="button"
-            onClick={() =>
-              setBucketStatus((status) =>
-                status === 'UNDONE' ? 'DONE' : 'UNDONE',
-              )
-            }
-            aria-label={`Currently showing ${bucketStatus === 'UNDONE' ? 'undone' : 'done'} items. Switch to ${bucketStatus === 'UNDONE' ? 'done' : 'undone'}.`}
-            className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-700 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-400"
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${
-                bucketStatus === 'UNDONE' ? 'bg-amber-500' : 'bg-green-500'
-              }`}
-              aria-hidden="true"
-            />
-            {bucketStatus === 'UNDONE' ? 'Undone' : 'Done'}
-            <Repeat2 className="h-3.5 w-3.5 text-gray-400" aria-hidden="true" />
-          </button>
-        </div>
-      )}
-
       <div
         ref={scrollRef}
-        className="flex-1 overflow-y-auto no-scrollbar pb-32"
+        className="flex-1 overflow-y-auto pb-32 no-scrollbar"
       >
         {activeView === 'List' && (
           <div className="space-y-8">
             {years.map((year) => (
               <section key={year}>
-                <h2 className="text-sm font-bold text-gray-800 mb-3 pl-1">
+                <h2 className="mb-3 pl-1 text-sm font-bold text-gray-800">
                   {year === 'PLAN' ? 'Plan' : year}
                 </h2>
-                <div className="bg-white border border-black/5 rounded-[20px] shadow-sm flex flex-col divide-y divide-gray-100 overflow-hidden">
+                <div className="trails-card flex flex-col divide-y divide-gray-100 overflow-hidden">
                   {grouped[year].map((item) => (
                     <ListItem
                       key={item.id}
@@ -272,12 +300,12 @@ export default function ItemTab({
 
         {activeView === 'Cal' && (
           <div className="space-y-4">
-            <section className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-              <header className="flex items-center justify-between px-4 py-3">
+            <section className="trails-card overflow-hidden">
+              <header className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
                 <h2 className="text-base font-bold text-gray-900">
-                  {currentMonth.getFullYear()}年 {currentMonth.getMonth() + 1}月
+                  {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
                 </h2>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -287,13 +315,13 @@ export default function ItemTab({
                       );
                       setSelectedDate(today);
                     }}
-                    className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-gray-600 hover:bg-gray-100"
+                    className="trails-nav-btn"
                   >
-                    Today
+                    今日
                   </button>
                   <button
                     type="button"
-                    aria-label="Previous month"
+                    aria-label="前の月"
                     onClick={() =>
                       setCurrentMonth(
                         (month) =>
@@ -304,13 +332,13 @@ export default function ItemTab({
                           ),
                       )
                     }
-                    className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                    className="trails-nav-icon-btn"
                   >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft className="h-4 w-4" />
                   </button>
                   <button
                     type="button"
-                    aria-label="Next month"
+                    aria-label="次の月"
                     onClick={() =>
                       setCurrentMonth(
                         (month) =>
@@ -321,13 +349,13 @@ export default function ItemTab({
                           ),
                       )
                     }
-                    className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                    className="trails-nav-icon-btn"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>
               </header>
-              <div className="grid grid-cols-7 border-t border-gray-100 bg-gray-50">
+              <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50">
                 {WEEKDAYS.map((weekday) => (
                   <div
                     key={weekday}
@@ -408,7 +436,7 @@ export default function ItemTab({
                 {WEEKDAYS[selectedDate.getDay()]})
               </h3>
               {selectedDateItems.length ? (
-                <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                <div className="trails-card divide-y divide-gray-100 overflow-hidden">
                   {selectedDateItems.map((item) => (
                     <ListItem
                       key={item.id}
@@ -427,15 +455,15 @@ export default function ItemTab({
 
         {activeView === 'Stats' && (
           <div className="space-y-5">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-              <section className="space-y-3">
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <section className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-2">
                   <StatCard label="Items" value={filteredItems.length} />
                   <StatCard label="Completed" value={stats.completed} />
                   <StatCard label="Scheduled" value={stats.scheduled} />
                   <StatCard label="Planned" value={stats.planned} />
                 </div>
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+                <div className="trails-card p-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h2 className="text-sm font-bold text-gray-900">
                       Completion
@@ -459,7 +487,7 @@ export default function ItemTab({
                   </div>
                 </div>
               </section>
-              <section className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <section className="trails-card p-5">
                 <h2 className="mb-3 text-sm font-bold text-gray-900">
                   By Year
                 </h2>
@@ -498,9 +526,9 @@ export default function ItemTab({
       <button
         onClick={handleCreate}
         aria-label="Create item"
-        className="absolute bottom-6 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+        className="absolute bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600"
       >
-        <Plus className="w-7 h-7" />
+        <Plus className="h-7 w-7" />
       </button>
     </div>
   );
@@ -508,7 +536,7 @@ export default function ItemTab({
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="rounded-2xl border border-dashed border-gray-200 px-4 py-10 text-center text-sm text-gray-400">
+    <div className="rounded-3xl border border-dashed border-gray-200 bg-white/60 px-4 py-10 text-center text-sm text-gray-400">
       {message}
     </div>
   );
@@ -516,9 +544,11 @@ function EmptyState({ message }: { message: string }) {
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-      <p className="text-xs font-medium text-gray-500">{label}</p>
-      <p className="mt-2 text-2xl font-bold text-gray-900">{value}</p>
+    <div className="trails-card p-5">
+      <p className="trails-section-label">{label}</p>
+      <p className="mt-2 text-2xl font-black text-gray-900 tabular-nums">
+        {value}
+      </p>
     </div>
   );
 }

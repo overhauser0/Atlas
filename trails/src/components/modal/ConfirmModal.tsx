@@ -50,11 +50,11 @@ export default function ConfirmModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="trails-confirm-title"
-        className="w-full max-w-sm overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-2xl"
+        className="trails-modal-panel w-full max-w-sm overflow-hidden"
       >
         <div className="flex flex-col gap-5 p-5">
           <div className="flex items-start gap-4">
-            <div className="shrink-0 rounded-full bg-amber-100 p-3 text-amber-700">
+            <div className="shrink-0 rounded-full bg-primary-100 p-3 text-primary-700">
               <AlertTriangle className="h-6 w-6" />
             </div>
             <div className="flex-1 pt-1">
@@ -74,14 +74,14 @@ export default function ConfirmModal({
             <button
               type="button"
               onClick={onCancel}
-              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+              className="trails-btn-ghost"
             >
               {cancelText}
             </button>
             <button
               type="button"
               onClick={onConfirm}
-              className="rounded-xl bg-amber-600 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-700"
+              className="trails-btn-primary px-5"
             >
               {confirmText}
             </button>

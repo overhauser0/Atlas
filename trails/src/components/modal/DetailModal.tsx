@@ -766,7 +766,7 @@ export default function DetailModal({
             <button
               onClick={handleSave}
               disabled={isSaving || isDeleting}
-              className="w-full bg-gray-900 text-white py-3.5 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-gray-800 transition-colors"
+              className="trails-btn-primary w-full py-3.5"
             >
               {isSaving ? (
                 <Loader2 className="animate-spin w-5 h-5" />
@@ -780,7 +780,7 @@ export default function DetailModal({
 
           <button
             onClick={onClose}
-            className="w-full bg-gray-100 text-gray-600 py-3.5 rounded-xl font-bold hover:bg-gray-200 transition-colors"
+            className="trails-btn-secondary w-full py-3.5"
           >
             Close
           </button>

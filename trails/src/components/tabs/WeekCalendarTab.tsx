@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
+import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface Props {
   events: LifeItem[];
@@ -229,39 +230,37 @@ export default function WeekCalendarTab({
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-white">
-      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 px-4 py-3 md:px-6">
-        <div className="min-w-0">
-          <h1 className="text-base font-bold text-gray-900 md:text-lg">
-            週間カレンダー
-          </h1>
-          <p className="truncate text-xs text-gray-500">{weekLabel}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setWeekStart(getSunday(new Date()))}
-            className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50"
-          >
-            今日
-          </button>
-          <button
-            type="button"
-            aria-label="前の週"
-            onClick={() => setWeekStart((current) => addDays(current, -7))}
-            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            aria-label="次の週"
-            onClick={() => setWeekStart((current) => addDays(current, 7))}
-            className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </button>
-        </div>
-      </header>
+      <FullscreenHeader
+        title="週間カレンダー"
+        subtitle={weekLabel}
+        actions={
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setWeekStart(getSunday(new Date()))}
+              className="trails-nav-btn"
+            >
+              今日
+            </button>
+            <button
+              type="button"
+              aria-label="前の週"
+              onClick={() => setWeekStart((current) => addDays(current, -7))}
+              className="trails-nav-icon-btn"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="次の週"
+              onClick={() => setWeekStart((current) => addDays(current, 7))}
+              className="trails-nav-icon-btn"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
+        }
+      />
 
       <div className="min-h-0 flex-1 overflow-auto trails-scrollbar">
         <div style={{ minWidth: contentWidth }}>
@@ -276,7 +275,7 @@ export default function WeekCalendarTab({
               <div
                 key={key}
                 className={`border-r border-gray-100 px-2 py-2 text-center last:border-r-0 ${
-                  key === todayKey ? 'bg-amber-50' : ''
+                  key === todayKey ? 'bg-primary-50' : ''
                 }`}
               >
                 <div className="text-[11px] font-medium text-gray-500">
@@ -285,7 +284,7 @@ export default function WeekCalendarTab({
                 <div
                   className={`mx-auto mt-0.5 flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold ${
                     key === todayKey
-                      ? 'bg-amber-500 text-white'
+                      ? 'bg-primary-500 text-white'
                       : 'text-gray-800'
                   }`}
                 >
@@ -308,7 +307,7 @@ export default function WeekCalendarTab({
               <div
                 key={key}
                 className={`border-r border-gray-200 p-1 last:border-r-0 ${
-                  key === todayKey ? 'bg-amber-50/50' : ''
+                  key === todayKey ? 'bg-primary-50/50' : ''
                 }`}
               >
                 <div className="flex flex-col gap-1">
@@ -358,7 +357,7 @@ export default function WeekCalendarTab({
               <div
                 key={key}
                 className={`relative border-r border-gray-100 last:border-r-0 ${
-                  key === todayKey ? 'bg-amber-50/20' : 'bg-white'
+                  key === todayKey ? 'bg-primary-50/20' : 'bg-white'
                 }`}
                 style={{
                   height: HOUR_HEIGHT * 24,

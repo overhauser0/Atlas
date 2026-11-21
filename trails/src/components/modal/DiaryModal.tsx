@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  ArrowLeft,
   Calendar,
   Camera,
   Check,
   ChevronLeft,
   ChevronRight,
+  Flag,
   Loader2,
   Plus,
   Sparkles,
@@ -15,7 +15,9 @@ import {
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
 import { atlasFetch } from '@/utils/api';
+import { getDateFullString } from '@/utils/dateUtils';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
+import FullscreenHeader from '@/components/ui/FullscreenHeader';
 import ListItem from '@/components/ui/ListItem';
 
 export interface SparkItem {
@@ -59,6 +61,15 @@ function shiftDate(dateStr: string, days: number): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+}
+
+function formatDiaryDateLabel(dateStr: string): string {
+  if (!dateStr) return '';
+  const [y, m, d] = dateStr.slice(0, 10).split('-').map(Number);
+  if (!y || !m || !d) return dateStr;
+  const date = new Date(y, m - 1, d);
+  const weekday = ['日', '月', '火', '水', '木', '金', '土'][date.getDay()];
+  return `${y}年${m}月${d}日 (${weekday})`;
 }
 
 export default function DiaryModal({
@@ -225,12 +236,10 @@ export default function DiaryModal({
     onClose();
   }, [onClose, persistDiary]);
 
-  // 前日・翌日への移動（未保存分があれば保存してから親へ通知）
-  const handleNavigateDate = useCallback(
-    async (days: number) => {
-      if (!formData.date || !onChangeDate) return;
-      const targetDate = shiftDate(formData.date, days);
-      if (!targetDate) return;
+  // 指定日への移動（未保存分があれば保存してから親へ通知）
+  const handleSelectDate = useCallback(
+    async (targetDate: string) => {
+      if (!targetDate || !onChangeDate || targetDate === formData.date) return;
 
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
@@ -250,6 +259,18 @@ export default function DiaryModal({
     },
     [formData.date, onChangeDate, persistDiary],
   );
+
+  const handleNavigateDate = useCallback(
+    (days: number) => {
+      if (!formData.date) return;
+      void handleSelectDate(shiftDate(formData.date, days));
+    },
+    [formData.date, handleSelectDate],
+  );
+
+  const handleGoToToday = useCallback(() => {
+    void handleSelectDate(getDateFullString(new Date(), 'hyphen'));
+  }, [handleSelectDate]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -323,69 +344,71 @@ export default function DiaryModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-50 flex flex-col animate-in fade-in duration-150">
-      {/* Sticky Header */}
-      <header className="sticky top-0 z-10 shrink-0 bg-gray-50/80 backdrop-blur-md border-b border-gray-200/70">
-        <div className="w-full px-4 md:px-6 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 py-1.5 pr-2 rounded-lg transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="text-sm font-bold text-gray-900 tracking-tight">
-                {formData.date}
-              </span>
-            </button>
-
-            {onChangeDate && (
-              <div className="flex space-x-1">
+    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col animate-in fade-in duration-150">
+      <FullscreenHeader
+        title="日記"
+        subtitle={formatDiaryDateLabel(formData.date)}
+        onBack={handleClose}
+        backLabel="戻る"
+        actions={
+          <>
+            <div className="flex items-center text-xs">
+              {saveStatus === 'saving' && (
+                <span className="flex items-center gap-1 text-gray-400">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span className="hidden sm:inline">Saving...</span>
+                </span>
+              )}
+              {saveStatus === 'saved' && (
+                <span className="flex items-center gap-1 text-emerald-600 font-medium">
+                  <Check className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Saved</span>
+                </span>
+              )}
+              {saveStatus === 'error' && (
                 <button
                   type="button"
-                  onClick={() => handleNavigateDate(-1)}
-                  disabled={saveStatus === 'saving'}
-                  className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40"
+                  onClick={() => persistDiary(latestDataRef.current)}
+                  className="text-red-600 font-semibold underline"
                 >
-                  <ChevronLeft className="w-5 h-5" />
+                  Retry
+                </button>
+              )}
+            </div>
+
+            {onChangeDate && (
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleGoToToday}
+                  disabled={saveStatus === 'saving'}
+                  className="trails-nav-btn"
+                >
+                  今日
                 </button>
                 <button
                   type="button"
+                  aria-label="前の日"
+                  onClick={() => handleNavigateDate(-1)}
+                  disabled={saveStatus === 'saving'}
+                  className="trails-nav-icon-btn"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="次の日"
                   onClick={() => handleNavigateDate(1)}
                   disabled={saveStatus === 'saving'}
-                  className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors disabled:opacity-40"
+                  className="trails-nav-icon-btn"
                 >
-                  <ChevronRight className="w-5 h-5" />
+                  <ChevronRight className="h-4 w-4" />
                 </button>
               </div>
             )}
-          </div>
-
-          <div className="flex items-center gap-2 text-xs">
-            {saveStatus === 'saving' && (
-              <span className="flex items-center gap-1.5 text-gray-400">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Saving...
-              </span>
-            )}
-            {saveStatus === 'saved' && (
-              <span className="flex items-center gap-1 text-gray-400">
-                <Check className="w-3.5 h-3.5" />
-                Saved
-              </span>
-            )}
-            {saveStatus === 'error' && (
-              <button
-                type="button"
-                onClick={() => persistDiary(latestDataRef.current)}
-                className="text-red-600 font-medium underline"
-              >
-                Retry Save
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col">
@@ -393,65 +416,85 @@ export default function DiaryModal({
           <div className="px-4 md:px-6 pt-4 shrink-0">
             <div
               role="alert"
-              className="px-4 py-2.5 rounded-xl bg-red-50 border border-red-200 text-xs text-red-600"
+              className="px-4 py-2.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-600"
             >
               {saveError}
             </div>
           </div>
         )}
 
-        <div className="w-full flex-1 md:h-full grid grid-cols-1 md:grid-cols-12 gap-3 md:gap-5 p-4 md:p-6 pb-12 md:pb-6 md:overflow-hidden">
+        <div className="w-full flex-1 md:h-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 p-4 md:p-6 pb-12 md:pb-6 md:overflow-hidden">
           {/* 左ペイン：メタデータ・本日のLifeItem・写真・Sparks */}
-          <div className="md:col-span-5 lg:col-span-4 space-y-3 md:overflow-y-auto md:pr-1">
-            {/* Rate Card */}
-            <div className="grid grid-cols-2 gap-3">
-              <section className="col-span-2 bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs">
-                <div className="flex items-center justify-between mb-2.5">
-                  <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">
+          <div className="md:col-span-5 lg:col-span-4 space-y-4 md:overflow-y-auto no-scrollbar md:pr-1">
+            {/* Rate & Flag Card */}
+            <section className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     Rate
                   </span>
                   {formData.rate && (
-                    <span className="text-xs font-medium text-gray-500">
+                    <span className="text-xs font-bold text-primary-600">
                       {formData.rate} / 5
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {RATES.map((rate) => {
-                    const isSelected = formData.rate === rate;
-                    return (
-                      <button
-                        key={rate}
-                        type="button"
-                        onClick={() =>
-                          updateFormAndScheduleSave(
-                            (prev) => ({
-                              ...prev,
-                              rate: prev.rate === rate ? null : rate,
-                            }),
-                            true,
-                          )
-                        }
-                        className={`py-2 text-xs font-medium rounded-xl border transition-all ${
-                          isSelected
-                            ? 'bg-black text-white border-black shadow-xs'
-                            : 'bg-gray-50/70 text-gray-600 border-gray-200/80 hover:bg-gray-100'
-                        }`}
-                      >
-                        {'★'.repeat(rate)}
-                      </button>
-                    );
-                  })}
-                </div>
-              </section>
-            </div>
+                <button
+                  type="button"
+                  aria-pressed={Boolean(formData.flag)}
+                  onClick={() =>
+                    updateFormAndScheduleSave(
+                      (prev) => ({ ...prev, flag: !prev.flag }),
+                      true,
+                    )
+                  }
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-bold transition-colors ${
+                    formData.flag
+                      ? 'border-rose-200 bg-rose-50 text-rose-600'
+                      : 'border-gray-200 bg-gray-50 text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Flag
+                    className={`h-3 w-3 ${formData.flag ? 'fill-rose-500 text-rose-500' : ''}`}
+                  />
+                  <span>Pick</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {RATES.map((rate) => {
+                  const isSelected = formData.rate === rate;
+                  return (
+                    <button
+                      key={rate}
+                      type="button"
+                      onClick={() =>
+                        updateFormAndScheduleSave(
+                          (prev) => ({
+                            ...prev,
+                            rate: prev.rate === rate ? null : rate,
+                          }),
+                          true,
+                        )
+                      }
+                      className={`py-2 text-xs font-bold rounded-xl border transition-all ${
+                        isSelected
+                          ? 'bg-primary-500 text-white border-primary-500 shadow-xs'
+                          : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200'
+                      }`}
+                    >
+                      {'★'.repeat(rate)}
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
 
             {/* 本日の LifeItem Bento Card */}
             {lifeItems.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-2">
+              <section className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm space-y-2.5">
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <Calendar className="w-3.5 h-3.5 text-primary-500" />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     Life Items ({lifeItems.length})
                   </span>
                 </div>
@@ -471,10 +514,10 @@ export default function DiaryModal({
 
             {/* Immich Daily Photos Bento Card */}
             {photos.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-2.5">
+              <section className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm space-y-3">
                 <div className="flex items-center gap-1.5">
-                  <Camera className="w-3.5 h-3.5 text-gray-400" />
-                  <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                  <Camera className="w-3.5 h-3.5 text-primary-500" />
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                     Photos ({photos.length})
                   </span>
                 </div>
@@ -485,11 +528,11 @@ export default function DiaryModal({
 
             {/* Sparks Bento Card */}
             {sparks.length > 0 && (
-              <section className="bg-white rounded-2xl border border-gray-200/80 p-4 shadow-xs space-y-3">
+              <section className="bg-white rounded-3xl border border-gray-100 p-5 shadow-sm space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
-                    <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                    <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
+                    <Sparkles className="w-3.5 h-3.5 text-primary-500" />
+                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                       Sparks ({sparks.length})
                     </span>
                   </div>
@@ -497,7 +540,7 @@ export default function DiaryModal({
                     <button
                       type="button"
                       onClick={handlePromoteAllSparks}
-                      className="text-xs font-semibold text-gray-900 hover:text-gray-600 px-2 py-1 rounded-lg bg-gray-100 hover:bg-gray-200/70 transition-colors"
+                      className="text-xs font-bold text-primary-700 hover:bg-primary-100 px-2.5 py-1 rounded-lg bg-primary-50 transition-colors"
                     >
                       すべて追記
                     </button>
@@ -523,7 +566,7 @@ export default function DiaryModal({
                           type="button"
                           onClick={() => handlePromoteSpark(spark)}
                           title="Noteに追記"
-                          className="p-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-700 transition-colors"
+                          className="p-1.5 rounded-lg bg-primary-500 text-white hover:bg-primary-600 transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -544,11 +587,11 @@ export default function DiaryModal({
           </div>
 
           {/* 右ペイン：Main Note (Markdown) Bento Card */}
-          <section className="md:col-span-7 lg:col-span-8 bg-white rounded-2xl border border-gray-200/80 p-4 md:p-6 shadow-xs flex flex-col md:h-full">
+          <section className="md:col-span-7 lg:col-span-8 bg-white rounded-3xl border border-gray-100 p-5 md:p-6 shadow-sm flex flex-col md:h-full">
             <div className="flex items-center justify-between mb-3 shrink-0">
               <label
                 htmlFor="diary-note-textarea"
-                className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider"
+                className="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
               >
                 Note (Markdown)
               </label>
@@ -563,7 +606,7 @@ export default function DiaryModal({
                 }))
               }
               placeholder="How was your day?"
-              className="w-full flex-1 min-h-[320px] md:min-h-0 text-sm md:text-base leading-relaxed text-gray-900 placeholder:text-gray-300 bg-transparent focus:outline-none resize-y md:resize-none"
+              className="w-full flex-1 min-h-[320px] md:min-h-0 text-sm md:text-base leading-relaxed text-gray-900 placeholder:text-gray-300 bg-transparent focus:outline-none resize-y md:resize-none trails-scrollbar"
             />
           </section>
         </div>

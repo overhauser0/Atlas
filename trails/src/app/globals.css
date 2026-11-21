@@ -59,7 +59,47 @@ textarea {
 }
 
 @layer components {
+  .trails-card {
+    @apply rounded-3xl border border-gray-100 bg-white shadow-sm;
+  }
+
+  .trails-card-sm {
+    @apply rounded-2xl border border-gray-100 bg-white shadow-sm;
+  }
+
+  .trails-modal-panel {
+    @apply rounded-3xl border border-gray-100 bg-white shadow-2xl;
+  }
+
+  .trails-section-label {
+    @apply text-[10px] font-bold uppercase tracking-widest text-gray-400;
+  }
+
   .trails-badge {
-    @apply text-xs font-medium text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md whitespace-nowrap;
+    @apply whitespace-nowrap rounded-md bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-600;
+  }
+
+  .trails-input {
+    @apply w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors placeholder:text-gray-400 focus:border-primary-400 focus:bg-white;
+  }
+
+  .trails-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-primary-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-primary-600 disabled:cursor-not-allowed disabled:bg-gray-300;
+  }
+
+  .trails-btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-gray-100 px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50;
+  }
+
+  .trails-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50;
+  }
+
+  .trails-nav-btn {
+    @apply rounded-lg border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40;
+  }
+
+  .trails-nav-icon-btn {
+    @apply rounded-lg border border-gray-200 bg-white p-2 text-gray-600 transition-colors hover:bg-gray-50 disabled:opacity-40;
   }
 }

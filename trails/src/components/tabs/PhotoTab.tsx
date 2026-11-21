@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useImmichStats } from '@/hooks/useImmichStats';
+import PageHeader from '@/components/ui/PageHeader';
 import PhotoHeatmap from '@/components/ui/PhotoHeatmap';
 
 interface PhotoTabProps {
@@ -33,33 +34,26 @@ export default function PhotoTab({ onDateClick }: PhotoTabProps) {
   return (
     <div className="h-full flex flex-col max-w-5xl mx-auto w-full pt-5 px-5 md:pt-8 md:px-8">
       <div className="flex-1 overflow-y-auto no-scrollbar pb-32">
-        <header className="flex items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 shrink-0 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-500">
-              <Aperture className="w-6 h-6" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Photo Library
-              </h2>
-              <p className="text-sm text-gray-500">
-                Your photo library at a glance
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={handleSync}
-            disabled={isSyncing || isLoading}
-            className="shrink-0 flex items-center gap-2 px-3 py-2 md:px-4 rounded-xl bg-primary-500 hover:bg-primary-600 disabled:bg-gray-300 text-white text-sm font-bold transition-colors"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`}
-            />
-            <span className="hidden sm:inline">
-              {isSyncing ? 'Syncing...' : 'Sync'}
-            </span>
-          </button>
-        </header>
+        <PageHeader
+          icon={<Aperture />}
+          title="Photo Library"
+          subtitle="Your photo library at a glance"
+          actions={
+            <button
+              type="button"
+              onClick={handleSync}
+              disabled={isSyncing || isLoading}
+              className="trails-btn-primary px-3 py-2 md:px-4"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`}
+              />
+              <span className="hidden sm:inline">
+                {isSyncing ? 'Syncing...' : 'Sync'}
+              </span>
+            </button>
+          }
+        />
 
         <div className="flex items-center justify-between text-xs text-gray-400 mb-6 px-1">
           <span>
@@ -95,8 +89,8 @@ export default function PhotoTab({ onDateClick }: PhotoTabProps) {
                 </div>
               </div>
 
-              <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-5 flex items-center gap-4">
-                <div className="w-12 h-12 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500">
+              <div className="trails-card p-5 flex items-center gap-4">
+                <div className="w-12 h-12 bg-primary-50 rounded-2xl flex items-center justify-center text-primary-500">
                   <HardDrive className="w-6 h-6" />
                 </div>
                 <div>

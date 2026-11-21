@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect } from 'react';
 import AssetGrid from '@/components/ui/AssetGrid';
-import { useAssetSearch } from '@/hooks/useAssetSearch'; // Vistaから移植したSWRフック
+import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import { useAssetSearch } from '@/hooks/useAssetSearch';
 
 interface DailyPhotoModalProps {
   isOpen: boolean;
@@ -16,42 +16,55 @@ export default function DailyPhotoModal({
   date,
   onClose,
 }: DailyPhotoModalProps) {
-  // isOpen が false、または date が無い時はフェッチをスキップ (キャッシュがあれば即時レンダリング)
   const { assets, isLoading } = useAssetSearch(
     isOpen && date ? { date } : null,
   );
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in slide-in-from-bottom-full duration-300">
-      {/* ヘッダー */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-200 bg-white/90 backdrop-blur-md">
-        <div>
-          <h2 className="text-lg font-bold text-slate-800">{date} の記録</h2>
-          <p className="text-xs text-slate-500">{assets?.length || 0} items</p>
-        </div>
-        <button
-          onClick={onClose}
-          className="p-2 bg-slate-100 rounded-full text-slate-600 hover:bg-slate-200"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="daily-photo-title"
+      className="fixed inset-0 z-50 flex flex-col bg-gray-100 animate-in fade-in duration-150"
+    >
+      <FullscreenHeader
+        title={`${date ?? ''} の写真`}
+        titleId="daily-photo-title"
+        subtitle={
+          isLoading ? '読み込み中...' : `${assets?.length || 0} items`
+        }
+        onBack={onClose}
+        backLabel="写真を閉じる"
+      />
 
       {/* ギャラリー */}
-      <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-full text-slate-500">
-            Loading photos...
-          </div>
-        ) : assets?.length ? (
-          <AssetGrid assets={assets} isLoading={false} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-slate-400 text-sm">
-            この日の写真はありません
-          </div>
-        )}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
+        <div className="mx-auto max-w-5xl">
+          {isLoading ? (
+            <div className="trails-card p-10 text-center text-sm text-gray-500 animate-pulse">
+              写真を読み込んでいます...
+            </div>
+          ) : assets?.length ? (
+            <div className="trails-card p-4 md:p-5">
+              <AssetGrid assets={assets} isLoading={false} />
+            </div>
+          ) : (
+            <div className="trails-card p-10 text-center text-sm text-gray-400">
+              この日の写真はありません
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

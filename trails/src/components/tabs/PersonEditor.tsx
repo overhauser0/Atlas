@@ -2,7 +2,6 @@
 
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowLeft,
   Camera,
   CalendarDays,
   ContactRound,
@@ -24,6 +23,7 @@ import { getNotionLinkById } from '@/utils/miscellaneous';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
+import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface PersonEditorProps {
   person: Person | null;
@@ -876,354 +876,317 @@ export default function PersonEditor({
       .includes(pieceSearchQuery.trim().toLocaleLowerCase());
   });
 
-  const inputClassName =
-    'w-full rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 text-sm text-gray-900 outline-none transition-colors focus:border-amber-400 focus:bg-white';
+  const inputClassName = 'trails-input';
   const isReadOnly = person !== null && !isEditing;
   const linkLabel =
     linkModalType === 'immich_person_id' ? 'Immich' : 'Google Contacts';
+  const fullName = person
+    ? [person.family_name, person.given_name].filter(Boolean).join(' ')
+    : '';
 
   return (
-    <div
-      className={
-        isReadOnly
-          ? 'flex h-full flex-col overflow-hidden'
-          : 'h-full overflow-y-auto'
-      }
-    >
-      <div
-        className={`p-4 md:p-8 ${
-          isReadOnly ? 'flex min-h-0 flex-1 flex-col' : ''
-        }`}
-      >
-        <div className="mb-6 flex shrink-0 items-center gap-4">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSaving}
-            aria-label="人物一覧に戻る"
-            className="rounded-xl p-2.5 text-gray-500 transition-colors hover:bg-white disabled:opacity-50"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          {!isReadOnly && (
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {person
-                  ? isEditing
-                    ? '人物を編集'
-                    : '人物の詳細'
-                  : '人物を追加'}
-              </h1>
-              <p className="mt-1 text-sm text-gray-500">
-                {person
-                  ? isEditing
-                    ? '人物情報を編集します'
-                    : '登録されている人物情報'
-                  : '人物情報を登録します'}
-              </p>
+    <div className="flex h-full flex-col overflow-hidden bg-gray-100">
+      <FullscreenHeader
+        title={
+          person ? (isEditing ? '人物を編集' : fullName || '人物の詳細') : '人物を追加'
+        }
+        subtitle={
+          person
+            ? isEditing
+              ? '人物情報を編集します'
+              : [person.ruby_family_name, person.ruby_given_name]
+                  .filter(Boolean)
+                  .join(' ') || '人物の詳細'
+            : '人物情報を登録します'
+        }
+        onBack={onClose}
+        backLabel="人物一覧に戻る"
+        backDisabled={isSaving}
+        actions={
+          isReadOnly && person ? (
+            <div className="flex shrink-0 items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => openLinkModal('immich_person_id')}
+                aria-label={`Immich${linkedIds.immich_person_id ? '連携済み' : '未連携'}。連携IDを編集`}
+                title={`Immich${linkedIds.immich_person_id ? '連携済み' : '未連携'}`}
+                className={`trails-nav-icon-btn ${
+                  linkedIds.immich_person_id
+                    ? 'text-primary-600'
+                    : 'text-gray-300'
+                }`}
+              >
+                <Image className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openLinkModal('google_contact_id')}
+                aria-label={`Google Contacts${linkedIds.google_contact_id ? '連携済み' : '未連携'}。連携IDを編集`}
+                title={`Google Contacts${linkedIds.google_contact_id ? '連携済み' : '未連携'}`}
+                className={`trails-nav-icon-btn ${
+                  linkedIds.google_contact_id
+                    ? 'text-blue-600'
+                    : 'text-gray-300'
+                }`}
+              >
+                <ContactRound className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(true)}
+                aria-label="人物を編集"
+                className="trails-nav-icon-btn"
+              >
+                <Pencil className="h-4 w-4" />
+              </button>
             </div>
-          )}
-        </div>
+          ) : undefined
+        }
+      />
 
-        <div
-          className={
-            isReadOnly
-              ? 'flex min-h-0 flex-1 flex-col'
-              : 'overflow-hidden rounded-2xl border border-gray-200 bg-white'
-          }
-        >
-          {isReadOnly && person && (
-            <>
-              <header className="flex shrink-0 items-center gap-4 py-4">
-                <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-gray-100 text-gray-500">
-                  <UsersRound className="h-8 w-8" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  {(person.ruby_family_name || person.ruby_given_name) && (
-                    <p className="mb-0.5 text-xs text-gray-500">
-                      {[person.ruby_family_name, person.ruby_given_name]
-                        .filter(Boolean)
-                        .join(' ')}
-                    </p>
-                  )}
-                  <h2 className="text-xl font-bold text-gray-900 sm:text-2xl">
-                    {[person.family_name, person.given_name]
-                      .filter(Boolean)
-                      .join(' ')}
-                  </h2>
-                  {person.tags && person.tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {person.tags.map((tag) => (
-                        <span key={tag} className="trails-badge">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => openLinkModal('immich_person_id')}
-                    aria-label={`Immich${linkedIds.immich_person_id ? '連携済み' : '未連携'}。連携IDを編集`}
-                    title={`Immich${linkedIds.immich_person_id ? '連携済み' : '未連携'}`}
-                    className={`rounded-full p-2.5 transition-colors hover:bg-gray-100 ${
-                      linkedIds.immich_person_id
-                        ? 'text-amber-600'
-                        : 'text-gray-300'
-                    }`}
-                  >
-                    <Image className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => openLinkModal('google_contact_id')}
-                    aria-label={`Google Contacts${linkedIds.google_contact_id ? '連携済み' : '未連携'}。連携IDを編集`}
-                    title={`Google Contacts${linkedIds.google_contact_id ? '連携済み' : '未連携'}`}
-                    className={`rounded-full p-2.5 transition-colors hover:bg-gray-100 ${
-                      linkedIds.google_contact_id
-                        ? 'text-blue-600'
-                        : 'text-gray-300'
-                    }`}
-                  >
-                    <ContactRound className="h-5 w-5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(true)}
-                    aria-label="人物を編集"
-                    className="ml-1 rounded-full p-2.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-gray-800"
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                </div>
-              </header>
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-32 no-scrollbar md:px-8 md:py-6">
+        <div className="mx-auto w-full max-w-5xl">
+          <div
+            className={
+              isReadOnly ? 'space-y-4' : 'trails-card overflow-hidden'
+            }
+          >
+            {isReadOnly && person && (
+              <>
+                {person.tags && person.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 px-1">
+                    {person.tags.map((tag) => (
+                      <span key={tag} className="trails-badge bg-white border border-gray-200">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
-              <div className="mt-4 grid min-h-0 flex-1 grid-cols-1 items-start gap-4 overflow-y-auto trails-scrollbar md:grid-cols-[minmax(220px,0.7fr)_minmax(0,1.3fr)]">
-                <div className="space-y-4">
-                  <section
-                    className="rounded-2xl bg-white p-5"
-                    aria-label="基本情報"
-                  >
-                    <h3 className="mb-4 text-sm font-bold text-gray-900">
-                      基本情報
-                    </h3>
-                    <dl className="space-y-4">
-                      <div>
-                        <dt className="text-xs font-semibold text-gray-500">
-                          誕生日
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">
-                          {person.birthday
-                            ? getDateFullString(person.birthday, 'hyphen')
-                            : '—'}
-                        </dd>
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
+                  <div className="space-y-4">
+                    <section
+                      className="trails-card p-5"
+                      aria-label="基本情報"
+                    >
+                      <div className="mb-4 flex items-center gap-3">
+                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
+                          <UsersRound className="h-5 w-5" />
+                        </div>
+                        <h3 className="text-sm font-bold text-gray-900">
+                          基本情報
+                        </h3>
                       </div>
-                      <div>
-                        <dt className="text-xs font-semibold text-gray-500">
-                          血液型
-                        </dt>
-                        <dd className="mt-1 text-sm text-gray-900">
-                          {person.blood_type?.join(', ') || '—'}
-                        </dd>
-                      </div>
-                      {person.notes && (
+                      <dl className="space-y-4">
                         <div>
-                          <dt className="text-xs font-semibold text-gray-500">
-                            メモ
-                          </dt>
-                          <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                            {person.notes}
+                          <dt className="trails-section-label">誕生日</dt>
+                          <dd className="mt-1 text-sm text-gray-900">
+                            {person.birthday
+                              ? getDateFullString(person.birthday, 'hyphen')
+                              : '—'}
                           </dd>
                         </div>
-                      )}
-                    </dl>
-                  </section>
+                        <div>
+                          <dt className="trails-section-label">血液型</dt>
+                          <dd className="mt-1 text-sm text-gray-900">
+                            {person.blood_type?.join(', ') || '—'}
+                          </dd>
+                        </div>
+                        {person.notes && (
+                          <div>
+                            <dt className="trails-section-label">メモ</dt>
+                            <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
+                              {person.notes}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </section>
 
-                  {linkedIds.immich_person_id && (
-                    <section
-                      className="rounded-2xl bg-white p-5"
-                      aria-labelledby="person-immich-heading"
-                    >
-                      <div className="mb-4 flex items-center gap-2">
-                        <Camera className="h-5 w-5 text-amber-600" />
+                    {linkedIds.immich_person_id && (
+                      <section
+                        className="trails-card p-5"
+                        aria-labelledby="person-immich-heading"
+                      >
+                        <div className="mb-4 flex items-center gap-2">
+                          <Camera className="h-5 w-5 text-primary-600" />
+                          <h3
+                            id="person-immich-heading"
+                            className="text-sm font-bold text-gray-900"
+                          >
+                            Immich
+                          </h3>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setIsPersonPhotoModalOpen(true)}
+                          className="trails-btn-primary w-full"
+                        >
+                          写真を開く
+                        </button>
+                      </section>
+                    )}
+                  </div>
+
+                  <section
+                    className="trails-card p-5"
+                    aria-labelledby="person-timeline-heading"
+                  >
+                    <div className="mb-4 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-5 w-5 text-primary-600" />
                         <h3
-                          id="person-immich-heading"
+                          id="person-timeline-heading"
                           className="text-sm font-bold text-gray-900"
                         >
-                          Immich
+                          タイムライン
                         </h3>
                       </div>
                       <button
                         type="button"
-                        onClick={() => setIsPersonPhotoModalOpen(true)}
-                        className="w-full rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600"
+                        onClick={() => openPieceModal('create')}
+                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-50"
                       >
-                        写真を開く
+                        <Plus className="h-4 w-4" />
+                        Pieceを追加
                       </button>
-                    </section>
-                  )}
-                </div>
-
-                <section
-                  className="rounded-2xl bg-white p-5"
-                  aria-labelledby="person-timeline-heading"
-                >
-                  <div className="mb-4 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <CalendarDays className="h-5 w-5 text-amber-600" />
-                      <h3
-                        id="person-timeline-heading"
-                        className="text-sm font-bold text-gray-900"
-                      >
-                        タイムライン
-                      </h3>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => openPieceModal('create')}
-                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-50"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Pieceを追加
-                    </button>
-                  </div>
 
-                  {isTimelineLoading ? (
-                    <p className="py-6 text-center text-sm text-gray-500">
-                      タイムラインを読み込み中...
-                    </p>
-                  ) : timelineError ? (
-                    <p role="alert" className="py-4 text-sm text-red-600">
-                      {timelineError}
-                    </p>
-                  ) : timelinePieces.length === 0 ? (
-                    <div className="py-6 text-center">
-                      <p className="text-sm text-gray-500">
-                        関連付けられたPieceはありません
+                    {isTimelineLoading ? (
+                      <p className="py-6 text-center text-sm text-gray-500">
+                        タイムラインを読み込み中...
                       </p>
-                    </div>
-                  ) : (
-                    <ol className="space-y-0">
-                      {timelinePieces.map((piece, index) => (
-                        <li
-                          key={`${piece.source}-${piece.id}`}
-                          className="relative pl-7"
-                        >
-                          {index < timelinePieces.length - 1 && (
+                    ) : timelineError ? (
+                      <p role="alert" className="py-4 text-sm text-red-600">
+                        {timelineError}
+                      </p>
+                    ) : timelinePieces.length === 0 ? (
+                      <div className="py-6 text-center">
+                        <p className="text-sm text-gray-500">
+                          関連付けられたPieceはありません
+                        </p>
+                      </div>
+                    ) : (
+                      <ol className="space-y-0">
+                        {timelinePieces.map((piece, index) => (
+                          <li
+                            key={`${piece.source}-${piece.id}`}
+                            className="relative pl-7"
+                          >
+                            {index < timelinePieces.length - 1 && (
+                              <span
+                                aria-hidden="true"
+                                className="absolute bottom-0 left-[7px] top-4 w-px bg-primary-200"
+                              />
+                            )}
                             <span
                               aria-hidden="true"
-                              className="absolute bottom-0 left-[7px] top-4 w-px bg-amber-200"
+                              className="absolute left-0 top-1 h-4 w-4 rounded-full border-[3px] border-primary-400 bg-white"
                             />
-                          )}
-                          <span
-                            aria-hidden="true"
-                            className="absolute left-0 top-1 h-4 w-4 rounded-full border-[3px] border-amber-400 bg-white"
-                          />
-                          <article className="flex items-start justify-between gap-2 border-b border-gray-100 pb-4 pl-1 pt-0.5 last:border-0">
-                            <div className="min-w-0 flex-1">
-                              <p className="mb-1 text-xs font-semibold text-amber-700">
-                                {piece.start_date
-                                  ? getDateFullString(piece.start_date, 'hyphen')
-                                  : '日付未設定'}
-                              </p>
-                              <h4 className="font-bold text-gray-900">
-                                {piece.title}
-                              </h4>
-                              {piece.note && (
-                                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
-                                  {piece.note}
+                            <article className="flex items-start justify-between gap-2 border-b border-gray-100 pb-4 pl-1 pt-0.5 last:border-0">
+                              <div className="min-w-0 flex-1">
+                                <p className="mb-1 text-xs font-semibold text-primary-700">
+                                  {piece.start_date
+                                    ? getDateFullString(piece.start_date, 'hyphen')
+                                    : '日付未設定'}
                                 </p>
-                              )}
-                            </div>
-                            <div
-                              className="relative -mt-1 shrink-0"
-                              ref={
-                                openPieceMenuId ===
-                                `${piece.source}:${piece.id}`
-                                  ? pieceMenuRef
-                                  : null
-                              }
-                            >
-                              <button
-                                type="button"
-                                aria-label={`${piece.title}の操作`}
-                                aria-haspopup="menu"
-                                aria-expanded={
+                                <h4 className="font-bold text-gray-900">
+                                  {piece.title}
+                                </h4>
+                                {piece.note && (
+                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+                                    {piece.note}
+                                  </p>
+                                )}
+                              </div>
+                              <div
+                                className="relative -mt-1 shrink-0"
+                                ref={
                                   openPieceMenuId ===
                                   `${piece.source}:${piece.id}`
+                                    ? pieceMenuRef
+                                    : null
                                 }
-                                disabled={isUpdatingTimelinePiece}
-                                onClick={() =>
-                                  setOpenPieceMenuId((current) =>
-                                    current === `${piece.source}:${piece.id}`
-                                      ? null
-                                      : `${piece.source}:${piece.id}`,
-                                  )
-                                }
-                                className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                               >
-                                <MoreVertical className="h-4 w-4" />
-                              </button>
-                              {openPieceMenuId ===
-                                `${piece.source}:${piece.id}` && (
-                                <div
-                                  role="menu"
-                                  className="absolute right-0 top-full z-20 mt-1 w-44 rounded-xl border border-gray-100 bg-white py-1.5 shadow-xl"
+                                <button
+                                  type="button"
+                                  aria-label={`${piece.title}の操作`}
+                                  aria-haspopup="menu"
+                                  aria-expanded={
+                                    openPieceMenuId ===
+                                    `${piece.source}:${piece.id}`
+                                  }
+                                  disabled={isUpdatingTimelinePiece}
+                                  onClick={() =>
+                                    setOpenPieceMenuId((current) =>
+                                      current === `${piece.source}:${piece.id}`
+                                        ? null
+                                        : `${piece.source}:${piece.id}`,
+                                    )
+                                  }
+                                  className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
                                 >
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    disabled={isUpdatingTimelinePiece}
-                                    onClick={() =>
-                                      openTimelinePieceEditor(piece)
-                                    }
-                                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                                  <MoreVertical className="h-4 w-4" />
+                                </button>
+                                {openPieceMenuId ===
+                                  `${piece.source}:${piece.id}` && (
+                                  <div
+                                    role="menu"
+                                    className="absolute right-0 top-full z-20 mt-1 w-44 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl"
                                   >
-                                    <Pencil className="h-4 w-4" />
-                                    編集
-                                  </button>
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    disabled={isUpdatingTimelinePiece}
-                                    onClick={() =>
-                                      void updateTimelinePiece(piece, 'delete')
-                                    }
-                                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                    Pieceを削除
-                                  </button>
-                                  <button
-                                    type="button"
-                                    role="menuitem"
-                                    disabled={isUpdatingTimelinePiece}
-                                    onClick={() =>
-                                      void updateTimelinePiece(piece, 'unlink')
-                                    }
-                                    className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-                                  >
-                                    <Unlink className="h-4 w-4" />
-                                    紐づけを解除
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </article>
-                        </li>
-                      ))}
-                    </ol>
-                  )}
-                  {timelineActionError && (
-                    <p role="alert" className="mt-3 text-sm text-red-600">
-                      {timelineActionError}
-                    </p>
-                  )}
-                </section>
-              </div>
-            </>
-          )}
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      disabled={isUpdatingTimelinePiece}
+                                      onClick={() =>
+                                        openTimelinePieceEditor(piece)
+                                      }
+                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                      <Pencil className="h-4 w-4" />
+                                      編集
+                                    </button>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      disabled={isUpdatingTimelinePiece}
+                                      onClick={() =>
+                                        void updateTimelinePiece(piece, 'delete')
+                                      }
+                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                      Pieceを削除
+                                    </button>
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      disabled={isUpdatingTimelinePiece}
+                                      onClick={() =>
+                                        void updateTimelinePiece(piece, 'unlink')
+                                      }
+                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
+                                    >
+                                      <Unlink className="h-4 w-4" />
+                                      紐づけを解除
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </article>
+                          </li>
+                        ))}
+                      </ol>
+                    )}
+                    {timelineActionError && (
+                      <p role="alert" className="mt-3 text-sm text-red-600">
+                        {timelineActionError}
+                      </p>
+                    )}
+                  </section>
+                </div>
+              </>
+            )}
 
           <div
             className={isReadOnly ? 'hidden' : 'space-y-5 p-5 md:p-8'}
@@ -1372,7 +1335,7 @@ export default function PersonEditor({
                 <button
                   type="button"
                   onClick={() => setIsEditing(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600"
+                  className="trails-btn-primary px-5"
                 >
                   <Pencil className="h-4 w-4" />
                   編集
@@ -1403,7 +1366,7 @@ export default function PersonEditor({
                     }
                   }}
                   disabled={isSaving || isDeletingPerson}
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100 disabled:opacity-50"
+                  className="trails-btn-ghost"
                 >
                   {person ? '編集をキャンセル' : 'キャンセル'}
                 </button>
@@ -1415,12 +1378,13 @@ export default function PersonEditor({
                     isDeletingPerson ||
                     form.family_name.trim().length === 0
                   }
-                  className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white transition-colors hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  className="trails-btn-primary px-5"
                 >
                   {isSaving ? '保存中...' : person ? '保存' : '登録'}
                 </button>
               </>
             )}
+          </div>
           </div>
         </div>
       </div>
@@ -1438,7 +1402,7 @@ export default function PersonEditor({
 
       {person && editingTimelinePiece && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !isSavingTimelineEdit) {
               setEditingTimelinePiece(null);
@@ -1450,7 +1414,7 @@ export default function PersonEditor({
             role="dialog"
             aria-modal="true"
             aria-labelledby="person-timeline-edit-title"
-            className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-xl"
+            className="trails-modal-panel w-full max-w-lg p-6"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2
@@ -1569,7 +1533,7 @@ export default function PersonEditor({
                 disabled={
                   isSavingTimelineEdit || !timelineEditDraft.title.trim()
                 }
-                className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="trails-btn-primary px-5"
               >
                 {isSavingTimelineEdit ? '保存中...' : '保存'}
               </button>
@@ -1580,7 +1544,7 @@ export default function PersonEditor({
 
       {person && linkModalType && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !isSavingLink) {
               immichSearchRequestId.current += 1;
@@ -1594,7 +1558,7 @@ export default function PersonEditor({
             role="dialog"
             aria-modal="true"
             aria-labelledby="person-link-dialog-title"
-            className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl"
+            className="trails-modal-panel w-full max-w-md p-6"
           >
             <div className="mb-5 flex items-center justify-between">
               <h2
@@ -1672,7 +1636,7 @@ export default function PersonEditor({
                 type="button"
                 onClick={() => void saveLinkId()}
                 disabled={isSavingLink || isSearchingImmichPerson}
-                className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+                className="trails-btn-primary px-5"
               >
                 {isSavingLink
                   ? '保存中...'
@@ -1687,7 +1651,7 @@ export default function PersonEditor({
 
       {person && pieceModalType && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget && !isSavingPiece) {
               setPieceModalType(null);
@@ -1699,7 +1663,7 @@ export default function PersonEditor({
             role="dialog"
             aria-modal="true"
             aria-labelledby="person-piece-dialog-title"
-            className="flex max-h-[90vh] w-full max-w-lg flex-col rounded-2xl bg-white p-5 shadow-xl"
+            className="trails-modal-panel flex max-h-[90vh] w-full max-w-lg flex-col p-6"
           >
             <div className="mb-4 flex items-center justify-between">
               <h2
@@ -1728,7 +1692,7 @@ export default function PersonEditor({
                 onClick={() => openPieceModal('create')}
                 className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                   pieceModalType === 'create'
-                    ? 'bg-white text-amber-700 shadow-sm'
+                    ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -1739,7 +1703,7 @@ export default function PersonEditor({
                 onClick={() => openPieceModal('link')}
                 className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                   pieceModalType === 'link'
-                    ? 'bg-white text-amber-700 shadow-sm'
+                    ? 'bg-white text-primary-700 shadow-sm'
                     : 'text-gray-500 hover:text-gray-800'
                 }`}
               >
@@ -1839,7 +1803,7 @@ export default function PersonEditor({
                             type="button"
                             disabled={isSavingPiece}
                             onClick={() => void linkPieceToPerson(piece)}
-                            className="w-full px-4 py-3 text-left transition-colors hover:bg-amber-50 disabled:opacity-50"
+                            className="w-full px-4 py-3 text-left transition-colors hover:bg-primary-50 disabled:opacity-50"
                           >
                             <span className="block truncate text-sm font-semibold text-gray-900">
                               {piece.title}
@@ -1883,7 +1847,7 @@ export default function PersonEditor({
                   type="button"
                   onClick={() => void createAndLinkPiece()}
                   disabled={isSavingPiece || !pieceDraft.title.trim()}
-                  className="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-bold text-white hover:bg-amber-600 disabled:cursor-not-allowed disabled:bg-gray-300"
+                  className="trails-btn-primary px-5"
                 >
                   {isSavingPiece ? '作成中...' : '作成して紐づけ'}
                 </button>

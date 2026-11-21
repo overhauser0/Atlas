@@ -121,7 +121,7 @@ export default function SearchModal({
       />
 
       {/* モーダル本体 */}
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[70vh]">
+      <div className="trails-modal-panel relative w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[70vh]">
         {/* 検索入力エリア */}
         <div className="flex items-center px-4 py-4 border-b border-gray-100 shrink-0">
           <Search className="w-5 h-5 text-gray-400 mr-3 shrink-0" />

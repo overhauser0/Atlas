@@ -44,36 +44,43 @@ export default function AuthTab({ onLogin }: AuthTabProps) {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-white relative overflow-hidden">
-      <div className="relative z-10 w-full max-w-sm px-6">
-        <div className="flex items-center justify-center">
-          <div className="w-48 h-48 rounded-2xl overflow-hidden shadow-sm shrink-0 mb-16">
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-gray-100 px-4">
+      <div className="trails-card relative z-10 w-full max-w-sm p-8">
+        <div className="mb-8 flex flex-col items-center">
+          <div className="mb-4 h-28 w-28 shrink-0 overflow-hidden rounded-3xl shadow-sm">
             <img
               src="/icon.png"
               alt="Trails Icon"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
             />
           </div>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">
+            Trails
+          </h1>
+          <p className="mt-1 text-xs text-gray-500">
+            パスワードを入力してロックを解除
+          </p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-6">
+
+        <form onSubmit={handleLogin} className="space-y-4">
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-600" />
+            <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <input
               type="password"
               value={passwordInput}
               onChange={(e) => setPasswordInput(e.target.value)}
               placeholder="Password"
               disabled={isUnlocking}
-              className={`w-full bg-gray-200 text-gray-600 hover:bg-gray-300 border rounded-xl py-3 pl-10 pr-4 text-sm focus:outline-none transition-all duration-300 ${
+              className={`trails-input py-3 pl-10 pr-4 ${
                 loginError
-                  ? 'border-red-500 focus:border-red-500'
-                  : 'border-white/10 focus:border-white'
+                  ? 'border-red-400 focus:border-red-500'
+                  : ''
               }`}
               autoFocus
             />
           </div>
           {loginError && (
-            <p className="text-xs text-red-500 text-center animate-pulse">
+            <p className="text-center text-xs font-medium text-red-500">
               Incorrect password.
             </p>
           )}
@@ -81,7 +88,7 @@ export default function AuthTab({ onLogin }: AuthTabProps) {
           <button
             type="submit"
             disabled={isUnlocking}
-            className="w-full bg-orange-500 text-white font-bold py-3 rounded-xl transition-all duration-300"
+            className="trails-btn-primary w-full py-3"
           >
             {isUnlocking ? 'Unlocking...' : 'Unlock Trails'}
           </button>
