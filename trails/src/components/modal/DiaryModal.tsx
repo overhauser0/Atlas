@@ -1,14 +1,18 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Calendar,
   Camera,
   Check,
+  CheckSquare,
   ChevronLeft,
   ChevronRight,
+  Eye,
   Flag,
+  ListTodo,
   Loader2,
+  PenLine,
   Plus,
   Sparkles,
   X,
@@ -21,9 +25,11 @@ import {
   getDateFullString,
   shiftDateKey,
 } from '@/utils/date';
+import { getChecklistStats, toggleChecklistLine } from '@/utils/markdown';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 import ListItem from '@/components/ui/ListItem';
+import MarkdownPreview from '@/components/ui/MarkdownPreview';
 
 export interface SparkItem {
   id: string;
@@ -62,6 +68,13 @@ export default function DiaryModal({
   });
   const [sparks, setSparks] = useState<SparkItem[]>([]);
   const [photos, setPhotos] = useState<Asset[]>([]);
+  const [noteMode, setNoteMode] = useState<'edit' | 'preview'>('edit');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const checklistStats = useMemo(
+    () => getChecklistStats(formData.content),
+    [formData.content],
+  );
 
   const [saveStatus, setSaveStatus] = useState<
     'idle' | 'saving' | 'saved' | 'error'
@@ -251,6 +264,9 @@ export default function DiaryModal({
       if (e.key === 'Escape') {
         e.preventDefault();
         handleClose();
+      } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        setNoteMode((prev) => (prev === 'edit' ? 'preview' : 'edit'));
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -313,6 +329,39 @@ export default function DiaryModal({
       console.error('Failed to bulk consume sparks', e);
     }
   };
+
+  const handleToggleChecklist = useCallback(
+    (lineIndex: number) => {
+      updateFormAndScheduleSave((prev) => ({
+        ...prev,
+        content: toggleChecklistLine(prev.content, lineIndex),
+      }), true);
+    },
+    [updateFormAndScheduleSave],
+  );
+
+  const handleInsertChecklist = useCallback(() => {
+    const el = textareaRef.current;
+    const current = latestDataRef.current.content;
+    if (!el) {
+      updateFormAndScheduleSave((prev) => ({
+        ...prev,
+        content: prev.content ? `${prev.content.trimEnd()}\n- [ ] ` : '- [ ] ',
+      }));
+      return;
+    }
+    const start = el.selectionStart ?? current.length;
+    const end = el.selectionEnd ?? current.length;
+    const prefix =
+      start > 0 && current[start - 1] !== '\n' ? '\n- [ ] ' : '- [ ] ';
+    const nextContent = `${current.slice(0, start)}${prefix}${current.slice(end)}`;
+    updateFormAndScheduleSave((prev) => ({ ...prev, content: nextContent }));
+    requestAnimationFrame(() => {
+      el.focus();
+      const cursor = start + prefix.length;
+      el.setSelectionRange(cursor, cursor);
+    });
+  }, [updateFormAndScheduleSave]);
 
   if (!isOpen) return null;
 
@@ -561,26 +610,92 @@ export default function DiaryModal({
 
           {/* 右ペイン：Main Note (Markdown) Bento Card */}
           <section className="md:col-span-7 lg:col-span-8 bg-white rounded-3xl border border-gray-100 p-5 md:p-6 shadow-sm flex flex-col md:h-full">
-            <div className="flex items-center justify-between mb-3 shrink-0">
-              <label
-                htmlFor="diary-note-textarea"
-                className="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
-              >
-                Note (Markdown)
-              </label>
+            <div className="flex items-center justify-between gap-2 mb-3 shrink-0">
+              <div className="flex items-center gap-2">
+                <label
+                  htmlFor="diary-note-textarea"
+                  className="text-[10px] font-bold text-gray-400 uppercase tracking-widest"
+                >
+                  Note (Markdown)
+                </label>
+                {checklistStats && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-mono text-[10px] font-bold ${
+                      checklistStats.checked === checklistStats.total
+                        ? 'bg-emerald-50 text-emerald-600'
+                        : 'bg-primary-50 text-primary-700'
+                    }`}
+                  >
+                    <CheckSquare className="h-3 w-3" />
+                    {checklistStats.checked}/{checklistStats.total}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                {noteMode === 'edit' && (
+                  <button
+                    type="button"
+                    onClick={handleInsertChecklist}
+                    title="チェックリスト行を挿入 (- [ ])"
+                    aria-label="チェックリスト行を挿入"
+                    className="rounded-lg p-1.5 text-gray-400 transition-colors hover:bg-gray-100 hover:text-primary-600"
+                  >
+                    <ListTodo className="h-4 w-4" />
+                  </button>
+                )}
+
+                <div className="inline-flex rounded-xl bg-gray-100 p-0.5">
+                  <button
+                    type="button"
+                    onClick={() => setNoteMode('edit')}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      noteMode === 'edit'
+                        ? 'bg-white text-gray-900 shadow-xs'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <PenLine className="h-3.5 w-3.5" />
+                    <span>Edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setNoteMode('preview')}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold transition-all ${
+                      noteMode === 'preview'
+                        ? 'bg-white text-primary-700 shadow-xs'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    <span>Preview</span>
+                  </button>
+                </div>
+              </div>
             </div>
-            <textarea
-              id="diary-note-textarea"
-              value={formData.content}
-              onChange={(e) =>
-                updateFormAndScheduleSave((prev) => ({
-                  ...prev,
-                  content: e.target.value,
-                }))
-              }
-              placeholder="How was your day?"
-              className="w-full flex-1 min-h-[320px] md:min-h-0 text-sm md:text-base leading-relaxed text-gray-900 placeholder:text-gray-300 bg-transparent focus:outline-none resize-y md:resize-none trails-scrollbar"
-            />
+
+            {noteMode === 'edit' ? (
+              <textarea
+                ref={textareaRef}
+                id="diary-note-textarea"
+                value={formData.content}
+                onChange={(e) =>
+                  updateFormAndScheduleSave((prev) => ({
+                    ...prev,
+                    content: e.target.value,
+                  }))
+                }
+                placeholder="How was your day?"
+                className="w-full flex-1 min-h-[320px] md:min-h-0 text-sm md:text-base leading-relaxed text-gray-900 placeholder:text-gray-300 bg-transparent focus:outline-none resize-y md:resize-none trails-scrollbar"
+              />
+            ) : (
+              <div className="w-full flex-1 min-h-[320px] md:min-h-0 overflow-y-auto border-t border-gray-100 pt-3 trails-scrollbar">
+                <MarkdownPreview
+                  content={formData.content}
+                  onToggleChecklist={handleToggleChecklist}
+                />
+              </div>
+            )}
           </section>
         </div>
       </main>

@@ -3,6 +3,7 @@
 ## 8.5.1
 
 - Yeary Digest追加
+- Markdownビューワ
 
 ## 8.5.0
 
