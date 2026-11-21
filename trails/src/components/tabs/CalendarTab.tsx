@@ -250,20 +250,23 @@ export default function CalendarTab({
   }, [isDetailModalOpen, isDiaryModalOpen, prevMonth, nextMonth]);
 
   return (
-    <div className="flex flex-col lg:flex-row h-full bg-gray-50 overflow-hidden">
-      {/* =========================================
-          上部：カレンダーエリア
-          ========================================= */}
-      <div className="bg-white border-b border-gray-200 z-10 flex flex-col h-[65%] lg:h-full lg:w-[70%] shrink-0">
-        {/* ヘッダー */}
-        <div className="flex items-center justify-between px-4 py-3 md:px-6 md:py-4 shrink-0">
-          <h2 className="text-lg md:text-xl font-bold tracking-tight text-gray-900">
-            {year}年 {month + 1}月
-          </h2>
+    <section className="flex h-full min-h-0 flex-col bg-gray-50 overflow-hidden relative">
+      {/* ヘッダー（Weeklyとデザインを統一） */}
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-gray-200 bg-white px-4 py-3 md:px-6 z-20">
+        <div className="min-w-0">
+          <h1 className="text-base font-bold text-gray-900 md:text-lg">
+            月間カレンダー
+          </h1>
+          <p className="truncate text-xs text-gray-500">
+            {year}年{month + 1}月
+          </p>
+        </div>
+
+        <div className="flex shrink-0 items-center gap-2 md:gap-4">
           <div className="hidden md:flex items-center gap-3">
             {/* タスク表示トグル */}
             <label
-              className={`flex items-center gap-2.5 text-sm font-semibold transition-colors cursor-pointer ${showTasks ? 'text-teal-700' : 'text-gray-400'}`}
+              className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showTasks ? 'text-teal-700' : 'text-gray-400'}`}
             >
               <input
                 type="checkbox"
@@ -285,7 +288,7 @@ export default function CalendarTab({
             </label>
             {/* Google表示トグル */}
             <label
-              className={`flex items-center gap-2.5 text-sm font-semibold transition-colors cursor-pointer ${showGcal ? 'text-indigo-700' : 'text-gray-400'}`}
+              className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showGcal ? 'text-indigo-700' : 'text-gray-400'}`}
             >
               <input
                 type="checkbox"
@@ -303,32 +306,42 @@ export default function CalendarTab({
               Google
             </label>
           </div>
-          <div className="flex items-center space-x-2 md:space-x-4">
+
+          <div className="flex shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={goToToday}
-              className="px-3 py-1 text-xs md:text-sm font-medium text-gray-600 bg-gray-100 rounded-md hover:bg-gray-200 transition-colors"
+              className="rounded-lg border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
             >
-              Today
+              今日
             </button>
-            <div className="flex space-x-1">
-              <button
-                onClick={prevMonth}
-                className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <button
-                onClick={nextMonth}
-                className="p-1.5 text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-            </div>
+            <button
+              type="button"
+              aria-label="前の月"
+              onClick={prevMonth}
+              className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="次の月"
+              onClick={nextMonth}
+              className="rounded-lg border border-gray-200 p-2 text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
           </div>
         </div>
+      </header>
 
-        {/* 曜日ヘッダー */}
-        <div className="grid grid-cols-7 border-t border-gray-100 bg-gray-50/50 shrink-0">
+      <div className="flex flex-1 min-h-0 flex-col lg:flex-row overflow-hidden">
+        {/* =========================================
+            上部：カレンダーエリア
+            ========================================= */}
+        <div className="bg-white border-b border-gray-200 lg:border-b-0 lg:border-r z-10 flex flex-col h-[65%] lg:h-full lg:w-[70%] shrink-0">
+          {/* 曜日ヘッダー */}
+          <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
           {weekDays.map((day) => (
             <div
               key={day}
@@ -533,6 +546,7 @@ export default function CalendarTab({
           )}
         </div>
       </div>
+      </div>
 
       {/* FAB */}
       <button
@@ -546,6 +560,6 @@ export default function CalendarTab({
       >
         <Plus className="w-7 h-7" />
       </button>
-    </div>
+    </section>
   );
 }
