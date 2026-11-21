@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAutoDeviceName } from '@/lib/device';
 
 export function useAtlasWebSocket(
@@ -7,12 +7,14 @@ export function useAtlasWebSocket(
 ) {
   const [wsStatus, setWsStatus] = useState<
     'connecting' | 'connected' | 'disconnected'
-  >('disconnected');
+  >('connecting');
   const [connectedDevices, setConnectedDevices] = useState<any[]>([]);
   const [ownDeviceId, setOwnDeviceId] = useState('');
 
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const connectFnRef = useRef<(() => void) | null>(null);
 
   // 最新のコールバックを保持する
   const onRefreshPiecesRef = useRef(onRefreshPieces);
@@ -32,10 +34,15 @@ export function useAtlasWebSocket(
     setOwnDeviceId(currentDeviceId);
     const deviceName = getAutoDeviceName();
 
-    let reconnectTimeout: NodeJS.Timeout;
-
     const connectWebSocket = () => {
-      if (wsRef.current) wsRef.current.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
 
       setWsStatus('connecting');
 
@@ -93,7 +100,7 @@ export function useAtlasWebSocket(
         setWsStatus('disconnected');
         setConnectedDevices([]); // 切断時はリストをクリア
         if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
       };
 
       ws.onerror = (error) => {
@@ -102,15 +109,26 @@ export function useAtlasWebSocket(
       };
     };
 
+    connectFnRef.current = connectWebSocket;
+
     // 初回接続スタート
     connectWebSocket();
 
     // クリーンアップ関数（コンポーネントが破棄された時）
     return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
     };
+  }, []);
+
+  const reconnect = useCallback(() => {
+    connectFnRef.current?.();
   }, []);
 
   return {
@@ -118,5 +136,6 @@ export function useAtlasWebSocket(
     wsStatus,
     connectedDevices,
     ownDeviceId,
+    reconnect,
   };
 }

@@ -32,7 +32,6 @@ import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
 import DocumentsView from '@/components/views/DocumentsView';
 import SettingsView from '@/components/views/SettingsView';
-import WakeLockHandler from '@/components/WakeLockHandler';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
 import TaskModal from '@/components/modals/TaskModal';
@@ -52,6 +51,8 @@ import LiveActivityPill, {
 import type { Task, ViewType, SettingsTab, LocalNote } from '@/types';
 import { isViewType } from '@/types';
 import { useAppSettings } from '@/hooks/useAppSettings';
+import { useFocusSession, formatFocusTime } from '@/hooks/useFocusSession';
+import { useWakeLock } from '@/hooks/useWakeLock';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { useIosKeyboardFix } from '@/hooks/useIosKeyboardFix';
 import { useTaskSync } from '@/hooks/useTaskSync';
@@ -117,7 +118,6 @@ function HomeContent() {
   const [settingsTab, setSettingsTab] = useState<SettingsTab>('general');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentTime, setCurrentTime] = useState<Date | null>(null);
-  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
   const [selectedNote, setSelectedNote] = useState<LocalNote | null>(null);
 
   // Data Loading State
@@ -141,31 +141,17 @@ function HomeContent() {
     parentTask: Partial<Task> | null;
   }>({ isOpen: false, parentTask: null });
 
-  const [focusModalConfig, setFocusModalConfig] = useState<{
-    isOpen: boolean;
-    task: Partial<Task> | null;
-  }>({ isOpen: false, task: null });
-
-  const [currentLiveActivity, setCurrentLiveActivity] =
-    useState<LiveActivityItem | null>(null);
-  /*
-    {
-      id: 'mtg-1',
-      title: '保護者面談 (中3数学)',
-      subtitle: '19:00 - 19:30 (ミーティング)',
-      targetTime: new Date(Date.now() + 5 * 60 * 1000), // 5分後の例
-      actionUrl: 'https://www.notion.so/your-page-id', // NotionやMeetのリンク
-      actionLabel: 'Notionで開く',
-    }
-
-    */
-
   // ============================================================================
   // 2. Custom Hooks (データ・同期・システム操作)
   // ============================================================================
 
   const { addToast } = useToast();
   const { confirm, confirmProps } = useConfirm();
+
+  const { isWakeLockActive, isWakeLockSupported, requestWakeLock } =
+    useWakeLock(isAuthenticated && (appSettings.wakeLockEnabled ?? true));
+
+  const focusSession = useFocusSession(addToast);
 
   const handleNoteError = useCallback(
     (msg: string) => addToast(msg, 'alert'),
@@ -247,10 +233,8 @@ function HomeContent() {
     uploadDocuments,
   } = usePaperless();
 
-  const { wsRef, wsStatus, connectedDevices, ownDeviceId } = useAtlasWebSocket(
-    fetchTasks,
-    fetchNotifications,
-  );
+  const { wsRef, wsStatus, connectedDevices, ownDeviceId, reconnect: reconnectWs } =
+    useAtlasWebSocket(fetchTasks, fetchNotifications);
 
   // ============================================================================
   // 3. Derived State (派生データ)
@@ -260,6 +244,130 @@ function HomeContent() {
     (d) => d.clientType === 'extension',
   );
   const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  const liveActivities = useMemo<LiveActivityItem[]>(() => {
+    const list: LiveActivityItem[] = [];
+
+    // 1. Focus Mode 最小化中（最優先）
+    if (focusSession.isMinimized && focusSession.task) {
+      list.push({
+        id: 'focus-session',
+        kind: 'focus',
+        tone: 'amber',
+        badge: formatFocusTime(focusSession.seconds),
+        title: focusSession.task.title || 'Focus Mode',
+        subtitle: focusSession.isActive
+          ? focusSession.mode === 'pomodoro'
+            ? 'ポモドーロ実行中'
+            : 'ストップウォッチ計測中'
+          : '一時停止中',
+        isPulsing: focusSession.isActive,
+        inlineAction: {
+          ariaLabel: focusSession.isActive ? '一時停止' : '再開',
+          icon: focusSession.isActive ? 'pause' : 'play',
+          onClick: focusSession.toggleRunning,
+        },
+        primaryAction: {
+          label: 'フルスクリーンで開く',
+          icon: 'maximize',
+          onClick: focusSession.restoreFocus,
+        },
+        secondaryAction: {
+          label: '終了',
+          variant: 'danger',
+          onClick: focusSession.endFocus,
+        },
+      });
+    }
+
+    // 2. バックグラウンド処理中（Paperless アップロード / Atlas 同期）
+    if (isDocumentsUploading) {
+      list.push({
+        id: 'paperless-upload',
+        kind: 'processing',
+        tone: 'neon',
+        badge: 'UPLOAD',
+        title: 'Paperless アップロード中...',
+        subtitle: '書類を取り込んでいます',
+        isSpinner: true,
+      });
+    } else if (activeRequests > 0) {
+      list.push({
+        id: 'atlas-sync',
+        kind: 'processing',
+        tone: 'neon',
+        badge: 'SYNC',
+        title: 'Atlas と同期中...',
+        subtitle: `${activeRequests}件の処理を実行中`,
+        isSpinner: true,
+      });
+    }
+
+    // 3. WebSocket 切断アラート
+    if (wsStatus === 'disconnected') {
+      list.push({
+        id: 'ws-offline',
+        kind: 'alert',
+        tone: 'red',
+        badge: 'OFFLINE',
+        title: 'Atlas サーバーから切断中',
+        subtitle: '自動再接続を待機しています',
+        isPulsing: true,
+        primaryAction: {
+          label: '今すぐ再接続',
+          icon: 'refresh',
+          onClick: () => {
+            reconnectWs();
+            addToast('Atlas サーバーへ再接続を試行しています', 'info');
+          },
+        },
+      });
+    }
+
+    // 4. WakeLock OFF 復帰（1タップでON）
+    if (
+      appSettings.wakeLockEnabled &&
+      isWakeLockSupported &&
+      !isWakeLockActive
+    ) {
+      list.push({
+        id: 'wakelock-off',
+        kind: 'wakelock',
+        tone: 'amber',
+        badge: 'WakeLock OFF',
+        title: 'タップで画面常時点灯をON',
+        directAction: () => {
+          void requestWakeLock().then((ok) => {
+            if (ok) {
+              addToast('☀️ WakeLock をONにしました', 'info');
+            } else {
+              addToast('WakeLock の有効化に失敗しました', 'alert');
+            }
+          });
+        },
+      });
+    }
+
+    return list;
+  }, [
+    focusSession.isMinimized,
+    focusSession.task,
+    focusSession.seconds,
+    focusSession.isActive,
+    focusSession.mode,
+    focusSession.toggleRunning,
+    focusSession.restoreFocus,
+    focusSession.endFocus,
+    isDocumentsUploading,
+    activeRequests,
+    wsStatus,
+    reconnectWs,
+    appSettings.wakeLockEnabled,
+    isWakeLockSupported,
+    isWakeLockActive,
+    requestWakeLock,
+    addToast,
+  ]);
 
   // ============================================================================
   // 4. Handlers (イベント・UI操作関連)
@@ -312,10 +420,7 @@ function HomeContent() {
 
   const openFocusModal = (task: Partial<Task>) => {
     if (!task) return;
-    setFocusModalConfig({ isOpen: true, task });
-  };
-  const closeFocusModal = () => {
-    setFocusModalConfig({ isOpen: false, task: null });
+    focusSession.startFocus(task);
   };
 
   const handleOpenStats = useCallback((date: Date) => {
@@ -481,10 +586,6 @@ function HomeContent() {
         id="appwindow"
         className="flex h-screen overflow-hidden text-gray-200 relative bg-black"
       >
-        <WakeLockHandler
-          isEnabled={appSettings.wakeLockEnabled ?? true}
-          onStatusChange={setIsWakeLockActive}
-        />
         <AlarmHandler
           appSettings={appSettings}
           setAppSettings={setAppSettings}
@@ -792,15 +893,22 @@ function HomeContent() {
             />
             <ConfirmModal {...confirmProps} />
             <FocusModal
-              isOpen={focusModalConfig.isOpen}
-              task={focusModalConfig.task}
-              onClose={() => closeFocusModal()}
+              isOpen={focusSession.isOpen}
+              task={focusSession.task}
+              mode={focusSession.mode}
+              seconds={focusSession.seconds}
+              isActive={focusSession.isActive}
+              onChangeMode={focusSession.changeMode}
+              onToggleRunning={focusSession.toggleRunning}
+              onReset={focusSession.resetTimer}
+              onMinimize={focusSession.minimizeFocus}
+              onEnd={focusSession.endFocus}
+              onCompleted={() => void fetchTasks(true)}
               addToast={addToast}
             />
           </main>
           <LiveActivityPill
-            activity={currentLiveActivity}
-            onClose={() => setCurrentLiveActivity(null)}
+            activities={liveActivities}
             onOpenLink={(url) => handleGleisLink(url)}
           />
         </div>

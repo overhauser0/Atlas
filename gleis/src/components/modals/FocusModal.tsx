@@ -10,31 +10,44 @@ import {
   FileText,
   Timer,
   Clock,
+  Minimize2,
 } from 'lucide-react';
 import { atlasFetch } from '@/lib/api';
 import { Task } from '@/types';
+import {
+  FocusTimerMode,
+  formatFocusTime,
+} from '@/hooks/useFocusSession';
 
 interface FocusModalProps {
   isOpen: boolean;
   task: Partial<Task> | null;
-  onClose: () => void;
+  mode: FocusTimerMode;
+  seconds: number;
+  isActive: boolean;
+  onChangeMode: (mode: FocusTimerMode) => void;
+  onToggleRunning: () => void;
+  onReset: () => void;
+  onMinimize: () => void;
+  onEnd: () => void;
+  onCompleted?: () => void;
   addToast: (msg: string, type?: 'info' | 'alert') => void;
 }
-
-type TimerMode = 'pomodoro' | 'stopwatch';
 
 export default function FocusModal({
   isOpen,
   task,
-  onClose,
+  mode,
+  seconds,
+  isActive,
+  onChangeMode,
+  onToggleRunning,
+  onReset,
+  onMinimize,
+  onEnd,
+  onCompleted,
   addToast,
 }: FocusModalProps) {
-  // --- タイマー＆モード状態 ---
-  const [mode, setMode] = useState<TimerMode>('pomodoro');
-  const [seconds, setSeconds] = useState(1500); // 初期値: 25分 (1500秒)
-  const [isActive, setIsActive] = useState(false);
-
-  // --- メモ状態 ---
   const [note, setNote] = useState(task?.note || '');
   const [isSaving, setIsSaving] = useState(false);
   const noteTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -42,56 +55,6 @@ export default function FocusModal({
   useEffect(() => {
     setNote(task?.note || '');
   }, [task?.id, task?.note]);
-
-  // モード切替（25分ポモドーロ ↔ カウントアップ）
-  const handleModeChange = (newMode: TimerMode) => {
-    setIsActive(false);
-    setMode(newMode);
-    setSeconds(newMode === 'pomodoro' ? 1500 : 0);
-  };
-
-  // タイマーカウント処理
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-
-    if (isActive) {
-      interval = setInterval(() => {
-        setSeconds((prev) => {
-          if (mode === 'stopwatch') {
-            return prev + 1;
-          } else {
-            // ポモドーロ カウントダウン
-            if (prev <= 1) {
-              setIsActive(false);
-              addToast(
-                'ポモドーロ（25分）が終了しました！小休憩に入りましょう ☕',
-                'info',
-              );
-              return 0;
-            }
-            return prev - 1;
-          }
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [isActive, mode, addToast]);
-
-  // mm:ss または hh:mm:ss にフォーマット
-  const formatTime = (totalSec: number) => {
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-
-    const pad = (n: number) => String(n).padStart(2, '0');
-    if (hrs > 0) {
-      return `${pad(hrs)}:${pad(mins)}:${pad(secs)}`;
-    }
-    return `${pad(mins)}:${pad(secs)}`;
-  };
 
   // メモの自動保存 (デバウンス)
   const saveNote = useCallback(
@@ -144,7 +107,8 @@ export default function FocusModal({
         throw new Error(`Failed to complete task (${res.status})`);
       }
       addToast('タスクを完了にしました！お疲れ様でした！', 'info');
-      onClose();
+      onCompleted?.();
+      onEnd();
     } catch (e) {
       console.error('Failed to complete task:', e);
       addToast('ステータスの更新に失敗しました', 'alert');
@@ -168,7 +132,7 @@ export default function FocusModal({
             <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10">
               <button
                 type="button"
-                onClick={() => handleModeChange('pomodoro')}
+                onClick={() => onChangeMode('pomodoro')}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
                   mode === 'pomodoro'
                     ? 'bg-amber-500 text-black shadow-sm'
@@ -180,7 +144,7 @@ export default function FocusModal({
               </button>
               <button
                 type="button"
-                onClick={() => handleModeChange('stopwatch')}
+                onClick={() => onChangeMode('stopwatch')}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
                   mode === 'stopwatch'
                     ? 'bg-amber-500 text-black shadow-sm'
@@ -193,9 +157,19 @@ export default function FocusModal({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={onMinimize}
               className="noir-icon-btn"
-              title="閉じる"
+              title="最小化してタイマーを継続"
+              aria-label="最小化してタイマーを継続"
+            >
+              <Minimize2 className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={onEnd}
+              className="noir-icon-btn hover:text-red-400"
+              title="集中モードを終了"
+              aria-label="集中モードを終了"
             >
               <X className="w-5 h-5" />
             </button>
@@ -205,12 +179,12 @@ export default function FocusModal({
         <main className="flex min-h-0 flex-1 flex-col items-center justify-center gap-6 overflow-y-auto py-4 sm:gap-7">
           <div className="flex flex-col items-center gap-4">
             <div className="text-7xl sm:text-8xl font-mono font-bold tracking-tight tabular-nums text-white drop-shadow-[0_0_30px_rgba(245,158,11,0.2)]">
-              {formatTime(seconds)}
+              {formatFocusTime(seconds)}
             </div>
             <div className="flex items-center gap-3">
               <button
                 type="button"
-                onClick={() => setIsActive(!isActive)}
+                onClick={onToggleRunning}
                 className={`flex items-center justify-center gap-2 min-w-32 px-7 py-3 rounded-xl font-bold transition-all active:scale-[0.98] ${
                   isActive
                     ? 'bg-white/10 text-white border border-white/10 hover:bg-white/15'
@@ -231,10 +205,7 @@ export default function FocusModal({
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setIsActive(false);
-                  setSeconds(mode === 'pomodoro' ? 1500 : 0);
-                }}
+                onClick={onReset}
                 className="noir-icon-btn p-3"
                 title="リセット"
               >
@@ -281,10 +252,11 @@ export default function FocusModal({
         <footer className="w-full max-w-4xl mx-auto flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-white/10 pt-5">
           <button
             type="button"
-            onClick={onClose}
-            className="text-sm text-gray-500 hover:text-gray-300 transition-colors sm:text-left text-center py-2"
+            onClick={onMinimize}
+            className="inline-flex items-center justify-center sm:justify-start gap-2 text-sm text-gray-400 hover:text-white transition-colors py-2"
           >
-            集中モードを終了（作業継続）
+            <Minimize2 className="w-4 h-4" />
+            <span>最小化してバックグラウンドで継続</span>
           </button>
 
           <button

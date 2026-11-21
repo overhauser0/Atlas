@@ -100,13 +100,32 @@ export default function HeaderView({
         </button>
         <button
           onClick={() => setIsActionPanelOpen(true)}
-          className={`relative w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full ${hasNotifications ? 'text-yellow-400' : 'text-zinc-300'} transition-all active:scale-95 border border-white/5`}
+          className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 border ${
+            isSyncing
+              ? 'bg-neon/10 border-neon/30 text-neon'
+              : hasNotifications
+                ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 hover:bg-amber-500/20'
+                : 'bg-white/5 border-white/5 text-zinc-300 hover:bg-white/10'
+          }`}
           aria-label="Open Control Center"
+          title={
+            isSyncing
+              ? '処理・同期中'
+              : hasNotifications
+                ? '未読通知または期限切れタスクがあります'
+                : 'Control Center'
+          }
         >
           {isSyncing ? (
-            <Loader2 className="w-6 h-6 animate-spin text-yellow-400" />
+            <Loader2 className="w-5 h-5 animate-spin text-neon" />
           ) : (
-            <Zap className="w-6 h-6" />
+            <Zap className="w-5 h-5" />
+          )}
+          {hasNotifications && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 ring-2 ring-black" />
+            </span>
           )}
         </button>
       </div>
