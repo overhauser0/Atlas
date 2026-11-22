@@ -126,6 +126,7 @@ api.patch('/diaries/:date', diaryController.updateDiary);
 // Sparks
 api.get('/sparks', sparkController.getSparks);
 api.post('/sparks', sparkController.createSpark);
+api.post('/sparks/sync', sparkController.syncSparks);
 api.patch('/sparks/:id/consume', sparkController.consumeSpark);
 api.post('/sparks/consume-bulk', sparkController.consumeSparksBulk);
 api.delete('/sparks/:id', sparkController.deleteSpark);

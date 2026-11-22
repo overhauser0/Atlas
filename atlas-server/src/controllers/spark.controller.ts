@@ -132,3 +132,21 @@ export const deleteSpark = async (c: Context) => {
     return c.json({ data: null, message: 'Failed to delete spark' }, 500);
   }
 };
+
+/** DiscordからSparksを即時同期する。 */
+export const syncSparks = async (c: Context) => {
+  try {
+    const data = await sparkService.syncSparks();
+    return c.json({ data }, 200);
+  } catch (error) {
+    console.error('❌ Sync Sparks Error:', error);
+    return c.json(
+      {
+        data: null,
+        message:
+          error instanceof Error ? error.message : 'Failed to sync sparks',
+      },
+      500,
+    );
+  }
+};
