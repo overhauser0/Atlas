@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Repeat,
   Plus,
@@ -9,10 +9,13 @@ import {
   X,
   Calendar,
   CalendarClock,
+  FolderKanban,
+  Search,
 } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
+import { Task } from '@/types';
 
 export interface RoutineTask {
   id?: number;
@@ -24,6 +27,7 @@ export interface RoutineTask {
   day_of_week: number | null;
   note: string;
   url: string;
+  parent_id: string | null;
   is_active: boolean;
 }
 
@@ -36,6 +40,7 @@ const DEFAULT_ROUTINE: RoutineTask = {
   day_of_week: null,
   note: '',
   url: '',
+  parent_id: null,
   is_active: true,
 };
 
@@ -58,7 +63,11 @@ const GRID_ROWS = [
   { id: 'w4', label: 'Week 4', freq: 'monthly', type: 'nthWeekday', week: 4 },
 ];
 
-export default function RoutineSettings() {
+interface RoutineSettingsProps {
+  allTasks: Task[];
+}
+
+export default function RoutineSettings({ allTasks }: RoutineSettingsProps) {
   const { addToast } = useToast();
   const [routines, setRoutines] = useState<RoutineTask[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -67,6 +76,26 @@ export default function RoutineSettings() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editData, setEditData] = useState<Partial<RoutineTask>>({});
   const [isCreating, setIsCreating] = useState(false);
+  const [isParentSelectorOpen, setIsParentSelectorOpen] = useState(false);
+  const [parentSearchQuery, setParentSearchQuery] = useState('');
+
+  const taskTitleById = useMemo(() => {
+    const map = new Map<string, string>();
+    allTasks.forEach((task) => {
+      map.set(task.id, task.title);
+    });
+    return map;
+  }, [allTasks]);
+
+  const filteredPossibleParents = useMemo(() => {
+    const query = parentSearchQuery.trim().toLowerCase();
+    if (!query) return allTasks;
+    return allTasks.filter((t) => t.title.toLowerCase().includes(query));
+  }, [allTasks, parentSearchQuery]);
+
+  const selectedParentTitle = editData.parent_id
+    ? (taskTitleById.get(editData.parent_id) ?? editData.parent_id)
+    : null;
 
   const fetchRoutines = useCallback(async () => {
     try {
@@ -127,6 +156,8 @@ export default function RoutineSettings() {
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
+    setIsParentSelectorOpen(false);
+    setParentSearchQuery('');
     setEditData({});
   };
 
@@ -137,7 +168,10 @@ export default function RoutineSettings() {
       return;
     }
 
-    const payload = { ...editData };
+    const payload = {
+      ...editData,
+      parent_id: editData.parent_id?.trim() || null,
+    };
     if (payload.frequency === 'weekly') {
       payload.type = null;
       payload.day = null;
@@ -288,6 +322,9 @@ export default function RoutineSettings() {
                           >
                             {cellRoutines.map((r) => {
                               const theme = getTheme(r.frequency, r.is_active);
+                              const parentTitle = r.parent_id
+                                ? (taskTitleById.get(r.parent_id) ?? r.parent_id)
+                                : null;
                               return (
                                 <button
                                   key={r.id}
@@ -299,6 +336,14 @@ export default function RoutineSettings() {
                                   >
                                     {r.title}
                                   </div>
+                                  {parentTitle && (
+                                    <div className="mt-0.5 flex items-center gap-1 text-[9px] text-violet-400/90 truncate">
+                                      <FolderKanban className="w-2.5 h-2.5 shrink-0" />
+                                      <span className="truncate">
+                                        {parentTitle}
+                                      </span>
+                                    </div>
+                                  )}
                                 </button>
                               );
                             })}
@@ -362,6 +407,14 @@ export default function RoutineSettings() {
                         >
                           {r.title}
                         </div>
+                        {r.parent_id && (
+                          <div className="mt-0.5 flex items-center gap-1 text-[10px] text-violet-400 truncate">
+                            <FolderKanban className="w-3 h-3 shrink-0" />
+                            <span className="truncate">
+                              {taskTitleById.get(r.parent_id) ?? r.parent_id}
+                            </span>
+                          </div>
+                        )}
                         {r.note && (
                           <div className="text-[10px] text-gray-500 truncate mt-0.5">
                             {r.note}
@@ -480,6 +533,48 @@ export default function RoutineSettings() {
                 />
               </div>
 
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-gray-400">
+                  Parent Project
+                </label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setParentSearchQuery('');
+                      setIsParentSelectorOpen(true);
+                    }}
+                    className={`flex-1 min-w-0 flex items-center gap-2 bg-black/50 border rounded-lg py-2 px-3 text-sm text-left transition-colors ${
+                      editData.parent_id
+                        ? 'border-violet-500/40 text-violet-300 hover:border-violet-400'
+                        : 'border-white/10 text-gray-500 hover:text-gray-300 hover:border-white/20'
+                    }`}
+                  >
+                    <FolderKanban
+                      className={`w-4 h-4 shrink-0 ${
+                        editData.parent_id ? 'text-violet-400' : 'text-gray-500'
+                      }`}
+                    />
+                    <span className="truncate">
+                      {selectedParentTitle ?? 'プロジェクトを選択...'}
+                    </span>
+                  </button>
+                  {editData.parent_id && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setEditData({ ...editData, parent_id: null })
+                      }
+                      title="プロジェクト設定を解除"
+                      aria-label="プロジェクト設定を解除"
+                      className="p-2 rounded-lg border border-white/10 bg-black/50 text-gray-400 hover:text-red-400 hover:border-red-400/30 transition-colors shrink-0"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex gap-2 pt-2">
                 <label className="text-sm text-gray-300 cursor-pointer">
                   Active
@@ -519,6 +614,88 @@ export default function RoutineSettings() {
                   <Save className="w-3.5 h-3.5" /> Save
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================
+          Parent Project Selector Modal
+      ========================================= */}
+      {isParentSelectorOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+          onClick={() => setIsParentSelectorOpen(false)}
+        >
+          <div
+            className="noir-glass w-full max-w-md rounded-2xl flex flex-col overflow-hidden border border-white/10 shadow-2xl animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-4 border-b border-white/10 flex items-center gap-3 bg-black/50">
+              <Search className="w-5 h-5 text-zinc-400 shrink-0" />
+              <input
+                autoFocus
+                type="text"
+                value={parentSearchQuery}
+                onChange={(e) => setParentSearchQuery(e.target.value)}
+                placeholder="プロジェクトを検索..."
+                className="flex-1 bg-transparent text-white text-sm focus:outline-none placeholder:text-zinc-600"
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setIsParentSelectorOpen(false);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setIsParentSelectorOpen(false)}
+                className="text-zinc-500 hover:text-white transition-colors shrink-0 p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="max-h-75 overflow-y-auto p-2 noir-scrollbar bg-black/20">
+              {editData.parent_id && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditData({ ...editData, parent_id: null });
+                    setIsParentSelectorOpen(false);
+                  }}
+                  className="w-full text-left p-3 text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center gap-3 transition-colors mb-2"
+                >
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  プロジェクト設定を解除する
+                </button>
+              )}
+
+              {filteredPossibleParents.length === 0 ? (
+                <div className="p-6 text-center text-sm text-zinc-500">
+                  タスクが見つかりません
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {filteredPossibleParents.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setEditData({ ...editData, parent_id: t.id });
+                        setIsParentSelectorOpen(false);
+                      }}
+                      className="w-full text-left p-3 text-sm text-zinc-300 hover:text-white hover:bg-white/10 rounded-lg flex items-center gap-3 transition-colors group"
+                    >
+                      <FolderKanban
+                        className={`w-4 h-4 shrink-0 ${
+                          editData.parent_id === t.id
+                            ? 'text-emerald-400'
+                            : 'text-violet-500/50 group-hover:text-violet-400'
+                        }`}
+                      />
+                      <span className="truncate flex-1">{t.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

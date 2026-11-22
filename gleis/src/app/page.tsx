@@ -812,6 +812,7 @@ function HomeContent() {
                 onTabChange={setSettingsTab}
                 notifications={notifications}
                 onMarkAsRead={markAsRead}
+                allTasks={allTasks}
                 openTaskModal={openTaskModal}
                 handleGleisLink={handleGleisLink}
               />

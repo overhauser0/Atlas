@@ -12,6 +12,7 @@ export interface RoutineTaskTable {
   day_of_week: number | null;
   note: string;
   url: string;
+  parent_id: string | null;
   is_active: boolean;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
@@ -20,6 +21,11 @@ export interface RoutineTaskTable {
 export type RoutineTask = Selectable<RoutineTaskTable>;
 export type NewRoutineTask = Insertable<RoutineTaskTable>;
 export type UpdateRoutineTask = Updateable<RoutineTaskTable>;
+
+const nullableParentIdSchema = z.preprocess(
+  (value) => (typeof value === 'string' && value.trim() === '' ? null : value),
+  z.string().trim().nullable().optional(),
+);
 
 // Zod Schema
 export const createRoutineSchema = z.object({
@@ -31,6 +37,7 @@ export const createRoutineSchema = z.object({
   day_of_week: z.number().int().min(0).max(6).nullable().optional(),
   note: z.string().default(''),
   url: z.string().default(''),
+  parent_id: nullableParentIdSchema,
   is_active: z.boolean().default(true),
 });
 

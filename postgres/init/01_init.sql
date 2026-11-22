@@ -164,6 +164,7 @@ CREATE TABLE IF NOT EXISTS routine_tasks (
   -- オプション項目
   note TEXT DEFAULT '',
   url TEXT DEFAULT '',
+  parent_id VARCHAR(255) DEFAULT NULL,
   
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,

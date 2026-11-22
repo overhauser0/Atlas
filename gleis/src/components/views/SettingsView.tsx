@@ -31,6 +31,7 @@ interface Props {
   onTabChange: (tab: SettingsTab) => void;
   notifications: any[];
   onMarkAsRead: (id: string) => void;
+  allTasks: Task[];
   openTaskModal: (task?: Partial<Task>) => void;
   handleGleisLink: (url: string, callback?: Function) => void;
 }
@@ -45,6 +46,7 @@ export default function SettingsView({
   onTabChange,
   notifications,
   onMarkAsRead,
+  allTasks,
   openTaskModal,
   handleGleisLink,
 }: Props) {
@@ -61,7 +63,7 @@ export default function SettingsView({
   return (
     <div className="flex flex-col h-full mx-auto w-full overflow-hidden">
       {/* --- Tab Navigation --- */}
-      <div className="flex-none px-4 pb-4 border-b border-white/5 overflow-x-auto noir-scrollbar">
+      <div className="flex-none px-4 pb-4 border-b border-white/5 overflow-x-auto noir-scrollbar-hidden">
         <div className="flex space-x-2">
           {tabs.map((tab) => (
             <button
@@ -100,7 +102,7 @@ export default function SettingsView({
             />
           )}
 
-          {activeTab === 'routine' && <RoutineSettings />}
+          {activeTab === 'routine' && <RoutineSettings allTasks={allTasks} />}
 
           {activeTab === 'presets' && <PresetSettings />}
 

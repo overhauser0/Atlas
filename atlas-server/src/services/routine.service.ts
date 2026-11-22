@@ -20,7 +20,10 @@ export const getRoutines = async (
 /** 入力を検証してルーチンを作成する。 */
 export const createRoutine = async (input: unknown): Promise<RoutineTask> => {
   const validatedData = createRoutineSchema.parse(input);
-  return await routineRepository.createRoutine(validatedData);
+  return await routineRepository.createRoutine({
+    ...validatedData,
+    parent_id: validatedData.parent_id ?? null,
+  });
 };
 
 /** 入力を検証してルーチンを更新する。 */
@@ -77,6 +80,7 @@ export const generateRoutineTasks = async () => {
         start_date: dueDate.toISOString().split('T')[0],
         note: routine.note || '',
         url: routine.url || '',
+        parent_id: routine.parent_id || null,
         status: 'INBOX',
       });
     }
@@ -102,6 +106,7 @@ export const generateRoutineTasks = async () => {
         start_date: dueDate.toISOString().split('T')[0],
         note: routine.note || '',
         url: routine.url || '',
+        parent_id: routine.parent_id || null,
         status: 'INBOX',
       });
     }
