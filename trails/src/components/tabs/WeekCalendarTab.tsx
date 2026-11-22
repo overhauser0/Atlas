@@ -252,7 +252,7 @@ export default function WeekCalendarTab({
         }
       />
 
-      <div className="min-h-0 flex-1 overflow-auto trails-scrollbar">
+      <div className="min-h-0 flex-1 overflow-auto no-scrollbar">
         <div style={{ minWidth: contentWidth }}>
           <div
             className="sticky top-0 z-30 grid border-b border-gray-200 bg-white shadow-sm"

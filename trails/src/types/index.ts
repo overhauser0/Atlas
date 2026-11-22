@@ -17,6 +17,7 @@ export type Views =
   | 'Review'
   | 'Calendar'
   | 'Week'
+  | 'Diary'
   | 'Photo'
   | 'People'
   | 'Settings'

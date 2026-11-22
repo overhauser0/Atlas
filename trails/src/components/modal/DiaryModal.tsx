@@ -6,6 +6,7 @@ import {
   Camera,
   Check,
   CheckSquare,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Eye,
@@ -49,7 +50,23 @@ interface DiaryModalProps {
   onSelectLifeItem?: (item: LifeItem) => void;
 }
 
-const RATES = [1, 2, 3, 4, 5];
+const RATE_OPTIONS: {
+  value: number | null;
+  label: string;
+  stars: string;
+  dotColor: string;
+}[] = [
+  { value: 5, label: '5 / 5', stars: '★★★★★', dotColor: 'bg-primary-500' },
+  { value: 4, label: '4 / 5', stars: '★★★★☆', dotColor: 'bg-emerald-500' },
+  { value: 3, label: '3 / 5', stars: '★★★☆☆', dotColor: 'bg-sky-500' },
+  { value: 2, label: '2 / 5', stars: '★★☆☆☆', dotColor: 'bg-orange-400' },
+  { value: 1, label: '1 / 5', stars: '★☆☆☆☆', dotColor: 'bg-rose-400' },
+  { value: null, label: '未設定', stars: '', dotColor: 'bg-gray-300' },
+];
+
+const getRateOption = (rate: number | null) =>
+  RATE_OPTIONS.find((option) => option.value === rate) ??
+  RATE_OPTIONS[RATE_OPTIONS.length - 1];
 
 export default function DiaryModal({
   isOpen,
@@ -69,6 +86,8 @@ export default function DiaryModal({
   const [sparks, setSparks] = useState<SparkItem[]>([]);
   const [photos, setPhotos] = useState<Asset[]>([]);
   const [noteMode, setNoteMode] = useState<'edit' | 'preview'>('edit');
+  const [isRateMenuOpen, setIsRateMenuOpen] = useState(false);
+  const rateMenuRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const checklistStats = useMemo(
@@ -165,6 +184,7 @@ export default function DiaryModal({
     isDirtyRef.current = false;
     setSaveStatus('idle');
     setSaveError('');
+    setIsRateMenuOpen(false);
     setSparks([]);
     setPhotos([]);
 
@@ -211,6 +231,49 @@ export default function DiaryModal({
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     };
   }, [isOpen, diary]);
+
+  // WebSocketのREFRESH_SPARKSを受信したら当日のSparksを再取得
+  useEffect(() => {
+    if (!isOpen || !formData.date) return;
+    let isCancelled = false;
+
+    const handleRefreshSparks = async () => {
+      try {
+        const res = await atlasFetch(`/sparks?targetDate=${formData.date}`);
+        if (!res.ok || isCancelled) return;
+        const json = await res.json();
+        const items: SparkItem[] = Array.isArray(json)
+          ? json
+          : (json.data ?? []);
+        if (!isCancelled) setSparks(items);
+      } catch (e) {
+        console.error('Failed to refresh sparks', e);
+      }
+    };
+
+    const listener = () => {
+      void handleRefreshSparks();
+    };
+    window.addEventListener('refresh_sparks', listener);
+    return () => {
+      isCancelled = true;
+      window.removeEventListener('refresh_sparks', listener);
+    };
+  }, [isOpen, formData.date]);
+
+  // Rateドロップダウンの外側クリックで閉じる
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        rateMenuRef.current &&
+        !rateMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsRateMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleClose = useCallback(async () => {
     if (saveTimerRef.current) {
@@ -263,6 +326,10 @@ export default function DiaryModal({
       if (!isOpen) return;
       if (e.key === 'Escape') {
         e.preventDefault();
+        if (isRateMenuOpen) {
+          setIsRateMenuOpen(false);
+          return;
+        }
         handleClose();
       } else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'e') {
         e.preventDefault();
@@ -271,7 +338,7 @@ export default function DiaryModal({
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, handleClose]);
+  }, [isOpen, handleClose, isRateMenuOpen]);
 
   const handlePromoteSpark = async (spark: SparkItem) => {
     const timeLabel = formatTimeFromIso(spark.recorded_at);
@@ -479,35 +546,98 @@ export default function DiaryModal({
                   <Flag
                     className={`h-3 w-3 ${formData.flag ? 'fill-rose-500 text-rose-500' : ''}`}
                   />
-                  <span>Pick</span>
+                  <span>Flagged</span>
                 </button>
               </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {RATES.map((rate) => {
-                  const isSelected = formData.rate === rate;
+              <div className="relative" ref={rateMenuRef}>
+                {(() => {
+                  const selectedRate = getRateOption(formData.rate);
                   return (
                     <button
-                      key={rate}
                       type="button"
-                      onClick={() =>
-                        updateFormAndScheduleSave(
-                          (prev) => ({
-                            ...prev,
-                            rate: prev.rate === rate ? null : rate,
-                          }),
-                          true,
-                        )
-                      }
-                      className={`py-2 text-xs font-bold rounded-xl border transition-all ${
-                        isSelected
-                          ? 'bg-primary-500 text-white border-primary-500 shadow-xs'
-                          : 'bg-gray-50 text-gray-500 border-gray-100 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200'
+                      aria-label="Rate"
+                      aria-haspopup="listbox"
+                      aria-expanded={isRateMenuOpen}
+                      onClick={() => setIsRateMenuOpen((open) => !open)}
+                      className={`w-full p-3 rounded-xl border bg-gray-50 text-gray-700 flex items-center justify-between transition-colors focus:outline-none ${
+                        isRateMenuOpen
+                          ? 'border-gray-400'
+                          : 'border-gray-100 hover:border-gray-300'
                       }`}
                     >
-                      {'★'.repeat(rate)}
+                      <span className="flex items-center gap-2.5 min-w-0">
+                        <span
+                          aria-hidden="true"
+                          className={`w-2.5 h-2.5 rounded-full shrink-0 ${selectedRate.dotColor}`}
+                        />
+                        {selectedRate.stars && (
+                          <span className="text-sm leading-none tracking-tight text-primary-500 shrink-0">
+                            {selectedRate.stars}
+                          </span>
+                        )}
+                        <span className="text-sm font-medium truncate">
+                          {selectedRate.label}
+                        </span>
+                      </span>
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={`w-4 h-4 shrink-0 text-gray-500 transition-transform duration-200 ${
+                          isRateMenuOpen ? 'rotate-180' : ''
+                        }`}
+                      />
                     </button>
                   );
-                })}
+                })()}
+
+                {isRateMenuOpen && (
+                  <div
+                    role="listbox"
+                    aria-label="Rate"
+                    className="absolute left-0 right-0 z-20 mt-2 p-1.5 rounded-xl border border-gray-100 bg-white shadow-xl flex flex-col gap-1"
+                  >
+                    {RATE_OPTIONS.map((option) => {
+                      const isSelected = formData.rate === option.value;
+                      return (
+                        <button
+                          key={option.value ?? 'none'}
+                          type="button"
+                          role="option"
+                          aria-selected={isSelected}
+                          onClick={() => {
+                            updateFormAndScheduleSave(
+                              (prev) => ({ ...prev, rate: option.value }),
+                              true,
+                            );
+                            setIsRateMenuOpen(false);
+                          }}
+                          className={`p-3 rounded-lg flex items-center justify-between gap-3 transition-colors ${
+                            isSelected
+                              ? 'bg-gray-100 text-gray-900'
+                              : 'text-gray-600 hover:bg-gray-50'
+                          }`}
+                        >
+                          <span className="flex items-center gap-3 min-w-0">
+                            <span
+                              aria-hidden="true"
+                              className={`w-2.5 h-2.5 rounded-full shrink-0 ${option.dotColor}`}
+                            />
+                            {option.stars && (
+                              <span className="text-sm leading-none tracking-tight text-primary-500">
+                                {option.stars}
+                              </span>
+                            )}
+                            <span className="text-sm font-medium truncate">
+                              {option.label}
+                            </span>
+                          </span>
+                          {isSelected && (
+                            <Check className="w-4 h-4 shrink-0 text-primary-600" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </section>
 

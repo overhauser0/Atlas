@@ -9,7 +9,6 @@ import {
   CheckSquare,
   ChevronLeft,
   ChevronRight,
-  Flag,
   LandPlot,
   Lightbulb,
   MapPin,
@@ -353,21 +352,16 @@ export default function YearReviewTab({
         : 0,
     );
 
-    // ハイライト（flag === true または rate === 5 を優先、なければ高評価・最新）
-    const special = recorded
-      .filter((d) => d.flag || d.rate === 5)
-      .sort((a, b) => {
-        const flagDiff = Number(!!b.flag) - Number(!!a.flag);
-        if (flagDiff !== 0) return flagDiff;
-        const rateDiff = (b.rate ?? 0) - (a.rate ?? 0);
-        if (rateDiff !== 0) return rateDiff;
-        return b.date.localeCompare(a.date);
-      });
+    // ハイライト（flag === true の日記は個人情報保護のため除外し、rate === 5 を優先）
+    const publicRecorded = recorded.filter((d) => !d.flag);
+    const topRated = publicRecorded
+      .filter((d) => d.rate === 5)
+      .sort((a, b) => b.date.localeCompare(a.date));
 
     const highlights =
-      special.length > 0
-        ? special.slice(0, 6)
-        : [...recorded]
+      topRated.length > 0
+        ? topRated.slice(0, 6)
+        : [...publicRecorded]
             .sort(
               (a, b) =>
                 (b.rate ?? 0) - (a.rate ?? 0) || b.date.localeCompare(a.date),
@@ -942,40 +936,41 @@ export default function YearReviewTab({
                 })}
               </div>
 
-              {/* ピックアップ日記 */}
+              {/* ベスト日記（Flaggedは非表示） */}
               <div className="lg:col-span-8">
                 <p className="text-xs font-bold text-gray-500 mb-3">
-                  Best Days / Picks
+                  Best Days
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {diarySummary.highlights.map((diary) => (
-                    <button
-                      key={diary.date}
-                      type="button"
-                      onClick={() => onDiaryClick(diary)}
-                      className="text-left p-4 rounded-2xl border border-gray-100 bg-gray-50/70 hover:bg-primary-50/40 hover:border-primary-200 transition-all flex flex-col gap-2"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-gray-900">
-                          {formatJaDateWithWeekday(diary.date, 'short')}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          {diary.flag && (
-                            <Flag className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />
-                          )}
+                {diarySummary.highlights.length === 0 ? (
+                  <div className="py-8 text-center text-xs text-gray-400">
+                    表示対象の日記はありません
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {diarySummary.highlights.map((diary) => (
+                      <button
+                        key={diary.date}
+                        type="button"
+                        onClick={() => onDiaryClick(diary)}
+                        className="text-left p-4 rounded-2xl border border-gray-100 bg-gray-50/70 hover:bg-primary-50/40 hover:border-primary-200 transition-all flex flex-col gap-2"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs font-bold text-gray-900">
+                            {formatJaDateWithWeekday(diary.date, 'short')}
+                          </span>
                           {diary.rate && (
                             <span className="text-[11px] font-bold text-amber-500">
                               {'★'.repeat(diary.rate)}
                             </span>
                           )}
                         </div>
-                      </div>
-                      <p className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap leading-relaxed">
-                        {diary.content.trim() || '（テキストなし）'}
-                      </p>
-                    </button>
-                  ))}
-                </div>
+                        <p className="text-xs text-gray-600 line-clamp-3 whitespace-pre-wrap leading-relaxed">
+                          {diary.content.trim() || '（テキストなし）'}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

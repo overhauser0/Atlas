@@ -6,15 +6,17 @@ import {
   Calendar,
   ContactRound,
   Settings,
+  Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
+import { atlasFetch } from '@/lib/api';
 import { useToast } from '@/components/ui/Toast';
 import PageHeader from '@/components/ui/PageHeader';
 import packageJson from '../../../package.json';
 
 interface Props {
   appSettings: any;
-  onSync: () => void;
+  onSync: () => Promise<void> | void;
   onLogout: () => void;
   onUpdateSettings: (newSettings: any) => void;
 }
@@ -27,8 +29,19 @@ export default function ConfigTab({
 }: Props) {
   const showTaskInCal = !!appSettings?.showTaskInCal;
   const showGcalInCal = !!appSettings?.showGcalInCal;
+  const [isSyncingNotion, setIsSyncingNotion] = useState(false);
   const [isSyncingContacts, setIsSyncingContacts] = useState(false);
+  const [isSyncingSparks, setIsSyncingSparks] = useState(false);
   const { addToast } = useToast();
+
+  const handleSyncNotion = async () => {
+    setIsSyncingNotion(true);
+    try {
+      await onSync();
+    } finally {
+      setIsSyncingNotion(false);
+    }
+  };
 
   const handleToggleTask = () => {
     onUpdateSettings({
@@ -79,6 +92,49 @@ export default function ConfigTab({
       addToast(`Google Contacts sync failed: ${message}`, 'alert');
     } finally {
       setIsSyncingContacts(false);
+    }
+  };
+
+  const handleSyncSparks = async () => {
+    setIsSyncingSparks(true);
+
+    try {
+      const response = await atlasFetch('/sparks/sync', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(
+          errorBody?.message || `Request failed with status ${response.status}`,
+        );
+      }
+
+      // 同期完了後に未消化Sparksを読み出して最新状態を取得
+      let unconsumedCount: number | null = null;
+      const sparksRes = await atlasFetch('/sparks', { method: 'GET' });
+      if (sparksRes.ok) {
+        const sparksJson = await sparksRes.json().catch(() => null);
+        const list = Array.isArray(sparksJson)
+          ? sparksJson
+          : (sparksJson?.data ?? null);
+        if (Array.isArray(list)) {
+          unconsumedCount = list.length;
+        }
+      }
+
+      addToast(
+        unconsumedCount !== null
+          ? `Sparksを同期しました（未消化 ${unconsumedCount} 件）`
+          : 'Sparksを同期しました。',
+      );
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'An unexpected error occurred.';
+      console.error('Sparks sync failed:', error);
+      addToast(`Sparks sync failed: ${message}`, 'alert');
+    } finally {
+      setIsSyncingSparks(false);
     }
   };
 
@@ -137,49 +193,106 @@ export default function ConfigTab({
           </section>
 
           <section className="space-y-2.5">
-            <h2 className="trails-section-label px-1">Sync &amp; Account</h2>
-            <div className="space-y-3">
-              <button
-                type="button"
-                onClick={onSync}
-                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-gray-900 transition-colors hover:border-primary-300"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
-                  <RefreshCw className="h-5 w-5" />
+            <h2 className="trails-section-label flex items-center gap-1.5 px-1">
+              <RefreshCw className="h-3.5 w-3.5 text-primary-500" />
+              Sync
+            </h2>
+            <div className="trails-card divide-y divide-gray-100 overflow-hidden">
+              <div className="flex items-center justify-between gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                    <RefreshCw className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-gray-900">
+                      Notion
+                    </p>
+                    <p className="truncate text-xs text-gray-400">
+                      PiecesをNotionと同期
+                    </p>
+                  </div>
                 </div>
-                Sync with Notion
-              </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSyncNotion()}
+                  disabled={isSyncingNotion}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${isSyncingNotion ? 'animate-spin' : ''}`}
+                  />
+                  {isSyncingNotion ? 'Syncing...' : 'Sync'}
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={handleSyncGoogleContacts}
-                disabled={isSyncingContacts}
-                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-gray-900 transition-colors hover:border-primary-300 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
-                  <ContactRound className="h-5 w-5" />
+              <div className="flex items-center justify-between gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                    <ContactRound className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-gray-900">
+                      Google Contacts
+                    </p>
+                    <p className="truncate text-xs text-gray-400">
+                      連絡先をPeopleに同期
+                    </p>
+                  </div>
                 </div>
-                {isSyncingContacts ? (
-                  <>
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Syncing Google Contacts...
-                  </>
-                ) : (
-                  'Sync Google Contacts'
-                )}
-              </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSyncGoogleContacts()}
+                  disabled={isSyncingContacts}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${isSyncingContacts ? 'animate-spin' : ''}`}
+                  />
+                  {isSyncingContacts ? 'Syncing...' : 'Sync'}
+                </button>
+              </div>
 
-              <button
-                type="button"
-                onClick={onLogout}
-                className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-red-600 transition-colors hover:border-red-300"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
-                  <LogOut className="h-5 w-5" />
+              <div className="flex items-center justify-between gap-4 p-5">
+                <div className="flex min-w-0 items-center gap-3.5">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-500">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold text-gray-900">
+                      Sparks
+                    </p>
+                    <p className="truncate text-xs text-gray-400">
+                      DiscordからSparksを取得
+                    </p>
+                  </div>
                 </div>
-                Sign Out
-              </button>
+                <button
+                  type="button"
+                  onClick={() => void handleSyncSparks()}
+                  disabled={isSyncingSparks}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-primary-200 bg-primary-50 px-3.5 py-2 text-xs font-bold text-primary-700 transition-colors hover:bg-primary-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <RefreshCw
+                    className={`h-3.5 w-3.5 ${isSyncingSparks ? 'animate-spin' : ''}`}
+                  />
+                  {isSyncingSparks ? 'Syncing...' : 'Sync'}
+                </button>
+              </div>
             </div>
+          </section>
+
+          <section className="space-y-2.5">
+            <h2 className="trails-section-label px-1">Account</h2>
+            <button
+              type="button"
+              onClick={onLogout}
+              className="trails-card flex w-full items-center gap-4 p-5 text-sm font-bold text-red-600 transition-colors hover:border-red-300"
+            >
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                <LogOut className="h-5 w-5" />
+              </div>
+              Sign Out
+            </button>
           </section>
 
           <div className="pt-4 text-center text-xs text-gray-400">

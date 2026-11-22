@@ -80,6 +80,8 @@ export function useAtlasWebSocket(
             window.dispatchEvent(new Event('refresh_diaries'));
           } else if (data.type === 'REFRESH_PEOPLE') {
             window.dispatchEvent(new Event('refresh_people'));
+          } else if (data.type === 'REFRESH_SPARKS') {
+            window.dispatchEvent(new Event('refresh_sparks'));
           }
         } catch (e) {
           console.warn('WS Message Parse Error:', e);

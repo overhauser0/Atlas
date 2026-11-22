@@ -43,6 +43,7 @@ import YearReviewTab from '@/components/tabs/YearReviewTab';
 import CalendarTab from '@/components/tabs/CalendarTab';
 import WeekCalendarTab from '@/components/tabs/WeekCalendarTab';
 import PhotoTab from '@/components/tabs/PhotoTab';
+import DiaryTab from '@/components/tabs/DiaryTab';
 import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
 import ConfigTab from '@/components/tabs/ConfigTab';
 import PeopleTab from '@/components/tabs/PeopleTab';
@@ -83,6 +84,7 @@ const PIECE_TABS: {
 ];
 
 const LIBRARY_TABS = [
+  { id: 'Diary' as const, label: 'Diary', icon: <Notebook /> },
   { id: 'People' as const, label: 'People', icon: <UsersRound /> },
   { id: 'Photo' as const, label: 'Immich', icon: <Aperture /> },
 ];
@@ -410,13 +412,6 @@ function AppMain() {
           </SidebarGroup>
 
           <div className="border-t border-gray-100 pt-3 space-y-1">
-            <SidebarItem
-              icon={<Notebook />}
-              label="Diary"
-              badge="Today"
-              isActive={diaryModalConfig.isOpen}
-              onClick={() => void handleOpenTodayDiary()}
-            />
             {LIBRARY_TABS.map((tab) => (
               <SidebarItem
                 key={tab.id}
@@ -486,6 +481,14 @@ function AppMain() {
               showTasks={appSettings.showTaskInCal}
               showGoogleEvents={appSettings.showGcalInCal}
               onItemClick={openDetailModal}
+            />
+          )}
+          {currentTab === 'Diary' && (
+            <DiaryTab
+              diaries={diaries}
+              onDiaryMonthChange={fetchDiaries}
+              onDiaryClick={handleDiaryClick}
+              onOpenTodayDiary={() => void handleOpenTodayDiary()}
             />
           )}
           {currentTab === 'Photo' && (
@@ -661,14 +664,6 @@ function AppMain() {
                 Library
               </p>
               <div className="grid grid-cols-3 gap-2">
-                <button
-                  type="button"
-                  onClick={() => void handleOpenTodayDiary()}
-                  className="flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl border border-gray-100 bg-gray-50 text-gray-700 active:bg-gray-100 transition-colors"
-                >
-                  <Notebook className="w-5 h-5 text-emerald-600" />
-                  <span className="text-xs font-bold">Diary</span>
-                </button>
                 {LIBRARY_TABS.map((tab) => {
                   const isActive = currentTab === tab.id;
                   return (
