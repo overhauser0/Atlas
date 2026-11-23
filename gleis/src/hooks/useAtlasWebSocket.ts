@@ -46,40 +46,53 @@ export function useAtlasWebSocket(
 
       setWsStatus('connecting');
 
-      const wsUrl =
-        process.env.NEXT_PUBLIC_WS_URL || 'wss://atlas.overhauser0.synology.me';
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+      if (!wsUrl) {
+        console.warn('[WS] NEXT_PUBLIC_WS_URL is not configured');
+        setWsStatus('disconnected');
+        return;
+      }
+
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('🌐 Connected to Atlas WebSocket');
-        setWsStatus('connected');
-
-        // 接続時に自身をGleis端末としてサーバーに登録
+        console.log('🌐 Connected to Atlas WebSocket; authenticating...');
         ws.send(
           JSON.stringify({
-            type: 'REGISTER_DEVICE',
-            clientType: 'gleis',
-            deviceId: currentDeviceId,
-            deviceName: deviceName,
+            type: 'AUTH',
+            apiKey: process.env.NEXT_PUBLIC_API_KEY || '',
           }),
         );
-
-        // 現在の接続端末リストを要求
-        ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
-
-        // ハートビート開始（30秒ごとにPINGを送信してプロキシの切断を防ぐ）
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }));
-          }
-        }, 30000);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'DEVICE_LIST') {
+          if (data.type === 'AUTH_OK') {
+            setWsStatus('connected');
+
+            // 認証完了後に自身をGleis端末としてサーバーに登録
+            ws.send(
+              JSON.stringify({
+                type: 'REGISTER_DEVICE',
+                clientType: 'gleis',
+                deviceId: currentDeviceId,
+                deviceName: deviceName,
+              }),
+            );
+
+            // 現在の接続端末リストを要求
+            ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
+
+            // ハートビート開始（30秒ごとにPINGを送信してプロキシの切断を防ぐ）
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = setInterval(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'PING' }));
+              }
+            }, 30000);
+          } else if (data.type === 'DEVICE_LIST') {
             setConnectedDevices(data.devices || []);
           } else if (data.type === 'REFRESH_PIECES') {
             onRefreshPiecesRef.current(true);
@@ -93,13 +106,22 @@ export function useAtlasWebSocket(
         }
       };
 
-      ws.onclose = () => {
-        console.warn(
-          '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
-        );
+      ws.onclose = (event) => {
+        if (event.code === 4003 || event.code === 1008) {
+          console.warn(
+            `🔒 Atlas WebSocket authentication failed (code: ${event.code})`,
+          );
+        } else {
+          console.warn(
+            '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
+          );
+        }
         setWsStatus('disconnected');
         setConnectedDevices([]); // 切断時はリストをクリア
-        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
         reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
       };
 

@@ -3,7 +3,8 @@
 import { Piece, DbPiece, DbPieceSchema } from '../models/piece.model';
 import * as notionRepository from '../repositories/notion.repository';
 import * as pieceRepository from '../repositories/piece.repository';
-import * as notificationServive from './notification.service';
+import * as personRepository from '../repositories/person.repository';
+import * as notificationService from './notification.service';
 import { syncNotionToLocal } from './sync.service';
 import { broadcast } from '../utils/websocket';
 
@@ -214,15 +215,12 @@ export const rescheduleOverduePiecesToToday = async () => {
   return updatedPieces;
 };
 
-/** 子タスクがすべて完了しているか確認する。 */
-export async function checkSiblingTaskState(childId: string): Promise<boolean> {
-  if (!childId) return false;
-
-  // 1. タスクを取得
-  const childTask = await pieceRepository.getPieceById(childId);
-  const parentId = childTask?.parent_id;
-
+/** 指定された親IDの子タスクがすべて完了しているか確認し、全件完了なら通知する。 */
+export async function checkSiblingTaskStateByParentId(
+  parentId?: string | null,
+): Promise<boolean> {
   if (!parentId) return false;
+
   const parentTask = await pieceRepository.getPieceById(parentId);
 
   // 親が存在しない、または既にDoneならこれ以上処理しない（負荷軽減・無限ループ防止）
@@ -230,19 +228,18 @@ export async function checkSiblingTaskState(childId: string): Promise<boolean> {
     return false;
   }
 
-  // 2. この親を持つ子タスクを全件取得
+  // この親を持つ子タスクを全件取得
   const subTasks = await pieceRepository.getPieces({ parentId });
 
   if (subTasks.length === 0) {
     return false;
   }
 
-  // 3. 全ての子タスクがDoneか判定
+  // 全ての子タスクがDoneか判定
   const allDone = subTasks.every((t) => t.status === 'Done');
 
-  // 4. 全てDoneなら親タスクを更新
   if (allDone) {
-    notificationServive.handleExternalPush({
+    await notificationService.handleExternalPush({
       title: 'SubTasks Completed',
       note: `${parentTask.title}の子タスクが全件完了しました`,
       category: 'INFO',
@@ -256,6 +253,53 @@ export async function checkSiblingTaskState(childId: string): Promise<boolean> {
   }
 
   return false;
+}
+
+/** 子タスクがすべて完了しているか確認する。 */
+export async function checkSiblingTaskState(childId: string): Promise<boolean> {
+  if (!childId) return false;
+
+  const childTask = await pieceRepository.getPieceById(childId);
+  return await checkSiblingTaskStateByParentId(childTask?.parent_id);
+}
+
+/**
+ * ローカル Piece を Notion へ昇格させ、関連する person_pieces と子タスクの parent_id を移行する。
+ */
+export async function promoteLocalPiece(localId: string, localPiece: Piece) {
+  const notionPiece = await createNewPiece({
+    ...localPiece,
+    source: 'NOTION',
+  });
+
+  if (!notionPiece?.id) {
+    throw new Error('Failed to create Notion piece during promotion');
+  }
+
+  // ローカル削除の ON DELETE CASCADE で人物紐付けや親子関係が消えないよう先に付け替える
+  const migratedPersonLinks =
+    await personRepository.migrateLocalPieceLinksToNotion(
+      localId,
+      notionPiece.id,
+    );
+
+  const reboundChildren = await pieceRepository.rebindParentId(
+    localId,
+    notionPiece.id,
+  );
+  for (const notionChildId of reboundChildren.notionIds) {
+    await notionRepository.updatePiecePage(notionChildId, {
+      parent_id: notionPiece.id,
+    });
+  }
+
+  await deletePiece(localId);
+
+  if (migratedPersonLinks.length > 0) {
+    broadcast(JSON.stringify({ type: 'REFRESH_PEOPLE' }));
+  }
+
+  return notionPiece;
 }
 
 /**
@@ -285,8 +329,3 @@ export async function cleanUpOrphanedTasks(): Promise<void> {
 
   await pieceRepository.clearParentIds(orphans.local, orphans.notion);
 }
-
-/** Pieceの親IDを移行する。 */
-export const migrateParentIds = async () => {
-  return await pieceRepository.migrateParentIds();
-};

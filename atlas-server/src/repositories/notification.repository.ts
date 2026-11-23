@@ -6,7 +6,7 @@ import { PushNotificationInput } from '../models/push.model';
 /** 通知履歴を取得する。 */
 export const getNotifications = async (
   limit = 50,
-  offset = 1,
+  offset = 0,
   isRead?: boolean,
 ) => {
   let query = db.selectFrom('notifications').selectAll();

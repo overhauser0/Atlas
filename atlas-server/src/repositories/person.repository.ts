@@ -131,3 +131,19 @@ export const deletePersonPiece = async (personId: string, id: string) => {
     .executeTakeFirst();
   return result !== undefined;
 };
+
+/** ローカル Piece に紐づく person_pieces の参照先を Notion Piece へ付け替える。 */
+export const migrateLocalPieceLinksToNotion = async (
+  localPieceId: string,
+  notionPieceId: string,
+) => {
+  return await db
+    .updateTable('person_pieces')
+    .set({
+      notion_piece_id: notionPieceId,
+      local_piece_id: null,
+    })
+    .where('local_piece_id', '=', localPieceId)
+    .returning('id')
+    .execute();
+};

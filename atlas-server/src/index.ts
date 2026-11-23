@@ -17,11 +17,31 @@ import * as taskPresetController from './controllers/task-preset.controller';
 import * as personController from './controllers/person.controller';
 import * as sparkController from './controllers/spark.controller';
 import { initWebSocket } from './utils/websocket';
+import { timingSafeCompare } from './utils/utils';
 
 const app = new Hono();
 
-// Middleware
-app.use('/*', cors());
+// Middleware: CORS（CORS_ALLOWED_ORIGINS が設定されている場合は指定オリジンのみ許可）
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+if (allowedOrigins.length > 0) {
+  app.use(
+    '/*',
+    cors({
+      origin: (origin) => (allowedOrigins.includes(origin) ? origin : ''),
+      allowHeaders: ['Content-Type', 'X-API-KEY'],
+      allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    }),
+  );
+} else {
+  console.warn(
+    '[CORS] CORS_ALLOWED_ORIGINS is not set; allowing all origins. Set CORS_ALLOWED_ORIGINS in production.',
+  );
+  app.use('/*', cors());
+}
 
 // --- 🔒 APIキー認証ミドルウェア ---
 app.use('/api/v1/*', async (c, next) => {
@@ -30,7 +50,7 @@ app.use('/api/v1/*', async (c, next) => {
   const expectedKey = process.env.ATLAS_API_KEY;
 
   // サーバー側の環境変数が未設定、またはキーが一致しない場合は401を返す
-  if (!expectedKey || apiKey !== expectedKey) {
+  if (!timingSafeCompare(apiKey, expectedKey)) {
     console.warn('[Auth] Unauthorized API access attempt');
     return c.json({ success: false, error: 'Unauthorized' }, 401);
   }
@@ -39,21 +59,75 @@ app.use('/api/v1/*', async (c, next) => {
 });
 // ----------------------------------
 
+// --- 🛡️ /auth/verify レート制限（IPごと・15分間で最大10回失敗まで） ---
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
+const AUTH_RATE_LIMIT_MAX_ATTEMPTS = 10;
+const authFailureBuckets = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
+
+const getClientIp = (c: { req: { header: (name: string) => string | undefined } }) => {
+  const forwardedFor = c.req.header('x-forwarded-for');
+  if (forwardedFor) {
+    return forwardedFor.split(',')[0].trim();
+  }
+  return c.req.header('x-real-ip')?.trim() || 'unknown';
+};
+
+const pruneExpiredAuthBuckets = (now: number) => {
+  for (const [ip, bucket] of authFailureBuckets.entries()) {
+    if (now >= bucket.resetAt) {
+      authFailureBuckets.delete(ip);
+    }
+  }
+};
+
 // Routes
 app.get('/health', (c) => c.json({ status: 'UP', time: new Date() }));
 
-app.get('/migration/parentids', pieceController.migrateParentIds);
-
 app.post('/auth/verify', async (c) => {
-  const body = await c.req.json();
-  const inputPassword = body.password;
+  const now = Date.now();
+  pruneExpiredAuthBuckets(now);
+
+  const clientIp = getClientIp(c);
+  const existingBucket = authFailureBuckets.get(clientIp);
+  if (
+    existingBucket &&
+    existingBucket.count >= AUTH_RATE_LIMIT_MAX_ATTEMPTS &&
+    now < existingBucket.resetAt
+  ) {
+    const retryAfterSec = Math.ceil((existingBucket.resetAt - now) / 1000);
+    c.header('Retry-After', String(retryAfterSec));
+    console.warn(`[Auth] Rate limit exceeded for IP: ${clientIp}`);
+    return c.json(
+      { success: false, error: 'Too many failed attempts. Try again later.' },
+      429,
+    );
+  }
+
+  let body: { password?: unknown };
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ success: false, error: 'Invalid JSON payload' }, 400);
+  }
+
+  const inputPassword =
+    typeof body?.password === 'string' ? body.password : undefined;
   const expectedPassword = process.env.ATLAS_PASSWORD;
 
-  if (!expectedPassword || inputPassword !== expectedPassword) {
+  if (!timingSafeCompare(inputPassword, expectedPassword)) {
+    const nextCount = (existingBucket?.count || 0) + 1;
+    authFailureBuckets.set(clientIp, {
+      count: nextCount,
+      resetAt: existingBucket?.resetAt ?? now + AUTH_RATE_LIMIT_WINDOW_MS,
+    });
     console.warn('[Auth] Password verification failed');
     return c.json({ success: false, error: 'Invalid password' }, 401);
   }
 
+  authFailureBuckets.delete(clientIp);
   console.log('[Auth] Password verification succeeded');
   return c.json({ success: true });
 });

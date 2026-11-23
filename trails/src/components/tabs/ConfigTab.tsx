@@ -61,10 +61,12 @@ export default function ConfigTab({
     setIsSyncingContacts(true);
 
     try {
-      const response = await fetch(
-        'https://n8n.piova.app/webhook/googleContancts-to-atlas',
-        { method: 'GET' },
-      );
+      const syncUrl = process.env.NEXT_PUBLIC_GOOGLE_CONTACTS_SYNC_URL?.trim();
+      if (!syncUrl) {
+        throw new Error('NEXT_PUBLIC_GOOGLE_CONTACTS_SYNC_URL is not configured.');
+      }
+
+      const response = await fetch(syncUrl, { method: 'GET' });
 
       if (!response.ok) {
         throw new Error(`Request failed with status ${response.status}`);

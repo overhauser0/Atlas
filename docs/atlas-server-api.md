@@ -8,18 +8,18 @@ Atlas Server の HTTP API リファレンスです。内容は現在のルート
 - API prefix: `/api/v1`
 - リクエスト／レスポンス: JSON（サムネイルと Paperless 文書表示を除く）
 - `/api/v1/*` の全エンドポイントで `X-API-KEY: <ATLAS_API_KEY>` が必要です。
-- `/health`、`/migration/parentids`、`/auth/verify`、`/paperless/view` はこの API キー認証の対象外です。`/paperless/view` は代わりに一回限りの ticket を要求します。
+- `/health`、`/auth/verify`、`/paperless/view` はこの API キー認証の対象外です。`/paperless/view` は代わりに一回限りの ticket を要求します。
 - JSON を送る場合は `Content-Type: application/json` を指定してください。Paperless のアップロードは `multipart/form-data` です。
+- `CORS_ALLOWED_ORIGINS`（カンマ区切り）を設定すると、指定されたオリジンのみ CORS 許可されます。
 
 ## 共通・認証
 
 | Method | Endpoint | 引数 | 成功レスポンス |
 |---|---|---|---|
 | `GET` | `/health` | なし | `{ "status": "UP", "time": "<日時>" }` |
-| `GET` | `/migration/parentids` | なし | `{ "result": <移行結果> }` |
 | `POST` | `/auth/verify` | JSON: `{ "password": string }` | `{ "success": true }` |
 
-`POST /auth/verify` は `ATLAS_PASSWORD` と照合します。不一致またはサーバー側パスワード未設定時は `401 { "success": false, "error": "Invalid password" }` を返します。
+`POST /auth/verify` は `ATLAS_PASSWORD` と定数時間で照合します。不一致またはサーバー側パスワード未設定時は `401 { "success": false, "error": "Invalid password" }` を返します。同一 IP から 15 分間に 10 回連続失敗した場合は `429`（`Retry-After` ヘッダー付き）を返します。
 
 ## Notifications
 
@@ -205,7 +205,15 @@ Ticket は `POST /api/v1/paperless/:id/ticket` で発行し、`GET /paperless/vi
 
 ## WebSocket 通知
 
-サーバーは同一ポートで WebSocket も受け付け、データ変更に応じて JSON 形式の通知を配信します。代表的な `type` は `REFRESH_PIECES`、`REFRESH_PEOPLE`、`REFRESH_DIARIES`、`REFRESH_NOTES`、`REFRESH_NOTIFICATIONS`、`REFRESH_DOCUMENTS`、`REFRESH_CALENDAR` です。
+サーバーは同一ポートで WebSocket も受け付け、データ変更に応じて JSON 形式の通知を配信します。代表的な `type` は `REFRESH_PIECES`、`REFRESH_PEOPLE`、`REFRESH_DIARIES`、`REFRESH_NOTES`、`REFRESH_NOTIFICATIONS`、`REFRESH_DOCUMENTS`、`REFRESH_CALENDAR`、`REFRESH_SPARKS` です。
+
+### WebSocket 認証
+
+全ての WebSocket 接続で `ATLAS_API_KEY` による認証が必須です。
+
+- **ヘッダー認証（非ブラウザクライアント向け）**: Upgrade リクエストに `X-API-KEY: <ATLAS_API_KEY>` を付与して接続すると即時認証され、`{ "type": "AUTH_OK" }` が返ります。
+- **メッセージ認証（ブラウザ／拡張機能向け）**: 接続後 5 秒以内に `{ "type": "AUTH", "apiKey": "<ATLAS_API_KEY>" }` を送信します。認証成功時に `{ "type": "AUTH_OK" }` が返った後、`REGISTER_DEVICE` や `GET_DEVICES`、`OPEN_URL_ON_PC`（`http://` / `https://` のみ許可）が利用できます。
+- 認証失敗時はクローズコード `4003`、タイムアウト時は `4001`、サーバー側キー未設定時は `1008` で切断されます。
 
 ---
 

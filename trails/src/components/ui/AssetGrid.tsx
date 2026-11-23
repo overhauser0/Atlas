@@ -26,7 +26,7 @@ interface AssetGridProps {
 }
 
 const IMMICH_BASE_URL =
-  process.env.NEXT_PUBLIC_IMMICH_URL || 'https://immich.piova.app';
+  process.env.NEXT_PUBLIC_IMMICH_URL?.trim().replace(/\/+$/, '') || '';
 
 function formatLocalAssetTime(localDateTime?: string): string {
   if (!localDateTime) return '';
@@ -173,20 +173,22 @@ export default function AssetGrid({
             />
           </div>
 
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="flex justify-center pb-2 shrink-0"
-          >
-            <a
-              href={`${IMMICH_BASE_URL}/photos/${previewAsset.id}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors"
+          {IMMICH_BASE_URL && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="flex justify-center pb-2 shrink-0"
             >
-              <span>Immichで開く</span>
-              <ExternalLink className="w-3.5 h-3.5" />
-            </a>
-          </div>
+              <a
+                href={`${IMMICH_BASE_URL}/photos/${previewAsset.id}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-medium transition-colors"
+              >
+                <span>Immichで開く</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
+          )}
         </div>
       )}
     </>

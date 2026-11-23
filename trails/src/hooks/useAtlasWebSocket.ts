@@ -13,6 +13,7 @@ export function useAtlasWebSocket(
 
   const wsRef = useRef<WebSocket | null>(null);
   const pingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // 最新のコールバックを保持する
   const onRefreshPiecesRef = useRef(onRefreshPieces);
@@ -24,54 +25,70 @@ export function useAtlasWebSocket(
   }, [onRefreshPieces, onRefreshDiaries]);
 
   useEffect(() => {
-    let currentDeviceId = localStorage.getItem('gleis_device_id');
+    let currentDeviceId = localStorage.getItem('trails_device_id');
     if (!currentDeviceId) {
       currentDeviceId = crypto.randomUUID();
-      localStorage.setItem('gleis_device_id', currentDeviceId);
+      localStorage.setItem('trails_device_id', currentDeviceId);
     }
     setOwnDeviceId(currentDeviceId);
     const deviceName = getAutoDeviceName();
 
-    let reconnectTimeout: NodeJS.Timeout;
-
     const connectWebSocket = () => {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
       if (wsRef.current) {
+        wsRef.current.onclose = null;
         wsRef.current.close();
+      }
+
+      const wsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+      if (!wsUrl) {
+        console.warn('[WS] NEXT_PUBLIC_WS_URL is not configured');
+        setWsStatus('disconnected');
+        return;
       }
 
       setWsStatus('connecting');
 
-      const wsUrl =
-        process.env.NEXT_PUBLIC_WS_URL || 'wss://atlas.overhauser0.synology.me';
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log('🌐 Connected to Atlas WebSocket');
-        setWsStatus('connected');
-
+        console.log('🌐 Connected to Atlas WebSocket; authenticating...');
         ws.send(
           JSON.stringify({
-            type: 'REGISTER_DEVICE',
-            clientType: 'trails',
-            deviceId: currentDeviceId,
-            deviceName: deviceName,
+            type: 'AUTH',
+            apiKey: process.env.NEXT_PUBLIC_API_KEY || '',
           }),
         );
-
-        ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
-
-        pingIntervalRef.current = setInterval(() => {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({ type: 'PING' }));
-          }
-        }, 30000);
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'DEVICE_LIST') {
+          if (data.type === 'AUTH_OK') {
+            setWsStatus('connected');
+
+            ws.send(
+              JSON.stringify({
+                type: 'REGISTER_DEVICE',
+                clientType: 'trails',
+                deviceId: currentDeviceId,
+                deviceName: deviceName,
+              }),
+            );
+
+            ws.send(JSON.stringify({ type: 'GET_DEVICES' }));
+
+            if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
+            pingIntervalRef.current = setInterval(() => {
+              if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'PING' }));
+              }
+            }, 30000);
+          } else if (data.type === 'DEVICE_LIST') {
             setConnectedDevices(data.devices || []);
           } else if (data.type === 'REFRESH_PIECES') {
             onRefreshPiecesRef.current();
@@ -88,14 +105,23 @@ export function useAtlasWebSocket(
         }
       };
 
-      ws.onclose = () => {
-        console.warn(
-          '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
-        );
+      ws.onclose = (event) => {
+        if (event.code === 4003 || event.code === 1008) {
+          console.warn(
+            `🔒 Atlas WebSocket authentication failed (code: ${event.code})`,
+          );
+        } else {
+          console.warn(
+            '🔌 Disconnected from Atlas WebSocket. Reconnecting in 5s...',
+          );
+        }
         setWsStatus('disconnected');
         setConnectedDevices([]);
-        if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-        reconnectTimeout = setTimeout(connectWebSocket, 5000);
+        if (pingIntervalRef.current) {
+          clearInterval(pingIntervalRef.current);
+          pingIntervalRef.current = null;
+        }
+        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
       };
 
       ws.onerror = (error) => {
@@ -107,9 +133,14 @@ export function useAtlasWebSocket(
     connectWebSocket();
 
     return () => {
-      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
       if (pingIntervalRef.current) clearInterval(pingIntervalRef.current);
-      if (wsRef.current) wsRef.current.close();
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
     };
   }, []);
 

@@ -147,9 +147,12 @@ export const deletePiece = async (c: Context) => {
     const id = c.req.param('id');
     if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
+    const targetPiece = await pieceService.getPieceById(id);
+    const parentId = targetPiece?.parent_id;
+
     const result = await pieceService.deletePiece(id);
 
-    await pieceService.checkSiblingTaskState(id);
+    await pieceService.checkSiblingTaskStateByParentId(parentId);
 
     return c.json(result, 200);
   } catch (error: any) {
@@ -180,19 +183,14 @@ export const promotePiece = async (c: Context) => {
       );
     }
 
-    const localPiece = validation.data;
-
-    // 2. Notionへ作成
-    const notionData = await pieceService.createNewPiece({
-      ...localPiece,
-      source: 'NOTION',
-    });
-
-    // 3. ローカル削除
-    await pieceService.deletePiece(id);
+    const notionData = await pieceService.promoteLocalPiece(
+      id,
+      validation.data,
+    );
 
     return c.json({ pieces: notionData || [] }, 200);
   } catch (err) {
+    console.error(`❌ Promote Piece Error (${c.req.param('id')}):`, err);
     return c.json({ error: 'Promotion failed' }, 500);
   }
 };
@@ -255,14 +253,5 @@ export const getLastSyncTime = async (c: Context) => {
       { message: error.message || 'Failed to get last sync time' },
       500,
     );
-  }
-};
-
-export const migrateParentIds = async (c: Context) => {
-  try {
-    const result = await pieceService.migrateParentIds();
-    return c.json({ result }, 200);
-  } catch (error: any) {
-    return c.json({ message: error.message || 'Failed to migration' }, 500);
   }
 };

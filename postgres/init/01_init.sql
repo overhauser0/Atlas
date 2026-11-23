@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS notifications (
     category TEXT DEFAULT 'GENERAL',
     url TEXT,
     metadata JSONB DEFAULT '{}',
+    is_read BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -147,7 +148,7 @@ CREATE TABLE ai_agents (
     response_mime_type VARCHAR(100) DEFAULT NULL,
     sort_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
-)
+);
 
 -- ルーチンタスクテーブル
 CREATE TABLE IF NOT EXISTS routine_tasks (

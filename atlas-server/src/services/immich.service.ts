@@ -2,25 +2,33 @@
 
 import * as immichRepository from '../repositories/immich.repository';
 
-const IMMICH_API_URL =
-  process.env.IMMICH_API_URL || 'http://192.168.13.55:2283/api';
-const IMMICH_API_KEY = process.env.IMMICH_API_KEY || '';
+const getImmichConfig = () => {
+  const apiUrl = process.env.IMMICH_API_URL?.trim().replace(/\/+$/, '');
+  const apiKey = process.env.IMMICH_API_KEY?.trim();
+
+  if (!apiUrl) {
+    throw new Error('IMMICH_API_URL is not configured');
+  }
+  if (!apiKey) {
+    throw new Error('IMMICH_API_KEY is not configured');
+  }
+
+  return { apiUrl, apiKey };
+};
 
 /** Atlas側の人物情報をImmichへ反映する。Immichからの取得は行わない。 */
 export async function updateImmichPerson(
   personId: string,
   person: { name: string; birthday: string | null },
 ) {
-  if (!IMMICH_API_KEY) {
-    throw new Error('IMMICH_API_KEY is not configured');
-  }
+  const { apiUrl, apiKey } = getImmichConfig();
 
   const response = await fetch(
-    `${IMMICH_API_URL.replace(/\/+$/, '')}/people/${encodeURIComponent(personId)}`,
+    `${apiUrl}/people/${encodeURIComponent(personId)}`,
     {
       method: 'PATCH',
       headers: {
-        'x-api-key': IMMICH_API_KEY,
+        'x-api-key': apiKey,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -39,12 +47,10 @@ export async function updateImmichPerson(
 }
 
 export async function searchImmichPeopleByName(searchTerm: string) {
-  if (!IMMICH_API_KEY) {
-    throw new Error('IMMICH_API_KEY is not configured');
-  }
+  const { apiUrl, apiKey } = getImmichConfig();
 
-  const response = await fetch(`${IMMICH_API_URL.replace(/\/+$/, '')}/people`, {
-    headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
+  const response = await fetch(`${apiUrl}/people`, {
+    headers: { 'x-api-key': apiKey, Accept: 'application/json' },
   });
   if (!response.ok) {
     throw new Error(`Immich people request failed (${response.status})`);
@@ -132,8 +138,9 @@ const getDateFullString = (
 
 /** Immich APIから現在ユーザーを取得する。 */
 async function getMyUserId() {
-  const meRes = await fetch(`${IMMICH_API_URL}/users/me`, {
-    headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
+  const { apiUrl, apiKey } = getImmichConfig();
+  const meRes = await fetch(`${apiUrl}/users/me`, {
+    headers: { 'x-api-key': apiKey, Accept: 'application/json' },
   });
   if (!meRes.ok) throw new Error('Failed to fetch user');
   return (await meRes.json()) as any;
@@ -142,14 +149,16 @@ async function getMyUserId() {
 /** Immichから統計を取得し、キャッシュを更新する。 */
 export async function syncImmichStatsCache() {
   try {
+    const { apiUrl, apiKey } = getImmichConfig();
+
     // 1. 自分のユーザー情報を取得
     const me = await getMyUserId();
     const myUserId = me.id;
 
     // 2. 基本統計の取得 (/server/statistics)
-    const statsRes = await fetch(`${IMMICH_API_URL}/server/statistics`, {
+    const statsRes = await fetch(`${apiUrl}/server/statistics`, {
       method: 'GET',
-      headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
+      headers: { 'x-api-key': apiKey, Accept: 'application/json' },
     });
     if (!statsRes.ok) throw new Error('Failed to fetch Immich statistics');
     const rawStats = (await statsRes.json()) as any;
@@ -176,15 +185,16 @@ export async function syncImmichStatsCache() {
     const maxPages = 50;
 
     while (page <= maxPages) {
-      const searchRes = await fetch(`${IMMICH_API_URL}/search/metadata`, {
+      const searchRes = await fetch(`${apiUrl}/search/metadata`, {
         method: 'POST',
         headers: {
-          'x-api-key': IMMICH_API_KEY,
+          'x-api-key': apiKey,
           'Content-Type': 'application/json',
           Accept: 'application/json',
         },
         body: JSON.stringify({
           withExif: true,
+          ownerId: myUserId,
           page: page,
           size: pageSize,
         }),
@@ -206,6 +216,8 @@ export async function syncImmichStatsCache() {
 
       // EXIF & 撮影日解析
       for (const asset of items) {
+        if (asset.ownerId && asset.ownerId !== myUserId) continue;
+
         // --- 撮影日 (草用) ---
         const dateStr =
           asset.exifInfo?.dateTimeOriginal ||
@@ -310,12 +322,8 @@ export async function getImmichStatsFromCache() {
 
 /** 撮影日時が欠損しているアセットを取得する。 */
 export async function getMissingDateAssets() {
-  const meRes = await fetch(`${IMMICH_API_URL}/users/me`, {
-    method: 'GET',
-    headers: { 'x-api-key': IMMICH_API_KEY, Accept: 'application/json' },
-  });
-  if (!meRes.ok) throw new Error('Failed to fetch user');
-  const me = (await meRes.json()) as any;
+  const { apiUrl, apiKey } = getImmichConfig();
+  const me = await getMyUserId();
   const myUserId = me.id;
 
   let page = 1;
@@ -324,10 +332,10 @@ export async function getMissingDateAssets() {
   const missingAssets: any[] = [];
 
   while (page <= maxPages) {
-    const searchRes = await fetch(`${IMMICH_API_URL}/search/metadata`, {
+    const searchRes = await fetch(`${apiUrl}/search/metadata`, {
       method: 'POST',
       headers: {
-        'x-api-key': IMMICH_API_KEY,
+        'x-api-key': apiKey,
         'Content-Type': 'application/json',
         Accept: 'application/json',
       },
@@ -374,6 +382,7 @@ export async function getMissingDateAssets() {
 export async function updateAssetsDate(
   updates: { id: string; dateTimeOriginal: string }[],
 ) {
+  const { apiUrl, apiKey } = getImmichConfig();
   const results = { success: 0, failed: 0, errors: [] as string[] };
 
   // Immich の PUT /assets/{id} を各アセットに対して実行
@@ -381,10 +390,10 @@ export async function updateAssetsDate(
   await Promise.all(
     updates.map(async (update) => {
       try {
-        const res = await fetch(`${IMMICH_API_URL}/assets/${update.id}`, {
+        const res = await fetch(`${apiUrl}/assets/${encodeURIComponent(update.id)}`, {
           method: 'PUT',
           headers: {
-            'x-api-key': IMMICH_API_KEY,
+            'x-api-key': apiKey,
             'Content-Type': 'application/json',
             Accept: 'application/json',
           },
@@ -414,6 +423,7 @@ export async function searchMyAssets(filters: {
   date?: string;
   personId?: string;
 }) {
+  const { apiUrl, apiKey } = getImmichConfig();
   const me = await getMyUserId();
   const myUserId = me.id;
 
@@ -434,10 +444,10 @@ export async function searchMyAssets(filters: {
     reqBody.personIds = [filters.personId];
   }
 
-  const res = await fetch(`${IMMICH_API_URL}/search/metadata`, {
+  const res = await fetch(`${apiUrl}/search/metadata`, {
     method: 'POST',
     headers: {
-      'x-api-key': IMMICH_API_KEY,
+      'x-api-key': apiKey,
       'Content-Type': 'application/json',
       Accept: 'application/json',
     },
@@ -472,8 +482,12 @@ export async function searchMyAssets(filters: {
 
 /** Immichからサムネイルを取得する。 */
 export async function getThumbnailProxy(id: string) {
-  return fetch(`${IMMICH_API_URL}/assets/${id}/thumbnail?size=thumbnail`, {
-    method: 'GET',
-    headers: { 'x-api-key': IMMICH_API_KEY },
-  });
+  const { apiUrl, apiKey } = getImmichConfig();
+  return fetch(
+    `${apiUrl}/assets/${encodeURIComponent(id)}/thumbnail?size=thumbnail`,
+    {
+      method: 'GET',
+      headers: { 'x-api-key': apiKey },
+    },
+  );
 }

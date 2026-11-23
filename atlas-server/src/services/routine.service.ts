@@ -37,6 +37,27 @@ export const deleteRoutine = async (id: number): Promise<boolean> => {
   return await routineRepository.deleteRoutine(id);
 };
 
+const getJstTodayUtcDate = (now: Date = new Date()): Date => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Tokyo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(now);
+
+  const year = Number(parts.find((part) => part.type === 'year')?.value);
+  const month = Number(parts.find((part) => part.type === 'month')?.value);
+  const day = Number(parts.find((part) => part.type === 'day')?.value);
+
+  return new Date(Date.UTC(year, month - 1, day));
+};
+
+const formatUtcDateYmd = (date: Date): string =>
+  `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+
+const getDaysInUtcMonth = (year: number, monthIndex: number): number =>
+  new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
+
 /**
  * アクティブなルーチンからタスクを作成する。
  */
@@ -46,23 +67,24 @@ export const generateRoutineTasks = async () => {
     true,
   );
 
-  const now = new Date();
-  const currentDayOfWeek = now.getDay();
+  // JSTの日付をUTCの00:00として扱うことで、サーバーのローカルタイムゾーンに依存しない日付計算を行う
+  const jstToday = getJstTodayUtcDate();
+  const currentDayOfWeek = jstToday.getUTCDay();
   const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
 
-  const thisMonday = new Date(now);
-  thisMonday.setDate(now.getDate() - daysToMonday);
-  thisMonday.setHours(0, 0, 0, 0);
+  const thisMonday = new Date(jstToday);
+  thisMonday.setUTCDate(jstToday.getUTCDate() - daysToMonday);
 
-  const mondayDateNum = thisMonday.getDate();
+  const mondayDateNum = thisMonday.getUTCDate();
   const isFourthMonday = mondayDateNum >= 22 && mondayDateNum <= 28;
 
-  let nextMonthYear = thisMonday.getFullYear();
-  let nextMonth = thisMonday.getMonth() + 1;
+  let nextMonthYear = thisMonday.getUTCFullYear();
+  let nextMonth = thisMonday.getUTCMonth() + 1;
   if (nextMonth > 11) {
     nextMonth = 0;
     nextMonthYear++;
   }
+  const daysInNextMonth = getDaysInUtcMonth(nextMonthYear, nextMonth);
 
   const piecesToCreate: Partial<DbPiece>[] = [];
 
@@ -72,38 +94,45 @@ export const generateRoutineTasks = async () => {
       const offsetFromMonday = targetDayOfWeek === 0 ? 6 : targetDayOfWeek - 1;
 
       const dueDate = new Date(thisMonday);
-      dueDate.setDate(thisMonday.getDate() + offsetFromMonday);
+      dueDate.setUTCDate(thisMonday.getUTCDate() + offsetFromMonday);
 
       piecesToCreate.push({
         area: 'Work',
         title: routine.title,
-        start_date: dueDate.toISOString().split('T')[0],
+        start_date: formatUtcDateYmd(dueDate),
         note: routine.note || '',
         url: routine.url || '',
         parent_id: routine.parent_id || null,
         status: 'INBOX',
       });
-    }
-    else if (routine.frequency === 'monthly' && isFourthMonday) {
-      let dueDate = new Date(nextMonthYear, nextMonth, 1);
+    } else if (routine.frequency === 'monthly' && isFourthMonday) {
+      let dueDate: Date | null = null;
 
       if (routine.type === 'date') {
-        dueDate.setDate(routine.day || 1);
+        const clampedDay = Math.min(Math.max(routine.day || 1, 1), daysInNextMonth);
+        dueDate = new Date(Date.UTC(nextMonthYear, nextMonth, clampedDay));
       } else if (routine.type === 'nthWeekday') {
         const targetWeek = routine.week || 1;
         const targetDayOfWeek = routine.day_of_week ?? 1;
 
-        const firstDayOfMonth = dueDate.getDay();
+        const firstOfMonth = new Date(Date.UTC(nextMonthYear, nextMonth, 1));
+        const firstDayOfMonth = firstOfMonth.getUTCDay();
         let offset = targetDayOfWeek - firstDayOfMonth;
         if (offset < 0) offset += 7;
 
-        dueDate.setDate(1 + offset + (targetWeek - 1) * 7);
+        const targetDay = 1 + offset + (targetWeek - 1) * 7;
+        // 第5曜日などが翌月に存在しない場合は翌々月へのオーバーフローを防ぐためスキップする
+        if (targetDay <= daysInNextMonth) {
+          dueDate = new Date(Date.UTC(nextMonthYear, nextMonth, targetDay));
+        }
       }
+
+      if (!dueDate) continue;
 
       piecesToCreate.push({
         area: 'Work',
         title: routine.title,
-        start_date: dueDate.toISOString().split('T')[0],
+        start_date: formatUtcDateYmd(dueDate),
         note: routine.note || '',
         url: routine.url || '',
         parent_id: routine.parent_id || null,
@@ -122,7 +151,7 @@ export const generateRoutineTasks = async () => {
 
   return {
     message: 'Routine tasks generated successfully',
-    base_monday: thisMonday.toISOString().split('T')[0],
+    base_monday: formatUtcDateYmd(thisMonday),
     is_fourth_monday: isFourthMonday,
     generated_count: insertedPieces.length,
     generated_tasks: insertedPieces,

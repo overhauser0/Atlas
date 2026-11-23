@@ -6,7 +6,6 @@ import {
   UpdatePieceInput,
   DbPiece,
 } from '../models/piece.model';
-import { extractParentIdFromNotionUrl } from '../utils/utils';
 import { sql } from 'kysely';
 
 export interface PieceFilters {
@@ -29,10 +28,14 @@ export const getPieces = async (filters: PieceFilters) => {
     if (filters.type) q = q.where('type', '=', filters.type);
     if (filters.status) q = q.where('status', '=', filters.status);
     if (filters.flags && filters.flags.length > 0) {
-      q = q.where('flags', 'in', filters.flags);
+      q = q.where(
+        sql<boolean>`flags && ARRAY[${sql.join(filters.flags)}]::text[]`,
+      );
     }
     if (filters.topics && filters.topics.length > 0) {
-      q = q.where('topics', 'in', filters.topics);
+      q = q.where(
+        sql<boolean>`topics && ARRAY[${sql.join(filters.topics)}]::text[]`,
+      );
     }
     if (filters.excludeStatus && filters.excludeStatus.length > 0) {
       q = q.where('status', 'not in', filters.excludeStatus);
@@ -323,28 +326,27 @@ export async function clearParentIds(
   }
 }
 
-export async function migrateParentIds() {
-  const piecesToUpdate = await db
-    .selectFrom('local_pieces')
-    .selectAll()
-    .where('parent_id', 'is', null)
-    .where('url', 'is not', null)
+/** 指定された親IDを参照する子 Piece の parent_id を新しいIDへ付け替える。 */
+export async function rebindParentId(
+  oldParentId: string,
+  newParentId: string,
+): Promise<{ localIds: string[]; notionIds: string[] }> {
+  const updatedLocal = await db
+    .updateTable('local_pieces')
+    .set({ parent_id: newParentId })
+    .where('parent_id', '=', oldParentId)
+    .returning('id')
     .execute();
 
-  let updateCount = 0;
-  for (const piece of piecesToUpdate) {
-    const parentId = extractParentIdFromNotionUrl(piece.url);
+  const updatedNotion = await db
+    .updateTable('notion_pieces_cache')
+    .set({ parent_id: newParentId })
+    .where('parent_id', '=', oldParentId)
+    .returning('id')
+    .execute();
 
-    if (parentId) {
-      await db
-        .updateTable('local_pieces')
-        .set({ parent_id: parentId })
-        .where('id', '=', piece.id)
-        .execute();
-
-      updateCount++;
-    }
-  }
-
-  return `移行完了: ${updateCount} 件のタスクに parent_id を付与しました。`;
+  return {
+    localIds: updatedLocal.map((row) => row.id),
+    notionIds: updatedNotion.map((row) => row.id),
+  };
 }

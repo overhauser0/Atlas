@@ -6,9 +6,13 @@ import type {
 import * as sparkRepository from '../repositories/spark.repository';
 import { broadcast } from '../utils/websocket';
 
-const SPARKS_SYNC_WEBHOOK_URL =
-  process.env.N8N_SPARKS_SYNC_URL ||
-  'https://n8n.piova.app/webhook/discord-to-sparks';
+const getSparksSyncWebhookUrl = () => {
+  const url = process.env.N8N_SPARKS_SYNC_URL?.trim();
+  if (!url) {
+    throw new Error('N8N_SPARKS_SYNC_URL is not configured');
+  }
+  return url;
+};
 
 export const getTargetDateFromRecordedAt = (recordedAt: Date | string) => {
   const date = recordedAt instanceof Date ? recordedAt : new Date(recordedAt);
@@ -68,7 +72,7 @@ export const deleteSpark = async (id: string) => {
 
 /** n8n Webhookを実行してDiscordからSparksを同期し、完了後にWSで通知する。 */
 export const syncSparks = async () => {
-  const response = await fetch(SPARKS_SYNC_WEBHOOK_URL, {
+  const response = await fetch(getSparksSyncWebhookUrl(), {
     method: 'GET',
   });
 

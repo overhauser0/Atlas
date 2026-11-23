@@ -1,3 +1,16 @@
+import crypto from 'crypto';
+
+/** タイミング攻撃を防ぐため、固定長ハッシュ化して定数時間で文字列比較する。 */
+export const timingSafeCompare = (
+  input: string | undefined | null,
+  expected: string | undefined | null,
+): boolean => {
+  if (!input || !expected) return false;
+  const inputHash = crypto.createHash('sha256').update(input).digest();
+  const expectedHash = crypto.createHash('sha256').update(expected).digest();
+  return crypto.timingSafeEqual(inputHash, expectedHash);
+};
+
 // NotionのURLからページID（UUID形式）を抽出するヘルパー関数
 export const extractParentIdFromNotionUrl = (
   url: string | null,
