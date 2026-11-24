@@ -1,77 +1,44 @@
-// src/controllers/immich.controller.ts
+// atlas-server/src/controllers/immich.controller.ts
+
 import { Context } from 'hono';
 import * as immichService from '../services/immich.service';
 
 export const getImmichStats = async (c: Context) => {
-  try {
-    const stats = await immichService.getImmichStatsFromCache();
-    return c.json({ success: true, data: stats }, 200);
-  } catch (error: any) {
-    console.error('❌ Get Immich Stats Error:', error);
-    return c.json(
-      {
-        success: false,
-        message: error.message || 'Failed to fetch Immich stats',
-      },
-      500,
-    );
-  }
+  const stats = await immichService.getImmichStatsFromCache();
+  return c.json({ success: true, data: stats }, 200);
 };
 
 export const syncImmichStats = async (c: Context) => {
-  try {
-    const updatedStats = await immichService.syncImmichStatsCache();
-    return c.json(
-      {
-        success: true,
-        message: 'Immich stats successfully synchronized',
-        data: updatedStats,
-      },
-      200,
-    );
-  } catch (error: any) {
-    console.error('❌ Sync Immich Stats Error:', error);
-    return c.json(
-      {
-        success: false,
-        message: error.message || 'Failed to sync Immich stats',
-      },
-      500,
-    );
-  }
+  const updatedStats = await immichService.syncImmichStatsCache();
+  return c.json(
+    {
+      success: true,
+      message: 'Immich stats successfully synchronized',
+      data: updatedStats,
+    },
+    200,
+  );
 };
 
 export const getMissingDates = async (c: Context) => {
-  try {
-    const assets = await immichService.getMissingDateAssets();
-    return c.json({ success: true, data: assets }, 200);
-  } catch (error: any) {
-    return c.json({ success: false, message: error.message }, 500);
-  }
+  const assets = await immichService.getMissingDateAssets();
+  return c.json({ success: true, data: assets }, 200);
 };
 
 export const updateMissingDates = async (c: Context) => {
-  try {
-    const body = await c.req.json();
-    if (!body.updates || !Array.isArray(body.updates)) {
-      return c.json({ success: false, message: 'Invalid payload' }, 400);
-    }
-
-    const result = await immichService.updateAssetsDate(body.updates);
-    return c.json({ success: true, data: result }, 200);
-  } catch (error: any) {
-    return c.json({ success: false, message: error.message }, 500);
+  const body = await c.req.json();
+  if (!body.updates || !Array.isArray(body.updates)) {
+    return c.json({ success: false, message: 'Invalid payload' }, 400);
   }
+
+  const result = await immichService.updateAssetsDate(body.updates);
+  return c.json({ success: true, data: result }, 200);
 };
 
 export const searchAssets = async (c: Context) => {
-  try {
-    const body = await c.req.json().catch(() => ({}));
-    const assets = await immichService.searchMyAssets(body);
-    return c.json({ success: true, data: assets }, 200);
-  } catch (error: any) {
-    return c.json({ success: false, message: error.message }, 500);
-  }
+  const body = await c.req.json().catch(() => ({}));
+  const assets = await immichService.searchMyAssets(body);
+  return c.json({ success: true, data: assets }, 200);
 };
 
 export const searchPeopleByName = async (c: Context) => {
@@ -83,20 +50,8 @@ export const searchPeopleByName = async (c: Context) => {
     );
   }
 
-  try {
-    const people = await immichService.searchImmichPeopleByName(name);
-    return c.json({ success: true, data: people }, 200);
-  } catch (error) {
-    console.error('[Immich Controller] People search failed:', error);
-    return c.json(
-      {
-        success: false,
-        message:
-          error instanceof Error ? error.message : 'Failed to search people',
-      },
-      500,
-    );
-  }
+  const people = await immichService.searchImmichPeopleByName(name);
+  return c.json({ success: true, data: people }, 200);
 };
 
 export const getThumbnail = async (c: Context) => {
@@ -108,6 +63,9 @@ export const getThumbnail = async (c: Context) => {
 
   try {
     const res = await immichService.getThumbnailProxy(id);
+    if (!res.ok) {
+      return c.text('Thumbnail not found', 404);
+    }
     const contentType = res.headers.get('content-type') || 'image/webp';
 
     // ブラウザに「1日間（86400秒）キャッシュしてOK」と伝える
@@ -117,7 +75,7 @@ export const getThumbnail = async (c: Context) => {
         'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
       },
     });
-  } catch (error) {
+  } catch {
     return c.text('Thumbnail not found', 404);
   }
 };

@@ -25,15 +25,7 @@ const handleError = (error: unknown, c: Context) => {
     );
   }
 
-  console.error('[Person Controller] Request failed:', error);
-  return c.json(
-    {
-      success: false,
-      code: 'INTERNAL_ERROR',
-      message: 'Unable to process person request.',
-    },
-    500,
-  );
+  throw error;
 };
 
 export const getPeople = async (c: Context) => {

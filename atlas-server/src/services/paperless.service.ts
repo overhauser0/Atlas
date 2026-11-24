@@ -28,26 +28,37 @@ export const getDocumentsFromCache = async (
 };
 
 /**
- * 2. プロキシ中継処理（B案の要）
- * Paperless APIからPDFデータを取得し、Node.jsのStreamとして返す
+ * Paperless APIからPDFデータをWeb ReadableStreamとして取得する。
  */
 export const getDocumentStream = async (
   paperlessId: number,
   type: 'preview' | 'download' = 'preview',
 ) => {
-  // preview: ブラウザでのインライン表示用, download: ダウンロード用
-  const url = `/api/documents/${paperlessId}/${type}/`;
-
-  // responseType: 'stream' にすることで、数MB〜数十MBのPDFデータを
-  // メモリに溜め込まず、右から左へ受け流すことができます（激速＆省メモリ）
-  const response = await apiClient.get(url, {
-    responseType: 'stream',
+  const url = `${PAPERLESS_API_URL}/api/documents/${paperlessId}/${type}/`;
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Token ${PAPERLESS_API_TOKEN}`,
+    },
   });
 
+  if (!response.ok || !response.body) {
+    return {
+      ok: false as const,
+      status: response.status,
+      stream: null,
+      contentType: null,
+      contentDisposition: null,
+    };
+  }
+
   return {
-    stream: response.data,
-    contentType: response.headers['content-type'],
-    contentDisposition: response.headers['content-disposition'],
+    ok: true as const,
+    status: response.status,
+    stream: response.body,
+    contentType: response.headers.get('content-type') || 'application/pdf',
+    contentDisposition:
+      response.headers.get('content-disposition') ||
+      'inline; filename="document.pdf"',
   };
 };
 

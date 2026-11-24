@@ -2,7 +2,10 @@
   "name": "atlas-server",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/index.ts"
+    "dev": "tsx watch src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@google/generative-ai": "^0.17.0",
@@ -21,6 +24,7 @@
     "@types/pg": "^8.11.6",
     "@types/ws": "^8.18.1",
     "tsx": "^4.10.5",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "vitest": "^3.2.4"
   }
 }

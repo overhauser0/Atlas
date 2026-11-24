@@ -1,4 +1,4 @@
-// src/controllers/piece.controller.ts
+// atlas-server/src/controllers/piece.controller.ts
 
 import { Context } from 'hono';
 import * as pieceService from '../services/piece.service';
@@ -10,189 +10,145 @@ import { PieceSchema } from '../models/piece.model';
 // ==========================================
 
 export const getPieces = async (c: Context) => {
-  try {
-    // URLクエリから条件を取得
-    const area = c.req.query('area');
-    const type = c.req.query('type');
-    const status = c.req.query('status');
-    const excludeStatus = c.req.query('excludeStatus');
-    const beforeDate = c.req.query('beforeDate');
-    const afterDate = c.req.query('afterDate');
-    const parentId = c.req.query('parentId');
+  const area = c.req.query('area');
+  const type = c.req.query('type');
+  const status = c.req.query('status');
+  const excludeStatus = c.req.query('excludeStatus');
+  const beforeDate = c.req.query('beforeDate');
+  const afterDate = c.req.query('afterDate');
+  const parentId = c.req.query('parentId');
 
-    const pieces = await pieceService.getPiecesFromCache({
-      area,
-      type,
-      status,
-      excludeStatus: excludeStatus ? excludeStatus.split(',') : undefined,
-      beforeDate,
-      afterDate,
-      parentId,
-    });
+  const pieces = await pieceService.getPiecesFromCache({
+    area,
+    type,
+    status,
+    excludeStatus: excludeStatus ? excludeStatus.split(',') : undefined,
+    beforeDate,
+    afterDate,
+    parentId,
+  });
 
-    return c.json({ pieces: pieces || [] }, 200);
-  } catch (error: any) {
-    console.error('❌ Get Pieces Error:', error);
-    return c.json({ message: error.message || 'Failed to fetch pieces' }, 500);
-  }
+  return c.json({ pieces: pieces || [] }, 200);
 };
 
 export const getPieceById = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
-    const cachedPiece = await pieceService.getPieceById(id);
-    if (!cachedPiece) return c.json({ message: 'Piece not found' }, 404);
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+  const cachedPiece = await pieceService.getPieceById(id);
+  if (!cachedPiece) return c.json({ message: 'Piece not found' }, 404);
 
-    return c.json({ piece: cachedPiece }, 200);
-  } catch (err) {
-    return c.json({ error: 'Getting Piece failed' }, 500);
-  }
+  return c.json({ piece: cachedPiece }, 200);
 };
 
 export const createPiece = async (c: Context) => {
-  try {
-    const rawData = await c.req.json();
+  const rawData = await c.req.json();
 
-    const validation = PieceSchema.safeParse(rawData);
-    if (!validation.success) {
-      console.warn(
-        'piece.controller: createPiece safeParse Error',
-        validation.error.format(),
-      );
-      return c.json(
-        {
-          message: 'Invalid input data',
-          errors: validation.error.format(),
-        },
-        400,
-      );
-    }
-
-    const piece = validation.data;
-    const createdPiece = await pieceService.createNewPiece(piece);
-    return c.json({ piece: createdPiece }, 201);
-  } catch (error: any) {
-    console.error('❌ Create Piece Error:', error);
-    return c.json({ message: error.message || 'Failed to create piece' }, 500);
+  const validation = PieceSchema.safeParse(rawData);
+  if (!validation.success) {
+    console.warn(
+      'piece.controller: createPiece safeParse Error',
+      validation.error.format(),
+    );
+    return c.json(
+      {
+        message: 'Invalid input data',
+        errors: validation.error.format(),
+      },
+      400,
+    );
   }
+
+  const piece = validation.data;
+  const createdPiece = await pieceService.createNewPiece(piece);
+  return c.json({ piece: createdPiece }, 201);
 };
 
 export const createPiecesBulk = async (c: Context) => {
-  try {
-    const { pieces } = await c.req.json();
+  const { pieces } = await c.req.json();
 
-    // tasksが配列であるかチェック
-    if (!Array.isArray(pieces) || pieces.length === 0) {
-      return c.json(
-        { error: 'Pieces array is missing, empty, or invalid' },
-        400,
-      );
-    }
-
-    const insertedPieces = await pieceService.createPiecesBulk(pieces);
-
+  if (!Array.isArray(pieces) || pieces.length === 0) {
     return c.json(
-      {
-        success: true,
-        count: insertedPieces.length,
-        data: insertedPieces,
-      },
-      201,
+      { error: 'Pieces array is missing, empty, or invalid' },
+      400,
     );
-  } catch (error) {
-    console.error('Bulk Create Pieces Error:', error);
-    return c.json({ error: 'Failed to create pieces in bulk' }, 500);
   }
+
+  const insertedPieces = await pieceService.createPiecesBulk(pieces);
+
+  return c.json(
+    {
+      success: true,
+      count: insertedPieces.length,
+      data: insertedPieces,
+    },
+    201,
+  );
 };
 
 export const updatePiece = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-    const rawData = await c.req.json();
+  const rawData = await c.req.json();
 
-    const validation = PieceSchema.omit({ id: true })
-      .partial()
-      .safeParse(rawData);
+  const validation = PieceSchema.omit({ id: true })
+    .partial()
+    .safeParse(rawData);
 
-    if (!validation.success) {
-      console.warn(
-        `⚠️ Validation failed for updatePiece (${id}):`,
-        validation.error.format(),
-      );
-      return c.json(
-        {
-          message: 'Invalid input data',
-          errors: validation.error.format(),
-        },
-        400,
-      );
-    }
-
-    const updatedPiece = await pieceService.updatePiece(id, validation.data);
-
-    await pieceService.checkSiblingTaskState(id);
-
-    return c.json({ piece: updatedPiece }, 200);
-  } catch (error: any) {
-    console.error(`❌ Update Piece Error (${c.req.param('id')}):`, error);
-    return c.json({ message: error.message || 'Failed to update piece' }, 500);
+  if (!validation.success) {
+    console.warn(
+      `⚠️ Validation failed for updatePiece (${id}):`,
+      validation.error.format(),
+    );
+    return c.json(
+      {
+        message: 'Invalid input data',
+        errors: validation.error.format(),
+      },
+      400,
+    );
   }
+
+  const updatedPiece = await pieceService.updatePiece(id, validation.data);
+  await pieceService.checkSiblingTaskState(id);
+
+  return c.json({ piece: updatedPiece }, 200);
 };
 
 export const deletePiece = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-    const targetPiece = await pieceService.getPieceById(id);
-    const parentId = targetPiece?.parent_id;
+  const targetPiece = await pieceService.getPieceById(id);
+  const parentId = targetPiece?.parent_id;
 
-    const result = await pieceService.deletePiece(id);
+  const result = await pieceService.deletePiece(id);
+  await pieceService.checkSiblingTaskStateByParentId(parentId);
 
-    await pieceService.checkSiblingTaskStateByParentId(parentId);
-
-    return c.json(result, 200);
-  } catch (error: any) {
-    console.error(`❌ Delete Piece Error (${c.req.param('id')}):`, error);
-    return c.json({ message: error.message || 'Failed to delete piece' }, 500);
-  }
+  return c.json(result, 200);
 };
 
 export const promotePiece = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-    // 1. ローカル取得
-    const cachedPiece = await pieceService.getPieceById(id);
-    if (!cachedPiece || cachedPiece.source !== 'LOCAL')
-      return c.json({ message: 'Local piece not found' }, 404);
+  const cachedPiece = await pieceService.getPieceById(id);
+  if (!cachedPiece || cachedPiece.source !== 'LOCAL')
+    return c.json({ message: 'Local piece not found' }, 404);
 
-    const validation = PieceSchema.safeParse(cachedPiece);
-
-    if (!validation.success) {
-      return c.json(
-        {
-          message: 'Data validation failed',
-          errors: validation.error.format(),
-        },
-        400,
-      );
-    }
-
-    const notionData = await pieceService.promoteLocalPiece(
-      id,
-      validation.data,
+  const validation = PieceSchema.safeParse(cachedPiece);
+  if (!validation.success) {
+    return c.json(
+      {
+        message: 'Data validation failed',
+        errors: validation.error.format(),
+      },
+      400,
     );
-
-    return c.json({ pieces: notionData || [] }, 200);
-  } catch (err) {
-    console.error(`❌ Promote Piece Error (${c.req.param('id')}):`, err);
-    return c.json({ error: 'Promotion failed' }, 500);
   }
+
+  const notionData = await pieceService.promoteLocalPiece(id, validation.data);
+  return c.json({ pieces: notionData || [] }, 200);
 };
 
 // ==========================================
@@ -200,32 +156,16 @@ export const promotePiece = async (c: Context) => {
 // ==========================================
 
 export const getPieceBlocks = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-    const pieceBlocks = await pieceService.getPieceBlocks(id);
-    return c.json({ blocks: pieceBlocks }, 200);
-  } catch (error: any) {
-    console.error(`❌ Get Piece Blocks Error (${c.req.param('id')}):`, error);
-    return c.json(
-      { message: error.message || 'Failed to get piece blocks' },
-      500,
-    );
-  }
+  const pieceBlocks = await pieceService.getPieceBlocks(id);
+  return c.json({ blocks: pieceBlocks }, 200);
 };
 
 export const rescheduleOverduePiecesToToday = async (c: Context) => {
-  try {
-    const updatedPieces = await pieceService.rescheduleOverduePiecesToToday();
-    return c.json({ pieces: updatedPieces }, 200);
-  } catch (error: any) {
-    console.error('❌ Reschedule Overdue Pieces Error:', error);
-    return c.json(
-      { message: error.message || 'Failed to reschedule pieces' },
-      500,
-    );
-  }
+  const updatedPieces = await pieceService.rescheduleOverduePiecesToToday();
+  return c.json({ pieces: updatedPieces }, 200);
 };
 
 // ==========================================
@@ -233,25 +173,12 @@ export const rescheduleOverduePiecesToToday = async (c: Context) => {
 // ==========================================
 
 export const syncPieces = async (c: Context) => {
-  try {
-    const result = await syncService.syncNotionToLocal();
-    await pieceService.cleanUpOrphanedTasks();
-    return c.json({ ok: 'SYNC_SUCCESS', ...result }, 200);
-  } catch (error: any) {
-    console.error('❌ Sync Piece Error:', error);
-    return c.json({ message: error.message || 'Failed to sync pieces' }, 500);
-  }
+  const result = await syncService.syncNotionToLocal();
+  await pieceService.cleanUpOrphanedTasks();
+  return c.json({ ok: 'SYNC_SUCCESS', ...result }, 200);
 };
 
 export const getLastSyncTime = async (c: Context) => {
-  try {
-    const lastSyncTime = await syncService.getLastSyncTime();
-    return c.json({ lastSyncTime }, 200);
-  } catch (error: any) {
-    console.error('❌ Get Last Sync Time Error:', error);
-    return c.json(
-      { message: error.message || 'Failed to get last sync time' },
-      500,
-    );
-  }
+  const lastSyncTime = await syncService.getLastSyncTime();
+  return c.json({ lastSyncTime }, 200);
 };

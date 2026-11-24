@@ -6,20 +6,14 @@ import {
   CreateAiAgentSchema,
   UpdateAiAgentSchema,
 } from '../models/agent.model';
-import { error } from 'console';
 
 /**
  * GET /api/v1/ai/agents
  * 全エージェントの取得
  */
 export const getAgents = async (c: Context) => {
-  try {
-    const agents = await agentService.getAllAgents();
-    return c.json({ success: true, agents });
-  } catch (error: any) {
-    console.error('[Agent Controller] getAgents Error:', error);
-    return c.json({ success: false, error: 'Failed to fetch agents' }, 500);
-  }
+  const agents = await agentService.getAllAgents();
+  return c.json({ success: true, agents });
 };
 
 /**
@@ -27,18 +21,19 @@ export const getAgents = async (c: Context) => {
  * 特定エージェントの取得
  */
 export const getAgent = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) throw error;
-    const agent = await agentService.getAgentById(id);
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, error: 'Agent ID is required' }, 400);
+  }
 
+  try {
+    const agent = await agentService.getAgentById(id);
     return c.json({ success: true, data: agent });
-  } catch (error: any) {
-    if (error.message === 'Agent not found') {
+  } catch (error) {
+    if (error instanceof Error && error.message === 'Agent not found') {
       return c.json({ success: false, error: error.message }, 404);
     }
-    console.error('[Agent Controller] getAgent Error:', error);
-    return c.json({ success: false, error: 'Internal Server Error' }, 500);
+    throw error;
   }
 };
 
@@ -47,28 +42,22 @@ export const getAgent = async (c: Context) => {
  * 新規エージェントの作成
  */
 export const createAgent = async (c: Context) => {
-  try {
-    const body = await c.req.json();
+  const body = await c.req.json();
 
-    // Zodによる入力値のバリデーション
-    const parsedData = CreateAiAgentSchema.safeParse(body);
-    if (!parsedData.success) {
-      return c.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: parsedData.error.errors,
-        },
-        400,
-      );
-    }
-
-    const newAgent = await agentService.createAgent(parsedData.data);
-    return c.json({ success: true, data: newAgent }, 201);
-  } catch (error: any) {
-    console.error('[Agent Controller] createAgent Error:', error);
-    return c.json({ success: false, error: 'Failed to create agent' }, 500);
+  const parsedData = CreateAiAgentSchema.safeParse(body);
+  if (!parsedData.success) {
+    return c.json(
+      {
+        success: false,
+        error: 'Validation failed',
+        details: parsedData.error.errors,
+      },
+      400,
+    );
   }
+
+  const newAgent = await agentService.createAgent(parsedData.data);
+  return c.json({ success: true, data: newAgent }, 201);
 };
 
 /**
@@ -76,37 +65,37 @@ export const createAgent = async (c: Context) => {
  * エージェントの部分更新
  */
 export const updateAgent = async (c: Context) => {
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, error: 'Agent ID is required' }, 400);
+  }
+
+  const body = await c.req.json();
+
+  const parsedData = UpdateAiAgentSchema.safeParse(body);
+  if (!parsedData.success) {
+    return c.json(
+      {
+        success: false,
+        error: 'Validation failed',
+        details: parsedData.error.errors,
+      },
+      400,
+    );
+  }
+
+  if (Object.keys(parsedData.data).length === 0) {
+    return c.json({ success: false, error: 'No update data provided' }, 400);
+  }
+
   try {
-    const id = c.req.param('id');
-    if (!id) throw error;
-    const body = await c.req.json();
-
-    // Zodによる入力値のバリデーション
-    const parsedData = UpdateAiAgentSchema.safeParse(body);
-    if (!parsedData.success) {
-      return c.json(
-        {
-          success: false,
-          error: 'Validation failed',
-          details: parsedData.error.errors,
-        },
-        400,
-      );
-    }
-
-    // 空の更新リクエストを弾く
-    if (Object.keys(parsedData.data).length === 0) {
-      return c.json({ success: false, error: 'No update data provided' }, 400);
-    }
-
     const updatedAgent = await agentService.updateAgent(id, parsedData.data);
     return c.json({ success: true, data: updatedAgent });
-  } catch (error: any) {
-    if (error.message.includes('not found')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
       return c.json({ success: false, error: error.message }, 404);
     }
-    console.error('[Agent Controller] updateAgent Error:', error);
-    return c.json({ success: false, error: 'Failed to update agent' }, 500);
+    throw error;
   }
 };
 
@@ -115,17 +104,18 @@ export const updateAgent = async (c: Context) => {
  * エージェントの削除
  */
 export const deleteAgent = async (c: Context) => {
-  try {
-    const id = c.req.param('id');
-    if (!id) throw error;
-    const deletedAgent = await agentService.deleteAgent(id);
+  const id = c.req.param('id');
+  if (!id) {
+    return c.json({ success: false, error: 'Agent ID is required' }, 400);
+  }
 
+  try {
+    const deletedAgent = await agentService.deleteAgent(id);
     return c.json({ success: true, data: deletedAgent });
-  } catch (error: any) {
-    if (error.message.includes('not found')) {
+  } catch (error) {
+    if (error instanceof Error && error.message.includes('not found')) {
       return c.json({ success: false, error: error.message }, 404);
     }
-    console.error('[Agent Controller] deleteAgent Error:', error);
-    return c.json({ success: false, error: 'Failed to delete agent' }, 500);
+    throw error;
   }
 };

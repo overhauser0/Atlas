@@ -14,6 +14,11 @@
     "build:trails": "npm run build --workspace=trails",
     "typecheck:gleis": "tsc -p gleis/tsconfig.json --noEmit",
     "typecheck:trails": "tsc -p trails/tsconfig.json --noEmit",
-    "typecheck": "npm run typecheck:gleis && npm run typecheck:trails"
+    "typecheck": "npm run typecheck:gleis && npm run typecheck:trails",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.4"
   }
 }

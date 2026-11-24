@@ -13,7 +13,7 @@ const handleError = (error: unknown, c: Context) => {
       error.status,
     );
   }
-  if (error instanceof ZodError) {
+  if (error instanceof ZodError || error instanceof SyntaxError) {
     return c.json(
       {
         success: false,
@@ -23,25 +23,8 @@ const handleError = (error: unknown, c: Context) => {
       400,
     );
   }
-  if (error instanceof SyntaxError) {
-    return c.json(
-      {
-        success: false,
-        code: 'INVALID_REQUEST',
-        message: 'Invalid request.',
-      },
-      400,
-    );
-  }
-  console.error('[Task Preset Controller] Request failed:', error);
-  return c.json(
-    {
-      success: false,
-      code: 'INTERNAL_ERROR',
-      message: 'Unable to process task preset request.',
-    },
-    500,
-  );
+
+  throw error;
 };
 
 export const getTaskPresets = async (c: Context) => {

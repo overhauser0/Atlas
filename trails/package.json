@@ -10,7 +10,7 @@
     "@atlas/shared": "*",
     "@serwist/next": "^9.0.0",
     "lucide-react": "latest",
-    "next": "15.0.3",
+    "next": "15.5.29",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "serwist": "^9.0.0",
