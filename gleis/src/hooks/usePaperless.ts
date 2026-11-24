@@ -3,6 +3,22 @@ import { useState, useCallback } from 'react';
 import { atlasFetch } from '@atlas/shared/api';
 import { PaperlessDocument } from '@/types';
 
+const getAtlasPublicHttpUrl = (): string | null => {
+  const wsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
+  if (!wsUrl) return null;
+  try {
+    const parsed = new URL(wsUrl);
+    if (parsed.protocol === 'wss:') parsed.protocol = 'https:';
+    else if (parsed.protocol === 'ws:') parsed.protocol = 'http:';
+    else if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
+      return null;
+    }
+    return parsed.toString().replace(/\/+$/, '');
+  } catch {
+    return null;
+  }
+};
+
 export const usePaperless = () => {
   const [documents, setDocuments] = useState<PaperlessDocument[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,18 +50,21 @@ export const usePaperless = () => {
 
   const openDocument = useCallback(async (paperlessId: number) => {
     try {
-      // 1. BFF 経由でワンタイムチケットを発行
+      // 1. BFF 経由でワンタイムチケットを発行（60秒有効・1回限り）
       const res = await atlasFetch(`/paperless/${paperlessId}/ticket`, {
         method: 'POST',
       });
 
       if (!res.ok) throw new Error('Failed to get view ticket');
 
-      const { ticket } = await res.json();
+      const { ticket } = (await res.json()) as { ticket: string };
+      const publicBaseUrl = getAtlasPublicHttpUrl();
 
-      // 2. 同一オリジン BFF の PDF 閲覧エンドポイントを別タブで開く
-      const viewUrl = `/api/paperless/view?ticket=${encodeURIComponent(ticket)}`;
-      window.open(viewUrl, '_blank');
+      // 2. PWA内で開かず外部ブラウザ（Chrome等）へ渡すため、別オリジンの atlas-server URL を開く
+      const viewUrl = publicBaseUrl
+        ? `${publicBaseUrl}/paperless/view?ticket=${encodeURIComponent(ticket)}`
+        : `/api/paperless/view?ticket=${encodeURIComponent(ticket)}`;
+      window.open(viewUrl, '_blank', 'noopener,noreferrer');
     } catch (e) {
       console.error('Open Document Error:', e);
       // 必要であればトーストでエラーを表示
