@@ -32,9 +32,9 @@ import {
   Keyboard,
 } from 'lucide-react';
 import type { LocalNote, ViewType, Task } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { PaperlessDocument, SettingsTab } from '@/types';
-import { getDateShortString } from '@/utils/date';
+import { getDateShortString } from '@atlas/shared/date';
 
 interface CommandPaletteProps {
   isOpen: boolean;

@@ -16,7 +16,7 @@ import {
   getDateShortString,
   getDateFullString,
   toLocalDate,
-} from '@/utils/date';
+} from '@atlas/shared/date';
 import CalendarItem from '@/components/ui/CalendarItem';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 

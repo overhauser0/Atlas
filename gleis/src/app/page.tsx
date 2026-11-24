@@ -60,9 +60,9 @@ import { useNoteSync } from '@/hooks/useNoteSync';
 import { useNotificationSync } from '@/hooks/useNotificationSync';
 import { usePaperless } from '@/hooks/usePaperless';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
-import { useConfirm } from '@/hooks/useConfirm';
+import { useConfirm } from '@atlas/shared/hooks/useConfirm';
 import { parseGleisLink } from '@/utils/scheme';
-import { getDateFullString } from '@/utils/date';
+import { getDateFullString } from '@atlas/shared/date';
 
 const NAV_GROUPS: {
   label: string;

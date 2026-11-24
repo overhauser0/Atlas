@@ -11,7 +11,7 @@ import {
   X,
 } from 'lucide-react';
 import { Person } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import PageHeader from '@/components/ui/PageHeader';
 import PersonEditor from '@/components/tabs/PersonEditor';

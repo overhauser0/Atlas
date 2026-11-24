@@ -15,7 +15,7 @@ import {
   JA_WEEKDAYS,
   getDateFullString,
   toDateKey,
-} from '@/utils/date';
+} from '@atlas/shared/date';
 import PageHeader from '@/components/ui/PageHeader';
 
 interface DiaryTabProps {

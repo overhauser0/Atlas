@@ -4,16 +4,20 @@ export const atlasFetch = async (path: string, options: RequestInit = {}) => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${baseUrl}/api/v1${cleanPath}`;
 
-  // 共通のヘッダーを自動でセット
-  const defaultHeaders = {
-    'Content-Type': 'application/json',
+  const apiKey: Record<string, string> = {
     'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
   };
+
+  const contentType: Record<string, string> =
+    options.body instanceof FormData
+      ? {}
+      : { 'Content-Type': 'application/json' };
 
   return fetch(url, {
     ...options,
     headers: {
-      ...defaultHeaders,
+      ...apiKey,
+      ...contentType,
       ...options.headers,
     },
   });

@@ -7,8 +7,8 @@ import {
   getCalendarDateKey,
   getThisWeekMondayDateKey,
   isOverdue,
-} from '@/utils/date';
-import { atlasFetch } from '@/lib/api';
+} from '@atlas/shared/date';
+import { atlasFetch } from '@atlas/shared/api';
 import {
   COLUMNS,
   getPieceDateRangeUpdate,

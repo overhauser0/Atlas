@@ -7,6 +7,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@atlas/shared": "*",
     "@serwist/next": "^9.0.0",
     "lucide-react": "latest",
     "next": "15.0.3",

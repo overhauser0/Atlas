@@ -1,7 +1,7 @@
 // gleis/src/hooks/usePieceSync.ts
 import { useState, useCallback } from 'react';
 import { LifeItem } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { markCategory, judgeDefaultIcon } from '@/utils/piece';
 
 export const usePieceSync = (

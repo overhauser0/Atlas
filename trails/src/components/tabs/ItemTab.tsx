@@ -20,7 +20,7 @@ import {
   Wine,
 } from 'lucide-react';
 import { ItemTabPreset, LifeItem } from '@/types';
-import { JA_WEEKDAYS, toDateKey, toLocalDate } from '@/utils/date';
+import { JA_WEEKDAYS, toDateKey, toLocalDate } from '@atlas/shared/date';
 import { groupItemsByYear } from '@/utils/piece';
 import ListItem from '@/components/ui/ListItem';
 import PageHeader from '@/components/ui/PageHeader';

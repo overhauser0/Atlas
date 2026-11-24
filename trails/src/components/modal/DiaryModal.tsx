@@ -19,14 +19,14 @@ import {
   X,
 } from 'lucide-react';
 import { DiaryItem, LifeItem } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import {
   formatJaDateWithWeekday,
   formatTimeFromIso,
   getDateFullString,
   shiftDateKey,
-} from '@/utils/date';
-import { getChecklistStats, toggleChecklistLine } from '@/utils/markdown';
+} from '@atlas/shared/date';
+import { getChecklistStats, toggleChecklistLine } from '@atlas/shared/markdown';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 import ListItem from '@/components/ui/ListItem';

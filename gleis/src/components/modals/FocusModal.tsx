@@ -12,7 +12,7 @@ import {
   Clock,
   Minimize2,
 } from 'lucide-react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { Task } from '@/types';
 import {
   FocusTimerMode,

@@ -13,7 +13,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import type { AppSettings } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
 
 // ==========================================

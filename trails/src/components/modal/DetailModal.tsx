@@ -16,7 +16,7 @@ import {
   UserRoundPlus,
 } from 'lucide-react';
 import { LifeItem, Person } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { formatPersonName } from '@/utils/person';
 import { getStatusColor, getNotionLinkById } from '@/utils/piece';
 

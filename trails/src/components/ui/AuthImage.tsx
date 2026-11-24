@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 
 interface AuthImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   src: string;

@@ -17,8 +17,8 @@ import {
   X,
 } from 'lucide-react';
 import { Person, PersonPiece, PersonTimelinePiece } from '@/types';
-import { atlasFetch } from '@/lib/api';
-import { getDateFullString } from '@/utils/date';
+import { atlasFetch } from '@atlas/shared/api';
+import { getDateFullString } from '@atlas/shared/date';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import { getNotionLinkById, sortByStartDate } from '@/utils/piece';
 import ConfirmModal from '@/components/modal/ConfirmModal';

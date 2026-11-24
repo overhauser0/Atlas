@@ -1,15 +1,26 @@
-import { useState, useCallback } from 'react';
+'use client';
+
+import type { ReactNode } from 'react';
+import { useCallback, useState } from 'react';
 
 interface ConfirmState {
   isOpen: boolean;
   title: string;
-  message: React.ReactNode;
+  message: ReactNode;
   confirmText?: string;
   cancelText?: string;
   resolve: ((value: boolean) => void) | null;
 }
 
-export function useConfirm() {
+export interface UseConfirmOptions {
+  defaultConfirmText?: string;
+  defaultCancelText?: string;
+}
+
+export function useConfirm(options: UseConfirmOptions = {}) {
+  const defaultConfirmText = options.defaultConfirmText ?? 'Yes';
+  const defaultCancelText = options.defaultCancelText ?? 'Cancel';
+
   const [confirmState, setConfirmState] = useState<ConfirmState>({
     isOpen: false,
     title: '',
@@ -17,15 +28,14 @@ export function useConfirm() {
     resolve: null,
   });
 
-  // 呼び出すと Promise を返す関数
   const confirm = useCallback(
     (
       title: string,
-      message: React.ReactNode,
-      confirmText = 'Yes',
-      cancelText = 'Cancel',
-    ): Promise<boolean> => {
-      return new Promise((resolve) => {
+      message: ReactNode,
+      confirmText = defaultConfirmText,
+      cancelText = defaultCancelText,
+    ): Promise<boolean> =>
+      new Promise((resolve) => {
         setConfirmState({
           isOpen: true,
           title,
@@ -34,20 +44,19 @@ export function useConfirm() {
           cancelText,
           resolve,
         });
-      });
-    },
-    [],
+      }),
+    [defaultConfirmText, defaultCancelText],
   );
 
   const handleConfirm = useCallback(() => {
     confirmState.resolve?.(true);
-    setConfirmState((prev) => ({ ...prev, isOpen: false }));
-  }, [confirmState]);
+    setConfirmState((current) => ({ ...current, isOpen: false }));
+  }, [confirmState.resolve]);
 
   const handleCancel = useCallback(() => {
     confirmState.resolve?.(false);
-    setConfirmState((prev) => ({ ...prev, isOpen: false }));
-  }, [confirmState]);
+    setConfirmState((current) => ({ ...current, isOpen: false }));
+  }, [confirmState.resolve]);
 
   return {
     confirm,

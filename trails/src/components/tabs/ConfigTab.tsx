@@ -9,7 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { useState } from 'react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
 import PageHeader from '@/components/ui/PageHeader';
 import packageJson from '../../../package.json';

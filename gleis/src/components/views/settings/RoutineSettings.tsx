@@ -13,7 +13,7 @@ import {
   Search,
 } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
 import { Task } from '@/types';
 

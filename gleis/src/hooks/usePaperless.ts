@@ -1,6 +1,6 @@
 // src/hooks/usePaperless.ts
 import { useState, useCallback } from 'react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { PaperlessDocument } from '@/types';
 
 export const usePaperless = () => {

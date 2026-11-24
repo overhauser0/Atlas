@@ -29,10 +29,10 @@ import {
   getPieceDateRangeUpdate,
   getStatusColor,
 } from '@/utils/task';
-import { getDateFullString } from '@/utils/date';
-import { atlasFetch } from '@/lib/api';
+import { getDateFullString } from '@atlas/shared/date';
+import { atlasFetch } from '@atlas/shared/api';
 import { triggerHaptics } from '@/lib/haptics';
-import { useConfirm } from '@/hooks/useConfirm';
+import { useConfirm } from '@atlas/shared/hooks/useConfirm';
 import ApplyTaskPresetModal from '@/components/modals/ApplyTaskPresetModal';
 
 interface TaskModalProps {

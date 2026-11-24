@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Check } from 'lucide-react';
-import { normalizeLineEndings } from '@/utils/markdown';
+import { normalizeLineEndings } from '@atlas/shared/markdown';
 
 interface MarkdownPreviewProps {
   content: string;

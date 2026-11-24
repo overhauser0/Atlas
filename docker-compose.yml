@@ -50,7 +50,8 @@ services:
       - atlas-net
   gleis:
     build:
-      context: ./gleis
+      context: .
+      dockerfile: ./gleis/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
         - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}
@@ -70,7 +71,8 @@ services:
       - atlas-net
   trails:
     build:
-      context: ./trails
+      context: .
+      dockerfile: ./trails/Dockerfile
       args:
         - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
         - NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}

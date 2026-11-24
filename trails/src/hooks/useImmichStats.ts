@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 
 // === 型定義（DashboardViewの要件に合わせる） ===
 export interface ImmichStats {

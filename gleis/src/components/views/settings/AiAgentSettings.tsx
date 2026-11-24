@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Cpu, Plus, Trash2, Save, X, Edit2, ShieldCheck } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
 
 export interface Agent {

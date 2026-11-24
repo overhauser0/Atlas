@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { ExternalLink, HardDrive, Calendar } from 'lucide-react';
 import { SubTaskProgressMap, Task, TaskStatus } from '@/types';
-import { atlasFetch } from '@/lib/api';
-import { getDateShortString } from '@/utils/date';
+import { atlasFetch } from '@atlas/shared/api';
+import { getDateShortString } from '@atlas/shared/date';
 import {
   getNotionLinkById,
   getStatusColor,

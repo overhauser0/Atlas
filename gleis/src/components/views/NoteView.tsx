@@ -16,8 +16,8 @@ import {
   CheckSquare,
 } from 'lucide-react';
 import type { LocalNote } from '@/types';
-import { atlasFetch } from '@/lib/api';
-import { getChecklistStats, toggleChecklistLine } from '@/utils/markdown';
+import { atlasFetch } from '@atlas/shared/api';
+import { getChecklistStats, toggleChecklistLine } from '@atlas/shared/markdown';
 import { useToast } from '@/components/ui/Toast';
 import { IconButton } from '@/components/ui/IconButton';
 import FAB from '@/components/ui/FAB';

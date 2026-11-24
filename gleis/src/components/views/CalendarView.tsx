@@ -1,13 +1,13 @@
 'use client';
 import { useState } from 'react';
 import { AppSettings, Task } from '@/types';
-import { getCalendarDateKey } from '@/utils/date';
+import { getCalendarDateKey } from '@atlas/shared/date';
 import {
   getPieceDateRangeUpdate,
   getStatusColor,
   sortTasksByStatus,
 } from '@/utils/task';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import MonthSelector from '@/components/ui/MonthSelector';
 import FAB from '@/components/ui/FAB';
 import { useToast } from '@/components/ui/Toast';

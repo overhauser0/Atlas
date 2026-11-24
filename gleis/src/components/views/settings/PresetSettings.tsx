@@ -10,7 +10,7 @@ import {
   X,
   ChevronDown,
 } from 'lucide-react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
 import { getStatusColor } from '@/utils/task';
 import type { TaskStatus } from '@/types';

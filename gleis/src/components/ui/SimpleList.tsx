@@ -2,7 +2,7 @@ import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import { Task } from '@/types';
 import { getStatusColor } from '@/utils/task';
-import { getDateShortString } from '@/utils/date';
+import { getDateShortString } from '@atlas/shared/date';
 
 interface SimpleListProps {
   tasks: Task[];

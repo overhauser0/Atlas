@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { Edit2 } from 'lucide-react';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import EditReviewModal from '@/components/modals/EditReviewModal';
 import MonthSelector from '@/components/ui/MonthSelector';
 

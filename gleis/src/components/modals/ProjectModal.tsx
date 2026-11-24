@@ -19,9 +19,9 @@ import { Task } from '@/types';
 import SimpleList from '@/components/ui/SimpleList';
 import Card from '@/components/ui/Card';
 import { useToast } from '@/components/ui/Toast';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { getStatusColor, sortByStartDate } from '@/utils/task';
-import { getDateShortString } from '@/utils/date';
+import { getDateShortString } from '@atlas/shared/date';
 import ProgressBar from '@/components/ui/ProgressBar';
 
 interface Props {

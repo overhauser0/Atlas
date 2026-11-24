@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { FileText, Plus, Clock } from 'lucide-react';
 import { Task } from '@/types';
-import { getDateFullString } from '@/utils/date';
+import { getDateFullString } from '@atlas/shared/date';
 import SimpleList from '@/components/ui/SimpleList';
 import SearchBar from '@/components/ui/SearchBar';
 

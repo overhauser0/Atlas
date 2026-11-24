@@ -24,7 +24,7 @@ import {
   Wine,
 } from 'lucide-react';
 import { DiaryItem, ItemTabPreset, LifeItem, Views } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 import { useImmichStats } from '@/hooks/useImmichStats';
 import JapanMapWidget from '@/components/JapanMapWidget';
 import ListItem from '@/components/ui/ListItem';
@@ -34,7 +34,7 @@ import {
   getMonthIndexFromDate,
   getYearFromDate,
   toDateKey,
-} from '@/utils/date';
+} from '@atlas/shared/date';
 import { sortByStartDate } from '@/utils/piece';
 import { normalizePref } from '@/utils/prefecture';
 

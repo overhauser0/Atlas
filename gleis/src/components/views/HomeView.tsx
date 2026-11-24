@@ -12,7 +12,7 @@ import {
   sortTasksByStatus,
   getNotionLinkById,
 } from '@/utils/task';
-import { getCalendarDateKey, getDateFullString } from '@/utils/date';
+import { getCalendarDateKey, getDateFullString } from '@atlas/shared/date';
 import DateSelector from '@/components/ui/DateSelector';
 import FAB from '@/components/ui/FAB';
 import Card from '@/components/ui/Card';

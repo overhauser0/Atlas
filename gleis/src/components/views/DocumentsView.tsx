@@ -10,7 +10,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { PaperlessDocument, Task } from '@/types';
-import { getDateFullString } from '@/utils/date';
+import { getDateFullString } from '@atlas/shared/date';
 import { IconButton } from '@/components/ui/IconButton';
 import SearchBar from '@/components/ui/SearchBar';
 

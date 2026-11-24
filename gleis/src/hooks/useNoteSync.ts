@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { LocalNote } from '@/types';
-import { atlasFetch } from '@/lib/api';
+import { atlasFetch } from '@atlas/shared/api';
 
 export function useNoteSync(
   onError?: (message: string) => void,

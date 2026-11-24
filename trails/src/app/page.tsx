@@ -53,8 +53,8 @@ import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
 import { ToastProvider } from '@/components/ui/Toast';
-import { atlasFetch } from '@/lib/api';
-import { getDateFullString } from '@/utils/date';
+import { atlasFetch } from '@atlas/shared/api';
+import { getDateFullString } from '@atlas/shared/date';
 
 // メニュー定義（役割別に整理）
 const OVERVIEW_TABS = [

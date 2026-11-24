@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { LifeItem } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
-import { addDays, toDateKey, toLocalDate } from '@/utils/date';
+import { addDays, toDateKey, toLocalDate } from '@atlas/shared/date';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface Props {
