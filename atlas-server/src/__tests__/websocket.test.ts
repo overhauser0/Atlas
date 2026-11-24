@@ -140,4 +140,33 @@ describe('websocket authentication and messaging', () => {
     unauth.close();
     ext.close();
   });
+
+  it('authenticates via single-use WS ticket and rejects replay of the same ticket', async () => {
+    const { issueWsTicket, clearWsTickets } = await import('../utils/ws-ticket');
+    clearWsTickets();
+    const ticket = issueWsTicket();
+
+    const first = new WebSocket(wsUrl);
+    const authOk = await new Promise<boolean>((resolve) => {
+      first.on('open', () =>
+        first.send(JSON.stringify({ type: 'AUTH', token: ticket })),
+      );
+      first.on('message', (raw) => {
+        const msg = JSON.parse(raw.toString());
+        if (msg.type === 'AUTH_OK') resolve(true);
+      });
+      first.on('close', () => resolve(false));
+    });
+    expect(authOk).toBe(true);
+    first.close();
+
+    const replay = new WebSocket(wsUrl);
+    const replayCloseCode = await new Promise<number>((resolve) => {
+      replay.on('open', () =>
+        replay.send(JSON.stringify({ type: 'AUTH', token: ticket })),
+      );
+      replay.on('close', (code) => resolve(code));
+    });
+    expect(replayCloseCode).toBe(4003);
+  });
 });

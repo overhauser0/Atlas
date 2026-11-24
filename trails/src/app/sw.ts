@@ -5,6 +5,7 @@ import {
   StaleWhileRevalidate,
   CacheFirst,
   NetworkFirst,
+  NetworkOnly,
   ExpirationPlugin,
 } from 'serwist';
 import type { PrecacheEntry } from 'serwist';
@@ -19,10 +20,15 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // 0. 認証エンドポイントは絶対にキャッシュしない
+    {
+      matcher: ({ url }) => url.pathname.startsWith('/api/auth/'),
+      handler: new NetworkOnly(),
+    },
     // 1. API通信 (Tasks, LifeItems, Notion連携などすべて)
     {
-      // /api/ から始まるすべてのGETリクエストを対象にする
-      matcher: ({ url }) => url.pathname.startsWith('/api/'),
+      // /api/atlas/ から始まるすべてのGETリクエストを対象にする
+      matcher: ({ url }) => url.pathname.startsWith('/api/atlas/'),
       // NetworkFirst: 常に最新データを取得しにいく。オフライン時やエラー時のみキャッシュを返す
       handler: new NetworkFirst({
         cacheName: 'api-data-cache',

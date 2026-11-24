@@ -18,6 +18,7 @@ import * as taskPresetController from './controllers/task-preset.controller';
 import * as personController from './controllers/person.controller';
 import * as sparkController from './controllers/spark.controller';
 import { initWebSocket } from './utils/websocket';
+import { issueWsTicket, WS_TICKET_TTL_SEC } from './utils/ws-ticket';
 import { timingSafeCompare } from './utils/utils';
 
 const app = new Hono();
@@ -135,6 +136,11 @@ app.post('/auth/verify', async (c) => {
 
 // /api/v1 プレフィックスで整理
 const api = new Hono();
+// auth (BFF向け短命WebSocketチケット発行)
+api.post('/auth/ws-ticket', (c) => {
+  const ticket = issueWsTicket();
+  return c.json({ ticket, expiresInSec: WS_TICKET_TTL_SEC });
+});
 // notification
 api.post('/push', notificationController.receivePush);
 api.get('/notifications', notificationController.getNotificationHistory);

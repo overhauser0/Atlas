@@ -9,6 +9,7 @@ import {
 export function useAtlasWebSocket(
   onRefreshPieces: () => void,
   onRefreshDiaries: () => void,
+  enabled = true,
 ) {
   const handleMessage = useCallback(
     (data: AtlasWsMessage) => {
@@ -29,6 +30,7 @@ export function useAtlasWebSocket(
   const { wsStatus, connectedDevices, ownDeviceId } = useSharedAtlasWebSocket({
     clientType: 'trails',
     deviceIdStorageKey: 'trails_device_id',
+    enabled,
     initialStatus: 'disconnected',
     onMessage: handleMessage,
   });

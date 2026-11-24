@@ -9,6 +9,7 @@ import {
 export function useAtlasWebSocket(
   onRefreshPieces: (force: boolean) => void,
   onRefreshNotifications: () => void,
+  enabled = true,
 ) {
   const handleMessage = useCallback(
     (data: AtlasWsMessage) => {
@@ -26,6 +27,7 @@ export function useAtlasWebSocket(
   return useSharedAtlasWebSocket({
     clientType: 'gleis',
     deviceIdStorageKey: 'gleis_device_id',
+    enabled,
     initialStatus: 'connecting',
     onMessage: handleMessage,
   });

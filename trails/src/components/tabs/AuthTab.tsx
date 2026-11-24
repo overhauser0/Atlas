@@ -15,23 +15,20 @@ export default function AuthTab({ onLogin }: AuthTabProps) {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/verify`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ password: passwordInput }),
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({ password: passwordInput }),
+      });
 
       if (response.ok) {
         setLoginError(false);
         setIsUnlocking(true);
 
         setTimeout(() => {
-          localStorage.setItem('atlas_auth', 'true');
           onLogin();
         }, 800);
       } else {

@@ -34,7 +34,7 @@ export const usePaperless = () => {
 
   const openDocument = useCallback(async (paperlessId: number) => {
     try {
-      // 1. X-API-KEY を使ってワンタイムチケットを発行
+      // 1. BFF 経由でワンタイムチケットを発行
       const res = await atlasFetch(`/paperless/${paperlessId}/ticket`, {
         method: 'POST',
       });
@@ -42,10 +42,9 @@ export const usePaperless = () => {
       if (!res.ok) throw new Error('Failed to get view ticket');
 
       const { ticket } = await res.json();
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
 
-      // 2. チケット付きのURLを別タブで開く
-      const viewUrl = `${baseUrl}/paperless/view?ticket=${ticket}`;
+      // 2. 同一オリジン BFF の PDF 閲覧エンドポイントを別タブで開く
+      const viewUrl = `/api/paperless/view?ticket=${encodeURIComponent(ticket)}`;
       window.open(viewUrl, '_blank');
     } catch (e) {
       console.error('Open Document Error:', e);

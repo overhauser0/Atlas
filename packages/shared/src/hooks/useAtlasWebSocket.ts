@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getAutoDeviceName } from '../device';
+import { ATLAS_UNAUTHORIZED_EVENT } from '../api';
 
 export interface AtlasDevice {
   deviceId: string;
@@ -20,6 +21,7 @@ export interface AtlasWsMessage {
 export interface UseAtlasWebSocketOptions {
   clientType: 'gleis' | 'trails';
   deviceIdStorageKey: string;
+  enabled?: boolean;
   initialStatus?: AtlasWsStatus;
   onMessage?: (data: AtlasWsMessage) => void;
 }
@@ -27,10 +29,13 @@ export interface UseAtlasWebSocketOptions {
 export function useAtlasWebSocket({
   clientType,
   deviceIdStorageKey,
+  enabled = true,
   initialStatus = 'connecting',
   onMessage,
 }: UseAtlasWebSocketOptions) {
-  const [wsStatus, setWsStatus] = useState<AtlasWsStatus>(initialStatus);
+  const [wsStatus, setWsStatus] = useState<AtlasWsStatus>(
+    enabled ? initialStatus : 'disconnected',
+  );
   const [connectedDevices, setConnectedDevices] = useState<AtlasDevice[]>([]);
   const [ownDeviceId, setOwnDeviceId] = useState('');
 
@@ -48,6 +53,27 @@ export function useAtlasWebSocket({
   }, [onMessage]);
 
   useEffect(() => {
+    if (!enabled) {
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+        reconnectTimeoutRef.current = null;
+      }
+      if (pingIntervalRef.current) {
+        clearInterval(pingIntervalRef.current);
+        pingIntervalRef.current = null;
+      }
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+      setWsStatus('disconnected');
+      setConnectedDevices([]);
+      connectFnRef.current = null;
+      return;
+    }
+
+    let cancelled = false;
     let currentDeviceId = localStorage.getItem(deviceIdStorageKey);
     if (!currentDeviceId) {
       currentDeviceId = crypto.randomUUID();
@@ -56,7 +82,9 @@ export function useAtlasWebSocket({
     setOwnDeviceId(currentDeviceId);
     const deviceName = getAutoDeviceName();
 
-    const connectWebSocket = () => {
+    const connectWebSocket = async () => {
+      if (cancelled) return;
+
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
         reconnectTimeoutRef.current = null;
@@ -64,6 +92,7 @@ export function useAtlasWebSocket({
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
+        wsRef.current = null;
       }
 
       const wsUrl = process.env.NEXT_PUBLIC_WS_URL?.trim();
@@ -75,6 +104,42 @@ export function useAtlasWebSocket({
 
       setWsStatus('connecting');
 
+      let ticket = '';
+      try {
+        const tokenRes = await fetch('/api/auth/ws-token', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+
+        if (cancelled) return;
+
+        if (tokenRes.status === 401) {
+          setWsStatus('disconnected');
+          window.dispatchEvent(new CustomEvent(ATLAS_UNAUTHORIZED_EVENT));
+          return;
+        }
+
+        if (!tokenRes.ok) {
+          throw new Error(`WS ticket request failed (${tokenRes.status})`);
+        }
+
+        const data = (await tokenRes.json()) as { ticket?: string };
+        if (!data.ticket) {
+          throw new Error('WS ticket missing in response');
+        }
+        ticket = data.ticket;
+      } catch (e) {
+        if (cancelled) return;
+        console.warn('[WS] Failed to fetch WS ticket. Reconnecting in 5s...', e);
+        setWsStatus('disconnected');
+        reconnectTimeoutRef.current = setTimeout(() => {
+          void connectWebSocket();
+        }, 5000);
+        return;
+      }
+
+      if (cancelled) return;
+
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
 
@@ -83,7 +148,7 @@ export function useAtlasWebSocket({
         ws.send(
           JSON.stringify({
             type: 'AUTH',
-            apiKey: process.env.NEXT_PUBLIC_API_KEY || '',
+            token: ticket,
           }),
         );
       };
@@ -137,7 +202,11 @@ export function useAtlasWebSocket({
           clearInterval(pingIntervalRef.current);
           pingIntervalRef.current = null;
         }
-        reconnectTimeoutRef.current = setTimeout(connectWebSocket, 5000);
+        if (!cancelled) {
+          reconnectTimeoutRef.current = setTimeout(() => {
+            void connectWebSocket();
+          }, 5000);
+        }
       };
 
       ws.onerror = (error) => {
@@ -146,10 +215,13 @@ export function useAtlasWebSocket({
       };
     };
 
-    connectFnRef.current = connectWebSocket;
-    connectWebSocket();
+    connectFnRef.current = () => {
+      void connectWebSocket();
+    };
+    void connectWebSocket();
 
     return () => {
+      cancelled = true;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -157,9 +229,10 @@ export function useAtlasWebSocket({
       if (wsRef.current) {
         wsRef.current.onclose = null;
         wsRef.current.close();
+        wsRef.current = null;
       }
     };
-  }, [clientType, deviceIdStorageKey]);
+  }, [clientType, deviceIdStorageKey, enabled]);
 
   const reconnect = useCallback(() => {
     connectFnRef.current?.();

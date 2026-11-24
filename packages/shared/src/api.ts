@@ -1,24 +1,26 @@
-export const atlasFetch = async (path: string, options: RequestInit = {}) => {
-  // 先頭のスラッシュ重複を防止しつつ、絶対URLを組み立て
-  const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-  const cleanPath = path.startsWith('/') ? path : `/${path}`;
-  const url = `${baseUrl}/api/v1${cleanPath}`;
+export const ATLAS_UNAUTHORIZED_EVENT = 'atlas:unauthorized';
 
-  const apiKey: Record<string, string> = {
-    'X-API-KEY': process.env.NEXT_PUBLIC_API_KEY || '',
-  };
+export const atlasFetch = async (path: string, options: RequestInit = {}) => {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  const url = `/api/atlas${cleanPath}`;
 
   const contentType: Record<string, string> =
     options.body instanceof FormData
       ? {}
       : { 'Content-Type': 'application/json' };
 
-  return fetch(url, {
+  const response = await fetch(url, {
     ...options,
+    credentials: 'same-origin',
     headers: {
-      ...apiKey,
       ...contentType,
       ...options.headers,
     },
   });
+
+  if (response.status === 401 && typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(ATLAS_UNAUTHORIZED_EVENT));
+  }
+
+  return response;
 };

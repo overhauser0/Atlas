@@ -1,6 +1,7 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { IncomingMessage, Server } from 'http';
 import { timingSafeCompare } from './utils';
+import { consumeWsTicket } from './ws-ticket';
 
 // 接続中のクライアントに属性を持たせるための型
 interface ClientInfo {
@@ -83,11 +84,16 @@ export const initWebSocket = (server: Server) => {
 
         // 未認証クライアントは AUTH メッセージのみ受け付ける
         if (!clientInfo.authenticated) {
-          if (
+          const isValidTicket =
+            data.type === 'AUTH' &&
+            typeof data.token === 'string' &&
+            consumeWsTicket(data.token);
+          const isValidApiKey =
             data.type === 'AUTH' &&
             typeof data.apiKey === 'string' &&
-            timingSafeCompare(data.apiKey, expectedKey)
-          ) {
+            timingSafeCompare(data.apiKey, expectedKey);
+
+          if (isValidTicket || isValidApiKey) {
             clientInfo.authenticated = true;
             if (clientInfo.authTimeout) {
               clearTimeout(clientInfo.authTimeout);

@@ -10,7 +10,9 @@
     "./date": "./src/date.ts",
     "./markdown": "./src/markdown.ts",
     "./hooks/useConfirm": "./src/hooks/useConfirm.ts",
-    "./hooks/useAtlasWebSocket": "./src/hooks/useAtlasWebSocket.ts"
+    "./hooks/useAtlasWebSocket": "./src/hooks/useAtlasWebSocket.ts",
+    "./server/session": "./src/server/session.ts",
+    "./server/proxy": "./src/server/proxy.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

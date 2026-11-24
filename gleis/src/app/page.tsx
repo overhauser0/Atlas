@@ -50,6 +50,7 @@ import { usePaperless } from '@/hooks/usePaperless';
 import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useConfirm } from '@atlas/shared/hooks/useConfirm';
 import { parseGleisLink } from '@/utils/scheme';
+import { ATLAS_UNAUTHORIZED_EVENT } from '@atlas/shared/api';
 import { getDateFullString } from '@atlas/shared/date';
 
 function HomeContent() {
@@ -183,7 +184,7 @@ function HomeContent() {
   } = usePaperless();
 
   const { wsRef, wsStatus, connectedDevices, ownDeviceId, reconnect: reconnectWs } =
-    useAtlasWebSocket(fetchTasks, fetchNotifications);
+    useAtlasWebSocket(fetchTasks, fetchNotifications, isAuthenticated);
 
   // ============================================================================
   // 3. Derived State (派生データ)
@@ -338,9 +339,24 @@ function HomeContent() {
     closeTaskModal();
   }, []);
 
+  const hasFetchedInitial = useRef(false);
+
   const handleLogout = useCallback(() => {
-    localStorage.removeItem('atlas_auth');
-    setIsAuthenticated(false);
+    void (async () => {
+      try {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          credentials: 'same-origin',
+        });
+      } catch (e) {
+        console.warn('Logout request failed:', e);
+      }
+      if ('caches' in window) {
+        void caches.delete('api-pieces-cache');
+      }
+      hasFetchedInitial.current = false;
+      setIsAuthenticated(false);
+    })();
   }, []);
 
   const closeTaskModal = useCallback(() => {
@@ -435,14 +451,42 @@ function HomeContent() {
   // 5. Effects (ライフサイクル・イベント監視)
   // ============================================================================
 
-  // 初期化・認証確認
+  // 初期化・サーバーセッション検証
   useEffect(() => {
-    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
-    setIsAuthChecking(false);
+    let active = true;
+    const verifySession = async () => {
+      try {
+        const res = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        if (!active) return;
+        if (res.ok) {
+          const data = (await res.json()) as { authenticated?: boolean };
+          setIsAuthenticated(Boolean(data.authenticated));
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        if (active) setIsAuthenticated(false);
+      } finally {
+        if (active) setIsAuthChecking(false);
+      }
+    };
+    void verifySession();
+
+    const handleUnauthorized = () => {
+      hasFetchedInitial.current = false;
+      setIsAuthenticated(false);
+    };
+    window.addEventListener(ATLAS_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      active = false;
+      window.removeEventListener(ATLAS_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
   }, []);
 
   // 初回のデータフェッチ処理
-  const hasFetchedInitial = useRef(false);
   useEffect(() => {
     if (isAuthenticated && !hasFetchedInitial.current) {
       fetchTasks(false);

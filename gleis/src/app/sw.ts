@@ -17,10 +17,18 @@ const serwist = new Serwist({
   clientsClaim: true,
   navigationPreload: true,
   runtimeCaching: [
+    // 0. 認証・PDF閲覧エンドポイントは絶対にキャッシュしない
+    {
+      matcher: ({ url }) =>
+        url.pathname.startsWith('/api/auth/') ||
+        url.pathname.startsWith('/api/paperless/'),
+      handler: new NetworkOnly(),
+    },
+
     // 1. Piece (タスク・メモ等) API
     // 確実な最新データを優先しつつ、オフライン時はキャッシュを返す
     {
-      matcher: ({ url }) => url.pathname.startsWith('/api/pieces'),
+      matcher: ({ url }) => url.pathname.startsWith('/api/atlas/pieces'),
       handler: new NetworkFirst({
         cacheName: 'api-pieces-cache',
         networkTimeoutSeconds: 3, // 3秒応答がなければキャッシュにフォールバック
@@ -30,7 +38,7 @@ const serwist = new Serwist({
     // 2. AI Agent API / 設定
     // AIのレスポンスはキャッシュせず常にネットワークから取得する
     {
-      matcher: ({ url }) => url.pathname.startsWith('/api/ai'),
+      matcher: ({ url }) => url.pathname.startsWith('/api/atlas/ai'),
       handler: new NetworkOnly(),
     },
 

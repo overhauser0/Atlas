@@ -36,7 +36,7 @@ import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
 import { ToastProvider } from '@/components/ui/Toast';
-import { atlasFetch } from '@atlas/shared/api';
+import { ATLAS_UNAUTHORIZED_EVENT, atlasFetch } from '@atlas/shared/api';
 import { getDateFullString } from '@atlas/shared/date';
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
@@ -112,7 +112,7 @@ function AppMain() {
     void fetchDiaries();
   }, [fetchDiaries]);
 
-  useAtlasWebSocket(handleRefreshPieces, handleRefreshDiaries);
+  useAtlasWebSocket(handleRefreshPieces, handleRefreshDiaries, isAuthenticated);
 
   const { googleEvents, fetchGoogleEvents } = useGoogleCalendar(
     isAuthenticated,
@@ -124,8 +124,36 @@ function AppMain() {
   // 3. Effects
   // ============================================================================
   useEffect(() => {
-    if (localStorage.getItem('atlas_auth') === 'true') setIsAuthenticated(true);
-    setIsAuthChecking(false);
+    let active = true;
+    const verifySession = async () => {
+      try {
+        const res = await fetch('/api/auth/session', {
+          method: 'GET',
+          credentials: 'same-origin',
+        });
+        if (!active) return;
+        if (res.ok) {
+          const data = (await res.json()) as { authenticated?: boolean };
+          setIsAuthenticated(Boolean(data.authenticated));
+        } else {
+          setIsAuthenticated(false);
+        }
+      } catch {
+        if (active) setIsAuthenticated(false);
+      } finally {
+        if (active) setIsAuthChecking(false);
+      }
+    };
+    void verifySession();
+
+    const handleUnauthorized = () => {
+      setIsAuthenticated(false);
+    };
+    window.addEventListener(ATLAS_UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => {
+      active = false;
+      window.removeEventListener(ATLAS_UNAUTHORIZED_EVENT, handleUnauthorized);
+    };
   }, []);
 
   useEffect(() => {
@@ -371,8 +399,20 @@ function AppMain() {
               onUpdateSettings={setAppSettings}
               onSync={() => handleNotionSync(true)}
               onLogout={() => {
-                localStorage.removeItem('atlas_auth');
-                setIsAuthenticated(false);
+                void (async () => {
+                  try {
+                    await fetch('/api/auth/logout', {
+                      method: 'POST',
+                      credentials: 'same-origin',
+                    });
+                  } catch (e) {
+                    console.warn('Logout request failed:', e);
+                  }
+                  if ('caches' in window) {
+                    void caches.delete('api-data-cache');
+                  }
+                  setIsAuthenticated(false);
+                })();
               }}
             />
           )}
