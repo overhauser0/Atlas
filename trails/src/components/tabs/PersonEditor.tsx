@@ -1,120 +1,32 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import {
-  Camera,
-  CalendarDays,
-  ContactRound,
-  ExternalLink,
-  Image,
-  MoreVertical,
-  Pencil,
-  Plus,
-  Search,
-  Trash2,
-  Unlink,
-  UsersRound,
-  X,
-} from 'lucide-react';
-import { Person, PersonPiece, PersonTimelinePiece } from '@/types';
+import { ContactRound, Image, Pencil } from 'lucide-react';
+import type { Person } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
-import { getDateFullString } from '@atlas/shared/date';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
-import { getNotionLinkById, sortByStartDate } from '@/utils/piece';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import {
+  EMPTY_FORM,
+  toPersonForm,
+  type ExternalLinkType,
+  type PersonForm,
+} from './person-editor/types';
+import { usePersonTimeline } from './person-editor/usePersonTimeline';
+import PersonProfileView from './person-editor/PersonProfileView';
+import PersonFormFields from './person-editor/PersonFormFields';
+import PersonExternalLinkModal from './person-editor/PersonExternalLinkModal';
+import PersonPieceModal from './person-editor/PersonPieceModal';
+import PersonTimelineEditModal from './person-editor/PersonTimelineEditModal';
 
 interface PersonEditorProps {
   person: Person | null;
   onClose: () => void;
   onSaved: (person?: Person) => void;
 }
-
-interface PersonForm {
-  family_name: string;
-  given_name: string;
-  ruby_family_name: string;
-  ruby_given_name: string;
-  birthday: string;
-  tags: string;
-  bloodType: string;
-  notes: string;
-}
-
-interface PieceDraft {
-  date: string;
-  title: string;
-  note: string;
-}
-
-interface LinkedTimelinePiece extends PersonTimelinePiece {
-  personPieceId: string;
-}
-
-const EMPTY_FORM: PersonForm = {
-  family_name: '',
-  given_name: '',
-  ruby_family_name: '',
-  ruby_given_name: '',
-  birthday: '',
-  tags: '',
-  bloodType: '',
-  notes: '',
-};
-
-const toForm = (person: Person | null): PersonForm =>
-  person
-    ? {
-        family_name: person.family_name,
-        given_name: person.given_name ?? '',
-        ruby_family_name: person.ruby_family_name ?? '',
-        ruby_given_name: person.ruby_given_name ?? '',
-        birthday: person.birthday?.slice(0, 10) ?? '',
-        tags: person.tags?.join(', ') ?? '',
-        bloodType: person.blood_type?.join(', ') ?? '',
-        notes: person.notes ?? '',
-      }
-    : EMPTY_FORM;
-
-const getTimelinePieces = async (personId: string) => {
-  const linksResponse = await atlasFetch(`/people/${personId}/pieces`);
-  if (!linksResponse.ok) {
-    throw new Error(`関連Pieceの取得に失敗しました (${linksResponse.status})`);
-  }
-
-  const linksData: { person_pieces: PersonPiece[] } =
-    await linksResponse.json();
-  if (!Array.isArray(linksData.person_pieces)) {
-    throw new Error('関連Pieceのレスポンス形式が正しくありません');
-  }
-
-  return Promise.all(
-    linksData.person_pieces.map(async (link) => {
-      const pieceId = link.notion_piece_id ?? link.local_piece_id;
-      if (!pieceId) {
-        throw new Error('関連PieceのIDがありません');
-      }
-
-      const pieceResponse = await atlasFetch(
-        `/pieces/${encodeURIComponent(pieceId)}`,
-      );
-      if (!pieceResponse.ok) {
-        throw new Error(
-          `関連Piece (${pieceId}) の取得に失敗しました (${pieceResponse.status})`,
-        );
-      }
-
-      const pieceData: { piece: PersonTimelinePiece } =
-        await pieceResponse.json();
-      if (!pieceData.piece || typeof pieceData.piece.title !== 'string') {
-        throw new Error('Pieceのレスポンス形式が正しくありません');
-      }
-      return { ...pieceData.piece, personPieceId: link.id };
-    }),
-  );
-};
 
 export default function PersonEditor({
   person,
@@ -126,51 +38,9 @@ export default function PersonEditor({
   const [isDeletingPerson, setIsDeletingPerson] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [timelinePieces, setTimelinePieces] = useState<LinkedTimelinePiece[]>(
-    [],
-  );
-  const [isTimelineLoading, setIsTimelineLoading] = useState(false);
-  const [timelineError, setTimelineError] = useState<string | null>(null);
-  const [timelineActionError, setTimelineActionError] = useState<string | null>(
+  const [linkModalType, setLinkModalType] = useState<ExternalLinkType | null>(
     null,
   );
-  const [isUpdatingTimelinePiece, setIsUpdatingTimelinePiece] = useState(false);
-  const [editingTimelinePiece, setEditingTimelinePiece] =
-    useState<LinkedTimelinePiece | null>(null);
-  const [timelineEditDraft, setTimelineEditDraft] = useState<PieceDraft>({
-    date: '',
-    title: '',
-    note: '',
-  });
-  const [timelineEditError, setTimelineEditError] = useState<string | null>(
-    null,
-  );
-  const [isSavingTimelineEdit, setIsSavingTimelineEdit] = useState(false);
-  const [openPieceMenuId, setOpenPieceMenuId] = useState<string | null>(null);
-  const pieceMenuRef = useRef<HTMLDivElement>(null);
-  const { confirm, confirmProps } = useConfirm();
-  const [pieceModalType, setPieceModalType] = useState<
-    'create' | 'link' | null
-  >(null);
-  const [pieceDraft, setPieceDraft] = useState<PieceDraft>({
-    date: '',
-    title: '',
-    note: '',
-  });
-  const [pieceSearchQuery, setPieceSearchQuery] = useState('');
-  const [availablePieces, setAvailablePieces] = useState<PersonTimelinePiece[]>(
-    [],
-  );
-  const [isLoadingAvailablePieces, setIsLoadingAvailablePieces] =
-    useState(false);
-  const [availablePiecesError, setAvailablePiecesError] = useState<
-    string | null
-  >(null);
-  const [pieceActionError, setPieceActionError] = useState<string | null>(null);
-  const [isSavingPiece, setIsSavingPiece] = useState(false);
-  const [linkModalType, setLinkModalType] = useState<
-    'immich_person_id' | 'google_contact_id' | null
-  >(null);
   const [linkIdDraft, setLinkIdDraft] = useState('');
   const [linkModalError, setLinkModalError] = useState<string | null>(null);
   const [isSavingLink, setIsSavingLink] = useState(false);
@@ -178,14 +48,19 @@ export default function PersonEditor({
   const [isPersonPhotoModalOpen, setIsPersonPhotoModalOpen] = useState(false);
   const [immichPersonSearchNotFound, setImmichPersonSearchNotFound] =
     useState(false);
-  const immichSearchRequestId = useRef(0);
   const [linkedIds, setLinkedIds] = useState({
     immich_person_id: person?.immich_person_id ?? null,
     google_contact_id: person?.google_contact_id ?? null,
   });
 
+  const immichSearchRequestId = useRef(0);
+  const pieceMenuRef = useRef<HTMLDivElement>(null);
+  const { confirm, confirmProps } = useConfirm();
+
+  const timeline = usePersonTimeline(person, isEditing, onSaved, confirm);
+
   useEffect(() => {
-    setForm(toForm(person));
+    setForm(toPersonForm(person));
     setIsEditing(person === null);
     setError(null);
     setLinkedIds({
@@ -194,109 +69,35 @@ export default function PersonEditor({
     });
   }, [person]);
 
-  useEffect(() => {
-    if (!person || isEditing) {
-      setTimelinePieces([]);
-      setTimelineError(null);
-      setTimelineActionError(null);
-      setOpenPieceMenuId(null);
-      setIsTimelineLoading(false);
-      return;
-    }
-
-    let isCurrent = true;
-    setIsTimelineLoading(true);
-    setTimelineError(null);
-    setTimelineActionError(null);
-    setOpenPieceMenuId(null);
-    void getTimelinePieces(person.id)
-      .then((pieces) => {
-        if (isCurrent) {
-          setTimelinePieces(sortByStartDate(pieces, 'desc'));
-        }
-      })
-      .catch((fetchError: unknown) => {
-        console.error('Failed to fetch person timeline:', fetchError);
-        if (isCurrent) {
-          setTimelineError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : '関連Pieceの取得に失敗しました',
-          );
-        }
-      })
-      .finally(() => {
-        if (isCurrent) setIsTimelineLoading(false);
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [person, isEditing]);
-
-  useEffect(() => {
-    if (!person || pieceModalType !== 'link') return;
-
-    let isCurrent = true;
-    setIsLoadingAvailablePieces(true);
-    setAvailablePiecesError(null);
-    void atlasFetch('/pieces')
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Pieceの検索に失敗しました (${response.status})`);
-        }
-        const data: { pieces: PersonTimelinePiece[] } = await response.json();
-        if (!Array.isArray(data.pieces)) {
-          throw new Error('Pieceの検索結果の形式が正しくありません');
-        }
-        if (isCurrent) setAvailablePieces(data.pieces);
-      })
-      .catch((fetchError: unknown) => {
-        console.error('Failed to fetch pieces for person linking:', fetchError);
-        if (isCurrent) {
-          setAvailablePiecesError(
-            fetchError instanceof Error
-              ? fetchError.message
-              : 'Pieceの検索に失敗しました',
-          );
-        }
-      })
-      .finally(() => {
-        if (isCurrent) setIsLoadingAvailablePieces(false);
-      });
-
-    return () => {
-      isCurrent = false;
-    };
-  }, [person, pieceModalType]);
+  const closeLinkModal = () => {
+    immichSearchRequestId.current += 1;
+    setIsSearchingImmichPerson(false);
+    setLinkModalType(null);
+    setLinkModalError(null);
+  };
 
   useEffect(() => {
     if (isSaving) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
-      if (openPieceMenuId) {
-        setOpenPieceMenuId(null);
+      if (timeline.openPieceMenuId) {
+        timeline.setOpenPieceMenuId(null);
         return;
       }
-      if (editingTimelinePiece && !isSavingTimelineEdit) {
-        setEditingTimelinePiece(null);
-        setTimelineEditError(null);
+      if (timeline.editingTimelinePiece && !timeline.isSavingTimelineEdit) {
+        timeline.closeTimelinePieceEditor();
         return;
       }
-      if (pieceModalType && !isSavingPiece) {
-        setPieceModalType(null);
-        setPieceActionError(null);
+      if (timeline.pieceModalType && !timeline.isSavingPiece) {
+        timeline.closePieceModal();
         return;
       }
       if (linkModalType) {
-        immichSearchRequestId.current += 1;
-        setIsSearchingImmichPerson(false);
-        setLinkModalType(null);
-        setLinkModalError(null);
+        closeLinkModal();
         return;
       }
       if (isEditing && person) {
-        setForm(toForm(person));
+        setForm(toPersonForm(person));
         setIsEditing(false);
         setError(null);
       } else {
@@ -310,12 +111,8 @@ export default function PersonEditor({
     isEditing,
     person,
     onClose,
-    editingTimelinePiece,
-    isSavingTimelineEdit,
     linkModalType,
-    pieceModalType,
-    isSavingPiece,
-    openPieceMenuId,
+    timeline,
   ]);
 
   useEffect(() => {
@@ -324,13 +121,15 @@ export default function PersonEditor({
         pieceMenuRef.current &&
         !pieceMenuRef.current.contains(event.target as Node)
       ) {
-        setOpenPieceMenuId(null);
+        timeline.setOpenPieceMenuId(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [timeline]);
+
+  const isReadOnly = person !== null && !isEditing;
 
   const handleSave = async () => {
     if (isSaving || isReadOnly) return;
@@ -441,13 +240,7 @@ export default function PersonEditor({
     }
   };
 
-  const updateField = (field: keyof PersonForm, value: string) =>
-    setForm((current) => ({ ...current, [field]: value }));
-
-  const persistLinkId = async (
-    type: 'immich_person_id' | 'google_contact_id',
-    draft: string,
-  ) => {
+  const persistLinkId = async (type: ExternalLinkType, draft: string) => {
     if (!person || isSavingLink) return;
 
     setIsSavingLink(true);
@@ -468,9 +261,7 @@ export default function PersonEditor({
       }
 
       setLinkedIds((current) => ({ ...current, [type]: value }));
-      immichSearchRequestId.current += 1;
-      setIsSearchingImmichPerson(false);
-      setLinkModalType(null);
+      closeLinkModal();
       onSaved();
     } catch (saveError) {
       console.error('Failed to update external service link:', saveError);
@@ -565,7 +356,7 @@ export default function PersonEditor({
     }
   };
 
-  const openLinkModal = (type: 'immich_person_id' | 'google_contact_id') => {
+  const openLinkModal = (type: ExternalLinkType) => {
     const requestId = ++immichSearchRequestId.current;
     setIsSearchingImmichPerson(false);
     setLinkIdDraft(linkedIds[type] ?? '');
@@ -582,312 +373,17 @@ export default function PersonEditor({
     }
   };
 
-  const saveLinkId = async () => {
-    if (!person || !linkModalType || isSavingLink) return;
-
-    await persistLinkId(linkModalType, linkIdDraft);
-  };
-
-  const openPieceModal = (type: 'create' | 'link') => {
-    setPieceDraft({
-      date: new Date().toLocaleDateString('sv-SE'),
-      title: '',
-      note: '',
-    });
-    setPieceSearchQuery('');
-    setPieceActionError(null);
-    setAvailablePiecesError(null);
-    setPieceModalType(type);
-  };
-
-  const appendTimelinePiece = (piece: LinkedTimelinePiece) => {
-    setTimelinePieces((current) =>
-      [
-        ...current.filter(
-          (item) => !(item.id === piece.id && item.source === piece.source),
-        ),
-        piece,
-      ].sort((a, b) => {
-        if (!a.start_date) return b.start_date ? 1 : 0;
-        if (!b.start_date) return -1;
-        return b.start_date.localeCompare(a.start_date);
-      }),
-    );
-  };
-
-  const linkPieceToPerson = async (piece: PersonTimelinePiece) => {
-    if (!person || isSavingPiece) return;
-
-    setIsSavingPiece(true);
-    setPieceActionError(null);
-    try {
-      const linkResponse = await atlasFetch(`/people/${person.id}/pieces`, {
-        method: 'POST',
-        body: JSON.stringify(
-          piece.source === 'NOTION'
-            ? { notion_piece_id: piece.id }
-            : { local_piece_id: piece.id },
-        ),
-      });
-      if (!linkResponse.ok) {
-        const result: { message?: string } = await linkResponse
-          .json()
-          .catch(() => ({}));
-        throw new Error(
-          result.message ||
-            `Pieceの紐づけに失敗しました (${linkResponse.status})`,
-        );
-      }
-
-      const result: { person_piece?: PersonPiece } = await linkResponse.json();
-      if (!result.person_piece?.id) {
-        throw new Error('Pieceの紐づけレスポンス形式が正しくありません');
-      }
-
-      appendTimelinePiece({ ...piece, personPieceId: result.person_piece.id });
-      setPieceModalType(null);
-      onSaved();
-    } catch (saveError) {
-      console.error('Failed to link piece to person:', saveError);
-      setPieceActionError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Pieceの紐づけに失敗しました',
-      );
-    } finally {
-      setIsSavingPiece(false);
-    }
-  };
-
-  const updateTimelinePiece = async (
-    piece: LinkedTimelinePiece,
-    action: 'delete' | 'unlink',
-  ) => {
-    if (!person || isUpdatingTimelinePiece) return;
-
-    setOpenPieceMenuId(null);
-    setTimelineActionError(null);
-    const confirmed = await confirm(
-      action === 'delete' ? 'Piece削除の確認' : '紐づけ解除の確認',
-      action === 'delete' ? (
-        <>Piece「{piece.title}」を削除しますか？この操作は取り消せません。</>
-      ) : (
-        <>
-          Piece「{piece.title}
-          」の紐づけを解除します。Piece自体は削除されません。
-        </>
-      ),
-      action === 'delete' ? '削除する' : '解除する',
-      'キャンセル',
-    );
-    if (!confirmed) return;
-
-    setIsUpdatingTimelinePiece(true);
-    try {
-      const response =
-        action === 'delete'
-          ? await atlasFetch(`/pieces/${encodeURIComponent(piece.id)}`, {
-              method: 'DELETE',
-            })
-          : await atlasFetch(
-              `/people/${person.id}/pieces/${encodeURIComponent(piece.personPieceId)}`,
-              { method: 'DELETE' },
-            );
-      if (!response.ok) {
-        const result: { message?: string } = await response
-          .json()
-          .catch(() => ({}));
-        throw new Error(
-          result.message ||
-            `Pieceの${action === 'delete' ? '削除' : '紐づけ解除'}に失敗しました (${response.status})`,
-        );
-      }
-
-      setTimelinePieces((current) =>
-        current.filter(
-          (item) => !(item.id === piece.id && item.source === piece.source),
-        ),
-      );
-      onSaved();
-    } catch (actionError) {
-      console.error(
-        `Failed to ${action === 'delete' ? 'delete' : 'unlink'} person timeline piece:`,
-        actionError,
-      );
-      setTimelineActionError(
-        actionError instanceof Error
-          ? actionError.message
-          : `Pieceの${action === 'delete' ? '削除' : '紐づけ解除'}に失敗しました`,
-      );
-    } finally {
-      setIsUpdatingTimelinePiece(false);
-    }
-  };
-
-  const openTimelinePieceEditor = (piece: LinkedTimelinePiece) => {
-    setOpenPieceMenuId(null);
-    setTimelineEditDraft({
-      date: piece.start_date?.slice(0, 10) ?? '',
-      title: piece.title,
-      note: piece.note ?? '',
-    });
-    setTimelineEditError(null);
-    setEditingTimelinePiece(piece);
-  };
-
-  const saveTimelinePieceEdit = async () => {
-    if (
-      !editingTimelinePiece ||
-      isSavingTimelineEdit ||
-      !timelineEditDraft.title.trim()
-    ) {
-      return;
-    }
-
-    setIsSavingTimelineEdit(true);
-    setTimelineEditError(null);
-    try {
-      const response = await atlasFetch(
-        `/pieces/${encodeURIComponent(editingTimelinePiece.id)}`,
-        {
-          method: 'PATCH',
-          body: JSON.stringify({
-            title: timelineEditDraft.title.trim(),
-            start_date: timelineEditDraft.date || null,
-            ...(!timelineEditDraft.date
-              ? {
-                  start_time: null,
-                  end_date: null,
-                  end_time: null,
-                }
-              : {}),
-            note: timelineEditDraft.note.trim(),
-          }),
-        },
-      );
-      if (!response.ok) {
-        const result: { message?: string } = await response
-          .json()
-          .catch(() => ({}));
-        throw new Error(
-          result.message || `Pieceの更新に失敗しました (${response.status})`,
-        );
-      }
-
-      const updatedPiece = {
-        ...editingTimelinePiece,
-        title: timelineEditDraft.title.trim(),
-        start_date: timelineEditDraft.date || null,
-        ...(!timelineEditDraft.date
-          ? {
-              start_time: null,
-              end_date: null,
-              end_time: null,
-            }
-          : {}),
-        note: timelineEditDraft.note.trim(),
-      };
-      setTimelinePieces((current) =>
-        current
-          .map((piece) =>
-            piece.id === editingTimelinePiece.id &&
-            piece.source === editingTimelinePiece.source
-              ? updatedPiece
-              : piece,
-          )
-          .sort((a, b) => {
-            if (!a.start_date) return b.start_date ? 1 : 0;
-            if (!b.start_date) return -1;
-            return b.start_date.localeCompare(a.start_date);
-          }),
-      );
-      setEditingTimelinePiece(null);
-      onSaved();
-    } catch (saveError) {
-      console.error('Failed to update person timeline piece:', saveError);
-      setTimelineEditError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Pieceの更新に失敗しました',
-      );
-    } finally {
-      setIsSavingTimelineEdit(false);
-    }
-  };
-
-  const createAndLinkPiece = async () => {
-    if (!person || isSavingPiece || !pieceDraft.title.trim()) return;
-
-    setIsSavingPiece(true);
-    setPieceActionError(null);
-    try {
-      const createResponse = await atlasFetch('/pieces', {
-        method: 'POST',
-        body: JSON.stringify({
-          start_date: pieceDraft.date || null,
-          title: pieceDraft.title.trim(),
-          note: pieceDraft.note.trim(),
-          area: 'Life',
-          type: 'Memo',
-          status: 'Done',
-          source: 'LOCAL',
-        }),
-      });
-      if (!createResponse.ok) {
-        const result: { message?: string } = await createResponse
-          .json()
-          .catch(() => ({}));
-        throw new Error(
-          result.message ||
-            `Pieceの作成に失敗しました (${createResponse.status})`,
-        );
-      }
-
-      const result: { piece?: PersonTimelinePiece } =
-        await createResponse.json();
-      if (!result.piece?.id) {
-        throw new Error('作成したPieceのレスポンス形式が正しくありません');
-      }
-
-      await linkPieceToPerson({
-        ...result.piece,
-        title: result.piece.title || pieceDraft.title.trim(),
-        start_date: result.piece.start_date ?? pieceDraft.date,
-        note: result.piece.note ?? pieceDraft.note.trim(),
-        source: 'LOCAL',
-      });
-    } catch (saveError) {
-      console.error('Failed to create person-related piece:', saveError);
-      setPieceActionError(
-        saveError instanceof Error
-          ? saveError.message
-          : 'Pieceの作成に失敗しました',
-      );
-      setIsSavingPiece(false);
-    }
-  };
-
-  const linkedPieceKeys = new Set(
-    timelinePieces.map((piece) => `${piece.source}:${piece.id}`),
-  );
-  const filteredAvailablePieces = availablePieces.filter((piece) => {
-    if (linkedPieceKeys.has(`${piece.source}:${piece.id}`)) return false;
-    return piece.title
-      .toLocaleLowerCase()
-      .includes(pieceSearchQuery.trim().toLocaleLowerCase());
-  });
-
-  const inputClassName = 'trails-input';
-  const isReadOnly = person !== null && !isEditing;
-  const linkLabel =
-    linkModalType === 'immich_person_id' ? 'Immich' : 'Google Contacts';
   const fullName = person ? formatPersonName(person) : '';
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-gray-100">
       <FullscreenHeader
         title={
-          person ? (isEditing ? '人物を編集' : fullName || '人物の詳細') : '人物を追加'
+          person
+            ? isEditing
+              ? '人物を編集'
+              : fullName || '人物の詳細'
+            : '人物を追加'
         }
         subtitle={
           person
@@ -949,439 +445,50 @@ export default function PersonEditor({
             }
           >
             {isReadOnly && person && (
-              <>
-                {person.tags && person.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 px-1">
-                    {person.tags.map((tag) => (
-                      <span key={tag} className="trails-badge bg-white border border-gray-200">
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(240px,0.7fr)_minmax(0,1.3fr)]">
-                  <div className="space-y-4">
-                    <section
-                      className="trails-card p-5"
-                      aria-label="基本情報"
-                    >
-                      <div className="mb-4 flex items-center gap-3">
-                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-500">
-                          <UsersRound className="h-5 w-5" />
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-900">
-                          基本情報
-                        </h3>
-                      </div>
-                      <dl className="space-y-4">
-                        <div>
-                          <dt className="trails-section-label">誕生日</dt>
-                          <dd className="mt-1 text-sm text-gray-900">
-                            {person.birthday
-                              ? getDateFullString(person.birthday, 'hyphen')
-                              : '—'}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="trails-section-label">血液型</dt>
-                          <dd className="mt-1 text-sm text-gray-900">
-                            {person.blood_type?.join(', ') || '—'}
-                          </dd>
-                        </div>
-                        {person.notes && (
-                          <div>
-                            <dt className="trails-section-label">メモ</dt>
-                            <dd className="mt-1 whitespace-pre-wrap text-sm leading-relaxed text-gray-700">
-                              {person.notes}
-                            </dd>
-                          </div>
-                        )}
-                      </dl>
-                    </section>
-
-                    {linkedIds.immich_person_id && (
-                      <section
-                        className="trails-card p-5"
-                        aria-labelledby="person-immich-heading"
-                      >
-                        <div className="mb-4 flex items-center gap-2">
-                          <Camera className="h-5 w-5 text-primary-600" />
-                          <h3
-                            id="person-immich-heading"
-                            className="text-sm font-bold text-gray-900"
-                          >
-                            Immich
-                          </h3>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => setIsPersonPhotoModalOpen(true)}
-                          className="trails-btn-primary w-full"
-                        >
-                          写真を開く
-                        </button>
-                      </section>
-                    )}
-                  </div>
-
-                  <section
-                    className="trails-card p-5"
-                    aria-labelledby="person-timeline-heading"
-                  >
-                    <div className="mb-4 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <CalendarDays className="h-5 w-5 text-primary-600" />
-                        <h3
-                          id="person-timeline-heading"
-                          className="text-sm font-bold text-gray-900"
-                        >
-                          タイムライン
-                        </h3>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => openPieceModal('create')}
-                        className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-primary-700 transition-colors hover:bg-primary-50"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Pieceを追加
-                      </button>
-                    </div>
-
-                    {isTimelineLoading ? (
-                      <p className="py-6 text-center text-sm text-gray-500">
-                        タイムラインを読み込み中...
-                      </p>
-                    ) : timelineError ? (
-                      <p role="alert" className="py-4 text-sm text-red-600">
-                        {timelineError}
-                      </p>
-                    ) : timelinePieces.length === 0 ? (
-                      <div className="py-6 text-center">
-                        <p className="text-sm text-gray-500">
-                          関連付けられたPieceはありません
-                        </p>
-                      </div>
-                    ) : (
-                      <ol className="space-y-0">
-                        {timelinePieces.map((piece, index) => (
-                          <li
-                            key={`${piece.source}-${piece.id}`}
-                            className="relative pl-7"
-                          >
-                            {index < timelinePieces.length - 1 && (
-                              <span
-                                aria-hidden="true"
-                                className="absolute bottom-0 left-[7px] top-4 w-px bg-primary-200"
-                              />
-                            )}
-                            <span
-                              aria-hidden="true"
-                              className="absolute left-0 top-1 h-4 w-4 rounded-full border-[3px] border-primary-400 bg-white"
-                            />
-                            <article className="flex items-start justify-between gap-2 border-b border-gray-100 pb-4 pl-1 pt-0.5 last:border-0">
-                              <div className="min-w-0 flex-1">
-                                <p className="mb-1 text-xs font-semibold text-primary-700">
-                                  {piece.start_date
-                                    ? getDateFullString(piece.start_date, 'hyphen')
-                                    : '日付未設定'}
-                                </p>
-                                <h4 className="font-bold text-gray-900">
-                                  {piece.title}
-                                </h4>
-                                {piece.note && (
-                                  <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
-                                    {piece.note}
-                                  </p>
-                                )}
-                              </div>
-                              <div
-                                className="relative -mt-1 shrink-0"
-                                ref={
-                                  openPieceMenuId ===
-                                  `${piece.source}:${piece.id}`
-                                    ? pieceMenuRef
-                                    : null
-                                }
-                              >
-                                <button
-                                  type="button"
-                                  aria-label={`${piece.title}の操作`}
-                                  aria-haspopup="menu"
-                                  aria-expanded={
-                                    openPieceMenuId ===
-                                    `${piece.source}:${piece.id}`
-                                  }
-                                  disabled={isUpdatingTimelinePiece}
-                                  onClick={() =>
-                                    setOpenPieceMenuId((current) =>
-                                      current === `${piece.source}:${piece.id}`
-                                        ? null
-                                        : `${piece.source}:${piece.id}`,
-                                    )
-                                  }
-                                  className="rounded-full p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-                                >
-                                  <MoreVertical className="h-4 w-4" />
-                                </button>
-                                {openPieceMenuId ===
-                                  `${piece.source}:${piece.id}` && (
-                                  <div
-                                    role="menu"
-                                    className="absolute right-0 top-full z-20 mt-1 w-44 rounded-2xl border border-gray-100 bg-white py-1.5 shadow-xl"
-                                  >
-                                    <button
-                                      type="button"
-                                      role="menuitem"
-                                      disabled={isUpdatingTimelinePiece}
-                                      onClick={() =>
-                                        openTimelinePieceEditor(piece)
-                                      }
-                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                      編集
-                                    </button>
-                                    <button
-                                      type="button"
-                                      role="menuitem"
-                                      disabled={isUpdatingTimelinePiece}
-                                      onClick={() =>
-                                        void updateTimelinePiece(piece, 'delete')
-                                      }
-                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                      Pieceを削除
-                                    </button>
-                                    <button
-                                      type="button"
-                                      role="menuitem"
-                                      disabled={isUpdatingTimelinePiece}
-                                      onClick={() =>
-                                        void updateTimelinePiece(piece, 'unlink')
-                                      }
-                                      className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 disabled:opacity-50"
-                                    >
-                                      <Unlink className="h-4 w-4" />
-                                      紐づけを解除
-                                    </button>
-                                  </div>
-                                )}
-                              </div>
-                            </article>
-                          </li>
-                        ))}
-                      </ol>
-                    )}
-                    {timelineActionError && (
-                      <p role="alert" className="mt-3 text-sm text-red-600">
-                        {timelineActionError}
-                      </p>
-                    )}
-                  </section>
-                </div>
-              </>
-            )}
-
-          <div
-            className={isReadOnly ? 'hidden' : 'space-y-5 p-5 md:p-8'}
-            aria-hidden={isReadOnly}
-          >
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-gray-600">
-                姓 <span className="text-red-500">*</span>
-              </span>
-              <input
-                autoFocus={!isReadOnly}
-                required
-                maxLength={255}
-                value={form.family_name}
-                readOnly={isReadOnly}
-                onChange={(event) =>
-                  updateField('family_name', event.target.value)
+              <PersonProfileView
+                person={person}
+                immichPersonId={linkedIds.immich_person_id}
+                timelinePieces={timeline.timelinePieces}
+                isTimelineLoading={timeline.isTimelineLoading}
+                timelineError={timeline.timelineError}
+                timelineActionError={timeline.timelineActionError}
+                isUpdatingTimelinePiece={timeline.isUpdatingTimelinePiece}
+                openPieceMenuId={timeline.openPieceMenuId}
+                setOpenPieceMenuId={timeline.setOpenPieceMenuId}
+                pieceMenuRef={pieceMenuRef}
+                onOpenPhotos={() => setIsPersonPhotoModalOpen(true)}
+                onOpenAddPiece={() => timeline.openPieceModal('create')}
+                onEditTimelinePiece={timeline.openTimelinePieceEditor}
+                onTimelinePieceAction={(piece, action) =>
+                  void timeline.updateTimelinePiece(piece, action)
                 }
-                className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                placeholder="姓"
               />
-            </label>
+            )}
 
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-gray-600">名</span>
-              <input
-                maxLength={255}
-                value={form.given_name}
-                readOnly={isReadOnly}
-                onChange={(event) =>
-                  updateField('given_name', event.target.value)
+            <PersonFormFields
+              person={person}
+              form={form}
+              isReadOnly={isReadOnly}
+              isSaving={isSaving}
+              isDeletingPerson={isDeletingPerson}
+              error={error}
+              onUpdateField={(field, value) =>
+                setForm((current) => ({ ...current, [field]: value }))
+              }
+              onSave={() => void handleSave()}
+              onDelete={() => void handleDeletePerson()}
+              onCancelEdit={() => {
+                if (person) {
+                  setForm(toPersonForm(person));
+                  setIsEditing(false);
+                  setError(null);
+                } else {
+                  onClose();
                 }
-                className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                placeholder="名（任意）"
-              />
-            </label>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  姓の読み仮名
-                </span>
-                <input
-                  maxLength={255}
-                  value={form.ruby_family_name}
-                  readOnly={isReadOnly}
-                  onChange={(event) =>
-                    updateField('ruby_family_name', event.target.value)
-                  }
-                  className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                  placeholder="せい"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  名の読み仮名
-                </span>
-                <input
-                  maxLength={255}
-                  value={form.ruby_given_name}
-                  readOnly={isReadOnly}
-                  onChange={(event) =>
-                    updateField('ruby_given_name', event.target.value)
-                  }
-                  className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                  placeholder="めい"
-                />
-              </label>
-            </div>
-
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  誕生日
-                </span>
-                <input
-                  type="date"
-                  value={form.birthday}
-                  readOnly={isReadOnly}
-                  onChange={(event) =>
-                    updateField('birthday', event.target.value)
-                  }
-                  className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  血液型
-                </span>
-                <input
-                  value={form.bloodType}
-                  readOnly={isReadOnly}
-                  onChange={(event) =>
-                    updateField('bloodType', event.target.value)
-                  }
-                  className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                  placeholder="例: A, Rh+"
-                />
-              </label>
-            </div>
-
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-gray-600">タグ</span>
-              <input
-                value={form.tags}
-                readOnly={isReadOnly}
-                onChange={(event) => updateField('tags', event.target.value)}
-                className={`${inputClassName} read-only:border-transparent read-only:bg-white read-only:px-0`}
-                placeholder="カンマ区切りで入力"
-              />
-            </label>
-
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-gray-600">メモ</span>
-              <textarea
-                rows={4}
-                value={form.notes}
-                readOnly={isReadOnly}
-                onChange={(event) => updateField('notes', event.target.value)}
-                className={`${inputClassName} resize-y read-only:border-transparent read-only:bg-white read-only:px-0`}
-                placeholder="メモ"
-              />
-            </label>
-
-            {error && (
-              <p role="alert" className="text-sm text-red-600">
-                {error}
-              </p>
-            )}
-          </div>
-
-          <div
-            className={`flex justify-end gap-2 border-t border-gray-100 bg-gray-50/50 p-4 ${
-              isReadOnly ? 'hidden' : ''
-            }`}
-          >
-            {isReadOnly ? (
-              <>
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 transition-colors hover:bg-gray-100"
-                >
-                  閉じる
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="trails-btn-primary px-5"
-                >
-                  <Pencil className="h-4 w-4" />
-                  編集
-                </button>
-              </>
-            ) : (
-              <>
-                {person && (
-                  <button
-                    type="button"
-                    onClick={() => void handleDeletePerson()}
-                    disabled={isSaving || isDeletingPerson}
-                    className="mr-auto inline-flex items-center gap-1.5 rounded-xl px-3 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {isDeletingPerson ? '削除中...' : '人物を削除'}
-                  </button>
-                )}
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (person) {
-                      setForm(toForm(person));
-                      setIsEditing(false);
-                      setError(null);
-                    } else {
-                      onClose();
-                    }
-                  }}
-                  disabled={isSaving || isDeletingPerson}
-                  className="trails-btn-ghost"
-                >
-                  {person ? '編集をキャンセル' : 'キャンセル'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={
-                    isSaving ||
-                    isDeletingPerson ||
-                    form.family_name.trim().length === 0
-                  }
-                  className="trails-btn-primary px-5"
-                >
-                  {isSaving ? '保存中...' : person ? '保存' : '登録'}
-                </button>
-              </>
-            )}
-          </div>
+              }}
+              onStartEdit={() => setIsEditing(true)}
+              onClose={onClose}
+            />
           </div>
         </div>
       </div>
@@ -1397,462 +504,51 @@ export default function PersonEditor({
         />
       )}
 
-      {person && editingTimelinePiece && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isSavingTimelineEdit) {
-              setEditingTimelinePiece(null);
-              setTimelineEditError(null);
-            }
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="person-timeline-edit-title"
-            className="trails-modal-panel w-full max-w-lg p-6"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="person-timeline-edit-title"
-                className="text-lg font-bold text-gray-900"
-              >
-                タイムラインを編集
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTimelinePiece(null);
-                  setTimelineEditError(null);
-                }}
-                disabled={isSavingTimelineEdit}
-                aria-label="閉じる"
-                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  日付
-                </span>
-                <input
-                  type="date"
-                  value={timelineEditDraft.date}
-                  onChange={(event) =>
-                    setTimelineEditDraft((current) => ({
-                      ...current,
-                      date: event.target.value,
-                    }))
-                  }
-                  disabled={isSavingTimelineEdit}
-                  className={inputClassName}
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  タイトル <span className="text-red-500">*</span>
-                </span>
-                <input
-                  autoFocus
-                  maxLength={255}
-                  value={timelineEditDraft.title}
-                  onChange={(event) =>
-                    setTimelineEditDraft((current) => ({
-                      ...current,
-                      title: event.target.value,
-                    }))
-                  }
-                  disabled={isSavingTimelineEdit}
-                  className={inputClassName}
-                  placeholder="タイトル"
-                />
-              </label>
-              <label className="block space-y-1.5">
-                <span className="text-xs font-semibold text-gray-600">
-                  Note
-                </span>
-                <textarea
-                  rows={4}
-                  value={timelineEditDraft.note}
-                  onChange={(event) =>
-                    setTimelineEditDraft((current) => ({
-                      ...current,
-                      note: event.target.value,
-                    }))
-                  }
-                  disabled={isSavingTimelineEdit}
-                  className={`${inputClassName} resize-y`}
-                  placeholder="Note（任意）"
-                />
-              </label>
-            </div>
-
-            {timelineEditError && (
-              <p role="alert" className="mt-4 text-sm text-red-600">
-                {timelineEditError}
-              </p>
-            )}
-
-            <div className="mt-6 flex justify-end gap-2">
-              {editingTimelinePiece.source === 'NOTION' && (
-                <button
-                  type="button"
-                  onClick={() =>
-                    window.open(
-                      getNotionLinkById(editingTimelinePiece.id, 'notion'),
-                      '_self',
-                    )
-                  }
-                  className="mr-auto inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Notionで開く
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setEditingTimelinePiece(null);
-                  setTimelineEditError(null);
-                }}
-                disabled={isSavingTimelineEdit}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveTimelinePieceEdit()}
-                disabled={
-                  isSavingTimelineEdit || !timelineEditDraft.title.trim()
-                }
-                className="trails-btn-primary px-5"
-              >
-                {isSavingTimelineEdit ? '保存中...' : '保存'}
-              </button>
-            </div>
-          </section>
-        </div>
+      {person && timeline.editingTimelinePiece && (
+        <PersonTimelineEditModal
+          piece={timeline.editingTimelinePiece}
+          draft={timeline.timelineEditDraft}
+          setDraft={timeline.setTimelineEditDraft}
+          error={timeline.timelineEditError}
+          isSaving={timeline.isSavingTimelineEdit}
+          onSave={() => void timeline.saveTimelinePieceEdit()}
+          onClose={timeline.closeTimelinePieceEditor}
+        />
       )}
 
       {person && linkModalType && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isSavingLink) {
-              immichSearchRequestId.current += 1;
-              setIsSearchingImmichPerson(false);
-              setLinkModalType(null);
-              setLinkModalError(null);
-            }
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="person-link-dialog-title"
-            className="trails-modal-panel w-full max-w-md p-6"
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <h2
-                id="person-link-dialog-title"
-                className="text-lg font-bold text-gray-900"
-              >
-                {linkLabel}連携
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  immichSearchRequestId.current += 1;
-                  setIsSearchingImmichPerson(false);
-                  setLinkModalType(null);
-                  setLinkModalError(null);
-                }}
-                disabled={isSavingLink}
-                aria-label="閉じる"
-                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <label className="block space-y-1.5">
-              <span className="text-xs font-semibold text-gray-600">
-                {linkModalType === 'immich_person_id'
-                  ? 'Immich Person ID'
-                  : 'Google Contact ID'}
-              </span>
-              <input
-                autoFocus
-                value={linkIdDraft}
-                onChange={(event) => setLinkIdDraft(event.target.value)}
-                disabled={isSearchingImmichPerson}
-                className={inputClassName}
-                placeholder="IDを入力"
-              />
-            </label>
-
-            {isSearchingImmichPerson &&
-              linkModalType === 'immich_person_id' && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Immichで同じ名前の人物を検索中...
-                </p>
-              )}
-            {immichPersonSearchNotFound &&
-              linkModalType === 'immich_person_id' && (
-                <p className="mt-2 text-xs text-gray-500">
-                  同じ名前の人物は見つかりませんでした。IDを直接入力できます。
-                </p>
-              )}
-
-            {linkModalError && (
-              <p role="alert" className="mt-3 text-sm text-red-600">
-                {linkModalError}
-              </p>
-            )}
-
-            <div className="mt-6 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  immichSearchRequestId.current += 1;
-                  setIsSearchingImmichPerson(false);
-                  setLinkModalType(null);
-                  setLinkModalError(null);
-                }}
-                disabled={isSavingLink || isSearchingImmichPerson}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                onClick={() => void saveLinkId()}
-                disabled={isSavingLink || isSearchingImmichPerson}
-                className="trails-btn-primary px-5"
-              >
-                {isSavingLink
-                  ? '保存中...'
-                  : isSearchingImmichPerson
-                    ? '検索中...'
-                    : '保存'}
-              </button>
-            </div>
-          </section>
-        </div>
+        <PersonExternalLinkModal
+          linkModalType={linkModalType}
+          linkIdDraft={linkIdDraft}
+          isSavingLink={isSavingLink}
+          isSearchingImmichPerson={isSearchingImmichPerson}
+          immichPersonSearchNotFound={immichPersonSearchNotFound}
+          linkModalError={linkModalError}
+          onChangeDraft={setLinkIdDraft}
+          onSave={() => void persistLinkId(linkModalType, linkIdDraft)}
+          onClose={closeLinkModal}
+        />
       )}
 
-      {person && pieceModalType && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget && !isSavingPiece) {
-              setPieceModalType(null);
-              setPieceActionError(null);
-            }
-          }}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="person-piece-dialog-title"
-            className="trails-modal-panel flex max-h-[90vh] w-full max-w-lg flex-col p-6"
-          >
-            <div className="mb-4 flex items-center justify-between">
-              <h2
-                id="person-piece-dialog-title"
-                className="text-lg font-bold text-gray-900"
-              >
-                関連Pieceを追加
-              </h2>
-              <button
-                type="button"
-                onClick={() => {
-                  setPieceModalType(null);
-                  setPieceActionError(null);
-                }}
-                disabled={isSavingPiece}
-                aria-label="閉じる"
-                className="rounded-full p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mb-5 grid grid-cols-2 gap-2 rounded-xl bg-gray-100 p-1">
-              <button
-                type="button"
-                onClick={() => openPieceModal('create')}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                  pieceModalType === 'create'
-                    ? 'bg-white text-primary-700 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                新規作成
-              </button>
-              <button
-                type="button"
-                onClick={() => openPieceModal('link')}
-                className={`rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
-                  pieceModalType === 'link'
-                    ? 'bg-white text-primary-700 shadow-sm'
-                    : 'text-gray-500 hover:text-gray-800'
-                }`}
-              >
-                既存Pieceを紐づけ
-              </button>
-            </div>
-
-            {pieceModalType === 'create' ? (
-              <div className="space-y-4">
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold text-gray-600">
-                    日付
-                  </span>
-                  <input
-                    type="date"
-                    value={pieceDraft.date}
-                    onChange={(event) =>
-                      setPieceDraft((current) => ({
-                        ...current,
-                        date: event.target.value,
-                      }))
-                    }
-                    className={inputClassName}
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold text-gray-600">
-                    タイトル <span className="text-red-500">*</span>
-                  </span>
-                  <input
-                    autoFocus
-                    maxLength={255}
-                    value={pieceDraft.title}
-                    onChange={(event) =>
-                      setPieceDraft((current) => ({
-                        ...current,
-                        title: event.target.value,
-                      }))
-                    }
-                    className={inputClassName}
-                    placeholder="タイトル"
-                  />
-                </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-semibold text-gray-600">
-                    Note
-                  </span>
-                  <textarea
-                    rows={4}
-                    value={pieceDraft.note}
-                    onChange={(event) =>
-                      setPieceDraft((current) => ({
-                        ...current,
-                        note: event.target.value,
-                      }))
-                    }
-                    className={`${inputClassName} resize-y`}
-                    placeholder="Note（任意）"
-                  />
-                </label>
-              </div>
-            ) : (
-              <>
-                <label className="relative block">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-                  <input
-                    autoFocus
-                    value={pieceSearchQuery}
-                    onChange={(event) =>
-                      setPieceSearchQuery(event.target.value)
-                    }
-                    className={`${inputClassName} pl-9`}
-                    placeholder="タイトルで検索"
-                  />
-                </label>
-                <div className="mt-3 h-48 shrink-0 overflow-y-auto rounded-xl border border-gray-100 trails-scrollbar">
-                  {isLoadingAvailablePieces ? (
-                    <p className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
-                      Pieceを読み込み中...
-                    </p>
-                  ) : availablePiecesError ? (
-                    <p
-                      role="alert"
-                      className="flex h-full items-center justify-center p-4 text-center text-sm text-red-600"
-                    >
-                      {availablePiecesError}
-                    </p>
-                  ) : filteredAvailablePieces.length === 0 ? (
-                    <p className="flex h-full items-center justify-center p-6 text-center text-sm text-gray-500">
-                      該当するPieceはありません
-                    </p>
-                  ) : (
-                    <ul className="divide-y divide-gray-100">
-                      {filteredAvailablePieces.map((piece) => (
-                        <li key={`${piece.source}:${piece.id}`}>
-                          <button
-                            type="button"
-                            disabled={isSavingPiece}
-                            onClick={() => void linkPieceToPerson(piece)}
-                            className="w-full px-4 py-3 text-left transition-colors hover:bg-primary-50 disabled:opacity-50"
-                          >
-                            <span className="block truncate text-sm font-semibold text-gray-900">
-                              {piece.title}
-                            </span>
-                            <span className="mt-1 block text-xs text-gray-500">
-                              {piece.start_date
-                                ? getDateFullString(piece.start_date, 'hyphen')
-                                : '日付未設定'}
-                              {' · '}
-                              {piece.source === 'NOTION' ? 'Notion' : 'Local'}
-                            </span>
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </>
-            )}
-
-            {pieceActionError && (
-              <p role="alert" className="mt-3 text-sm text-red-600">
-                {pieceActionError}
-              </p>
-            )}
-
-            {pieceModalType === 'create' && (
-              <div className="mt-6 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setPieceModalType(null);
-                    setPieceActionError(null);
-                  }}
-                  disabled={isSavingPiece}
-                  className="rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 disabled:opacity-50"
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void createAndLinkPiece()}
-                  disabled={isSavingPiece || !pieceDraft.title.trim()}
-                  className="trails-btn-primary px-5"
-                >
-                  {isSavingPiece ? '作成中...' : '作成して紐づけ'}
-                </button>
-              </div>
-            )}
-          </section>
-        </div>
+      {person && timeline.pieceModalType && (
+        <PersonPieceModal
+          mode={timeline.pieceModalType}
+          pieceDraft={timeline.pieceDraft}
+          setPieceDraft={timeline.setPieceDraft}
+          pieceSearchQuery={timeline.pieceSearchQuery}
+          setPieceSearchQuery={timeline.setPieceSearchQuery}
+          filteredAvailablePieces={timeline.filteredAvailablePieces}
+          isLoadingAvailablePieces={timeline.isLoadingAvailablePieces}
+          availablePiecesError={timeline.availablePiecesError}
+          pieceActionError={timeline.pieceActionError}
+          isSavingPiece={timeline.isSavingPiece}
+          onSwitchMode={timeline.openPieceModal}
+          onCreateAndLink={() => void timeline.createAndLinkPiece()}
+          onLinkExisting={(piece) => void timeline.linkPieceToPerson(piece)}
+          onClose={timeline.closePieceModal}
+        />
       )}
+
       <ConfirmModal {...confirmProps} />
     </div>
   );
