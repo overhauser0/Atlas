@@ -31,7 +31,7 @@ interface Props {
   parentTask: Task | null;
   subTasks: Task[];
   allTasks: Task[];
-  handleGleisLink: (url: string, callback?: Function) => void;
+  handleGleisLink: (url: string, callback?: () => void) => void;
   openTaskModal: (task?: Partial<Task>) => void;
 }
 

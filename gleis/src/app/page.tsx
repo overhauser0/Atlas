@@ -20,17 +20,10 @@ import DocumentsView from '@/components/views/DocumentsView';
 import SettingsView from '@/components/views/SettingsView';
 import { ToastProvider, useToast } from '@/components/ui/Toast';
 import AlarmHandler from '@/components/AlarmHandler';
-import TaskModal, {
-  type TaskSavePayload,
-} from '@/components/modals/TaskModal';
-import ProjectModal from '@/components/modals/ProjectModal';
-import StatsModal from '@/components/modals/StatsModal';
-import QuickAlarmModal from '@/components/modals/QuickAlarmModal';
-import VoiceCaptureModal from '@/components/modals/VoiceCaptureModal';
-import ConfirmModal from '@/components/modals/ConfirmModal';
-import FocusModal from '@/components/modals/FocusModal';
-import CommandPalette from '@/components/modals/CommandPalette';
-import ActionPanel from '@/components/panels/ActionPanel';
+import GleisModals, {
+  GleisGlobalOverlays,
+} from '@/components/layout/GleisModals';
+import type { TaskSavePayload } from '@/components/modals/TaskModal';
 import LiveActivityPill, {
   LiveActivityItem,
 } from '@/components/ui/LiveActivityPill';
@@ -583,27 +576,23 @@ function HomeContent() {
           appSettings={appSettings}
           setAppSettings={setAppSettings}
         />
-        <VoiceCaptureModal
-          isOpen={isVoiceCaptureOpen}
-          onClose={() => setIsVoiceCaptureOpen(false)}
-          onCapture={(task) => openTaskModal(task)}
-        />
-        <CommandPalette
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
+        <GleisGlobalOverlays
+          isVoiceCaptureOpen={isVoiceCaptureOpen}
+          onCloseVoiceCapture={() => setIsVoiceCaptureOpen(false)}
+          isCommandPaletteOpen={isCommandPaletteOpen}
+          onCloseCommandPalette={() => setIsCommandPaletteOpen(false)}
           onNavigate={handleViewChange}
           onOpenSetting={handleOpenSetting}
-          tasks={allTasks}
-          onTaskClick={(task) => openTaskModal(task)}
-          onNewTask={(task) => openTaskModal(task)}
+          allTasks={allTasks}
+          openTaskModal={openTaskModal}
           onNotionSync={() => handleNotionSync(true)}
           documents={documents}
-          onDocumentClick={openDocument}
-          onDocumentSync={() => syncDocuments()}
+          openDocument={openDocument}
+          onDocumentSync={() => void syncDocuments()}
           onQuickAlarmOpen={() => setIsQuickAlarmOpen(true)}
-          onLock={handleLogout}
+          onLogout={handleLogout}
           notes={notes}
-          onNoteClick={(note) => {
+          onSelectNote={(note) => {
             setSelectedNote(note);
             handleViewChange('note');
           }}
@@ -752,82 +741,50 @@ function HomeContent() {
             )}
 
             {/* --- Contextual Modals --- */}
-            <QuickAlarmModal
-              isOpen={isQuickAlarmOpen}
-              onClose={() => setIsQuickAlarmOpen(false)}
+            <GleisModals
               appSettings={appSettings}
               setAppSettings={setAppSettings}
-            />
-            <StatsModal
-              isOpen={isStatsOpen}
+              isQuickAlarmOpen={isQuickAlarmOpen}
+              onCloseQuickAlarm={() => setIsQuickAlarmOpen(false)}
+              isStatsOpen={isStatsOpen}
+              onCloseStats={() => setIsStatsOpen(false)}
+              statsTargetDate={statsTargetDate}
               completedTasks={completedTasks}
-              targetDate={statsTargetDate}
-              openTaskModal={(task) => openTaskModal(task)}
-              onClose={() => setIsStatsOpen(false)}
-            />
-            <ProjectModal
-              isOpen={projectModalConfig.isOpen}
-              onClose={closeProjectModal}
-              onSuccess={() => fetchTasks(true)}
-              parentTask={projectModalConfig.parentTask as Task}
-              subTasks={currentSubTasks}
-              openTaskModal={(task) => openTaskModal(task)}
-              allTasks={allTasks}
-              handleGleisLink={(url, callback) =>
-                handleGleisLink(url, callback)
-              }
-            />
-            <TaskModal
-              isOpen={taskModalConfig.isOpen}
-              mode={taskModalConfig.mode}
-              task={taskModalConfig.task}
+              projectModalConfig={projectModalConfig}
+              onCloseProjectModal={closeProjectModal}
+              currentSubTasks={currentSubTasks}
+              taskModalConfig={taskModalConfig}
+              onCloseTaskModal={closeTaskModal}
               subTaskMap={subTaskMap}
-              onClose={closeTaskModal}
-              onSave={handleSaveTaskWithCheck}
-              onSuccess={() => fetchTasks(true)}
+              allTasks={allTasks}
+              onSaveTask={handleSaveTaskWithCheck}
+              onRefreshTasks={() => void fetchTasks(true)}
               onSyncStart={incrementRequest}
               onSyncEnd={decrementRequest}
               onSendToPC={hasExtension ? handleSendToPC : undefined}
               onShowContent={fetchBlocks}
-              onOpenProjectModal={(task) => openProjectModal(task)}
-              onOpenFocusModal={(task) => openFocusModal(task)}
-              openTaskModal={(task) => openTaskModal(task)}
-              handleGleisLink={(url, callback) =>
-                handleGleisLink(url, callback)
-              }
-              allTasks={allTasks}
-            />
-            <ActionPanel
-              isOpen={isActionPanelOpen}
+              onOpenProjectModal={openProjectModal}
+              onOpenFocusModal={openFocusModal}
+              openTaskModal={openTaskModal}
+              handleGleisLink={(url, callback) => {
+                handleGleisLink(url, callback);
+              }}
+              isActionPanelOpen={isActionPanelOpen}
+              onCloseActionPanel={() => setIsActionPanelOpen(false)}
               isWakeLockActive={isWakeLockActive}
               notifications={notifications}
               lastSyncTime={lastSyncTime}
               overdueTasks={overdueTasks}
-              onClose={() => setIsActionPanelOpen(false)}
-              onOpenSetting={(tab) => handleOpenSetting(tab)}
+              onOpenSetting={handleOpenSetting}
               onOpenVoiceCapture={() => setIsVoiceCaptureOpen(true)}
               onRescheduleOverdue={handleRescheduleOverdue}
-              onSyncStart={incrementRequest}
-              onSyncEnd={decrementRequest}
               onNotionSync={() => handleNotionSync(true)}
               onMarkAsRead={markAsRead}
               onPaperlessSync={syncDocuments}
               wsStatus={wsStatus}
               connectedDevicesCount={connectedDevices.length}
-            />
-            <ConfirmModal {...confirmProps} />
-            <FocusModal
-              isOpen={focusSession.isOpen}
-              task={focusSession.task}
-              mode={focusSession.mode}
-              seconds={focusSession.seconds}
-              isActive={focusSession.isActive}
-              onChangeMode={focusSession.changeMode}
-              onToggleRunning={focusSession.toggleRunning}
-              onReset={focusSession.resetTimer}
-              onMinimize={focusSession.minimizeFocus}
-              onEnd={focusSession.endFocus}
-              onCompleted={() => void fetchTasks(true)}
+              confirmProps={confirmProps}
+              focusSession={focusSession}
               addToast={addToast}
             />
           </main>
