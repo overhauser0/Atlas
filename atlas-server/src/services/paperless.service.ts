@@ -62,11 +62,43 @@ export const getDocumentStream = async (
   };
 };
 
+export interface PaperlessWebhookPayload {
+  id: number;
+  title: string;
+  archive_serial_number?: number | null;
+  document_type?: string | null;
+  correspondent?: string | null;
+  tags?: string[];
+  created?: string | null;
+}
+
+interface PaperlessMetadataItem {
+  id: number;
+  name: string;
+}
+
+interface PaperlessDocumentApiItem {
+  id: number;
+  title: string;
+  archive_serial_number?: number | null;
+  document_type?: number | null;
+  correspondent?: number | null;
+  tags?: number[];
+  created?: string | null;
+}
+
+interface PaperlessListResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
 /**
  * 3. Webhook受信・同期処理
  * Paperless側で書類が追加/更新された時にキャッシュを更新し、UIに通知する
  */
-export const handleWebhookUpsert = async (payload: any) => {
+export const handleWebhookUpsert = async (payload: PaperlessWebhookPayload) => {
   // 💡 PaperlessのWebhookペイロードからDBの型にマッピング
   // ※実際のPaperless Webhookの仕様に合わせてプロパティ名は微調整が必要です
   const documentInput: PaperlessDocumentInput = {
@@ -112,7 +144,8 @@ const fetchMetadataMap = async (
   let nextUrl: string | null = endpoint;
 
   while (nextUrl) {
-    const response: AxiosResponse<any> = await apiClient.get(nextUrl);
+    const response: AxiosResponse<PaperlessListResponse<PaperlessMetadataItem>> =
+      await apiClient.get(nextUrl);
     const data = response.data;
     for (const item of data.results) {
       mapping[item.id] = item.name;
@@ -121,13 +154,6 @@ const fetchMetadataMap = async (
   }
   return mapping;
 };
-
-interface PaperlessListResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: any[]; // 中身を細かく定義することも可能ですが、今回はany[]で十分です
-}
 
 export const syncAllDocuments = async () => {
   console.log('🔄 Paperless-ngx 全件同期を開始します...');
@@ -145,9 +171,10 @@ export const syncAllDocuments = async () => {
 
   try {
     while (nextUrl) {
-      const response: AxiosResponse<PaperlessListResponse> =
-        await apiClient.get(nextUrl);
-      const data: PaperlessListResponse = response.data;
+      const response: AxiosResponse<
+        PaperlessListResponse<PaperlessDocumentApiItem>
+      > = await apiClient.get(nextUrl);
+      const data = response.data;
 
       for (const doc of data.results) {
         const documentInput: PaperlessDocumentInput = {
@@ -161,7 +188,7 @@ export const syncAllDocuments = async () => {
             ? correspondentsMap[doc.correspondent] || null
             : null,
           tags: doc.tags
-            ? doc.tags.map((id: number) => tagsMap[id]).filter(Boolean)
+            ? doc.tags.map((id) => tagsMap[id]).filter(Boolean)
             : [],
           document_date: doc.created ? new Date(doc.created) : undefined,
         };

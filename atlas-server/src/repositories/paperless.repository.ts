@@ -62,16 +62,22 @@ export const upsertPaperlessDocument = async (
   input: PaperlessDocumentInput,
 ) => {
   const values = {
-    ...input,
+    paperless_id: input.paperless_id,
+    title: input.title,
+    asn: input.asn ?? null,
+    document_type: input.document_type ?? null,
+    correspondent: input.correspondent ?? null,
+    tags: input.tags ?? [],
+    document_date: input.document_date ?? null,
     updated_at: new Date(),
   };
 
   return await db
     .insertInto('paperless_documents')
-    .values(values as any)
+    .values(values)
     .onConflict((oc) =>
       // paperless_id が重複した場合はデータを上書き更新する
-      oc.column('paperless_id').doUpdateSet(values as any),
+      oc.column('paperless_id').doUpdateSet(values),
     )
     .returningAll()
     .executeTakeFirst();

@@ -1,29 +1,25 @@
-FROM node:20-slim
+FROM node:20-slim AS builder
 WORKDIR /app
 
-# 先にpackage.jsonだけコピーしてインストール（キャッシュを効かせるため）
-COPY package*.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
-# ソースコードは後からボリュームマウントされるため、開発環境ではここまででOK
-CMD ["npm", "run", "dev"]
+COPY tsconfig.json ./
+COPY src ./src
 
+RUN npm run typecheck && npm run build
 
-### 本番環境用
-#FROM node:20-slim
-#WORKDIR /app
+FROM node:20-slim AS runner
+WORKDIR /app
 
-# 1. パッケージのインストール
-#COPY package*.json ./
-#RUN npm install
+ENV NODE_ENV=production
 
-# 2. ソースコードをコンテナ内にすべてコピー（本番環境では必須）
-#COPY . .
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm cache clean --force
 
-# 3. 💡 （オプション）TypeScriptのビルド等があれば実行
-# もし package.json に "build" スクリプトがあれば、ここでコンパイルしておきます
-#RUN npm run build 
+COPY --from=builder --chown=node:node /app/dist ./dist
 
-# 4. 起動コマンドを本番用に変更
-# npm run dev ではなく、本番起動用のコマンド（npm start等）に切り替えます
-#CMD ["npm", "start"]
+USER node
+EXPOSE 5675
+
+CMD ["node", "dist/index.js"]

@@ -2,11 +2,12 @@
 
 import { db } from '../db/client';
 import {
-  CreatePieceInput,
   UpdatePieceInput,
   DbPiece,
+  LocalPiecesTable,
+  NotionPiecesCacheTable,
 } from '../models/piece.model';
-import { sql } from 'kysely';
+import { Expression, Insertable, Selectable, sql, SqlBool, Updateable } from 'kysely';
 
 export interface PieceFilters {
   area?: string;
@@ -20,80 +21,101 @@ export interface PieceFilters {
   parentId?: string;
 }
 
+type NotionPieceRow = Selectable<NotionPiecesCacheTable> & { source: 'NOTION' };
+type LocalPieceRow = Selectable<LocalPiecesTable> & { source: 'LOCAL' };
+export type CombinedPieceRow = NotionPieceRow | LocalPieceRow;
+
+const buildPieceFilterConditions = (
+  filters: PieceFilters,
+): Expression<SqlBool>[] => {
+  const conditions: Expression<SqlBool>[] = [];
+  if (filters.area) conditions.push(sql<SqlBool>`area = ${filters.area}`);
+  if (filters.type) conditions.push(sql<SqlBool>`type = ${filters.type}`);
+  if (filters.status) conditions.push(sql<SqlBool>`status = ${filters.status}`);
+  if (filters.flags && filters.flags.length > 0) {
+    conditions.push(
+      sql<SqlBool>`flags && ARRAY[${sql.join(filters.flags)}]::text[]`,
+    );
+  }
+  if (filters.topics && filters.topics.length > 0) {
+    conditions.push(
+      sql<SqlBool>`topics && ARRAY[${sql.join(filters.topics)}]::text[]`,
+    );
+  }
+  if (filters.excludeStatus && filters.excludeStatus.length > 0) {
+    conditions.push(
+      sql<SqlBool>`status NOT IN (${sql.join(filters.excludeStatus)})`,
+    );
+  }
+  if (filters.beforeDate) {
+    conditions.push(sql<SqlBool>`start_date < ${filters.beforeDate}`);
+  }
+  if (filters.afterDate) {
+    conditions.push(sql<SqlBool>`start_date > ${filters.afterDate}`);
+  }
+  if (filters.parentId) {
+    conditions.push(sql<SqlBool>`parent_id = ${filters.parentId}`);
+  }
+  return conditions;
+};
+
+const pickPieceTimestamp = (piece: CombinedPieceRow): number => {
+  if (piece.start_date) {
+    return new Date(
+      `${piece.start_date}T${piece.start_time || '00:00:00'}`,
+    ).getTime();
+  }
+  const fallback =
+    piece.source === 'LOCAL' ? piece.created_at : piece.last_edited_time;
+  return new Date(fallback).getTime();
+};
+
 /** 条件に一致する Piece を NotionキャッシュとローカルDBから取得する。 */
-export const getPieces = async (filters: PieceFilters) => {
-  const applyCommonFilters = (qb: any) => {
-    let q = qb;
-    if (filters.area) q = q.where('area', '=', filters.area);
-    if (filters.type) q = q.where('type', '=', filters.type);
-    if (filters.status) q = q.where('status', '=', filters.status);
-    if (filters.flags && filters.flags.length > 0) {
-      q = q.where(
-        sql<boolean>`flags && ARRAY[${sql.join(filters.flags)}]::text[]`,
-      );
-    }
-    if (filters.topics && filters.topics.length > 0) {
-      q = q.where(
-        sql<boolean>`topics && ARRAY[${sql.join(filters.topics)}]::text[]`,
-      );
-    }
-    if (filters.excludeStatus && filters.excludeStatus.length > 0) {
-      q = q.where('status', 'not in', filters.excludeStatus);
-    }
-    if (filters.beforeDate) {
-      q = q.where('start_date', '<', filters.beforeDate);
-    }
-    if (filters.afterDate) {
-      q = q.where('start_date', '>', filters.afterDate);
-    }
-    if (filters.parentId) q = q.where('parent_id', '=', filters.parentId);
-    return q;
-  };
+export const getPieces = async (
+  filters: PieceFilters,
+): Promise<CombinedPieceRow[]> => {
+  const conditions = buildPieceFilterConditions(filters);
 
-  const notionPieces = await applyCommonFilters(
-    db.selectFrom('notion_pieces_cache').selectAll(),
-  ).execute();
+  let notionQuery = db.selectFrom('notion_pieces_cache').selectAll();
+  let localQuery = db.selectFrom('local_pieces').selectAll();
 
-  const localPieces = await applyCommonFilters(
-    db.selectFrom('local_pieces').selectAll(),
-  ).execute();
+  for (const condition of conditions) {
+    notionQuery = notionQuery.where(condition);
+    localQuery = localQuery.where(condition);
+  }
 
-  const mapPiece = (p: any, source: 'NOTION' | 'LOCAL') => ({
-    ...p,
-    source,
-  });
+  const [notionPieces, localPieces] = await Promise.all([
+    notionQuery.execute(),
+    localQuery.execute(),
+  ]);
 
-  const combined = [
-    ...notionPieces.map((p: any) => mapPiece(p, 'NOTION')),
-    ...localPieces.map((p: any) => mapPiece(p, 'LOCAL')),
+  const combined: CombinedPieceRow[] = [
+    ...notionPieces.map((p) => ({ ...p, source: 'NOTION' as const })),
+    ...localPieces.map((p) => ({ ...p, source: 'LOCAL' as const })),
   ];
 
-  const pickDate = (piece: any) => {
-    return new Date(
-      piece.start_date
-        ? `${piece.start_date}T${piece.start_time || '00:00:00'}`
-        : piece.created_at || piece.last_edited_time,
-    ).getTime();
-  };
-
-  return combined.sort((a, b) => pickDate(b) - pickDate(a));
+  return combined.sort(
+    (a, b) => pickPieceTimestamp(b) - pickPieceTimestamp(a),
+  );
 };
 
 /** IDで Piece を取得する。 */
-export const getPieceById = async (id: string) => {
+export const getPieceById = async (
+  id: string,
+): Promise<CombinedPieceRow | null> => {
   const local = await db
     .selectFrom('local_pieces')
     .selectAll()
     .where('id', '=', id)
     .executeTakeFirst();
-  if (local) return { ...local, source: 'LOCAL' };
+  if (local) return { ...local, source: 'LOCAL' as const };
 
   const notion = await db
     .selectFrom('notion_pieces_cache')
     .selectAll()
     .where('id', '=', id)
     .executeTakeFirst();
-  if (notion) return { ...notion, source: 'NOTION' };
+  if (notion) return { ...notion, source: 'NOTION' as const };
 
   return null;
 };
@@ -102,42 +124,64 @@ export const getPieceById = async (id: string) => {
 export const upsertNotionPieceCache = async (
   piece: DbPiece,
   lastEditedTime: Date,
-) => {
-  const values = {
-    ...piece,
+): Promise<NotionPieceRow | undefined> => {
+  if (!piece.id) {
+    throw new Error('Notion piece id is required for cache upsert');
+  }
+
+  const values: Insertable<NotionPiecesCacheTable> = {
+    id: piece.id,
+    title: piece.title,
+    note: piece.note,
+    status: piece.status,
+    area: piece.area,
+    type: piece.type,
+    topics: piece.topics,
+    flags: piece.flags,
+    fkw: piece.fkw,
+    prefs: piece.prefs,
+    url: piece.url ?? null,
+    start_date: piece.start_date ?? null,
+    start_time: piece.start_time ?? null,
+    end_date: piece.end_date ?? null,
+    end_time: piece.end_time ?? null,
+    parent_id: piece.parent_id ?? null,
     last_edited_time: lastEditedTime,
   };
 
   const upsertedPiece = await db
     .insertInto('notion_pieces_cache')
-    .values(values as any)
-    .onConflict((oc) => oc.column('id').doUpdateSet(values as any))
+    .values(values)
+    .onConflict((oc) => oc.column('id').doUpdateSet(values))
     .returningAll()
     .executeTakeFirst();
 
-  if (upsertedPiece) (upsertedPiece as any).source = 'NOTION';
-  return upsertedPiece;
+  return upsertedPiece
+    ? { ...upsertedPiece, source: 'NOTION' as const }
+    : undefined;
 };
 
 /** Notion由来の Piece キャッシュを更新する。 */
 export const updateNotionPieceCache = async (
   id: string,
   updates: UpdatePieceInput,
-) => {
-  const dbUpdates = {
-    ...updates,
+): Promise<NotionPieceRow | undefined> => {
+  const { source: _source, ...rest } = updates;
+  const dbUpdates: Updateable<NotionPiecesCacheTable> = {
+    ...rest,
     last_edited_time: new Date(),
   };
 
   const updatedPiece = await db
     .updateTable('notion_pieces_cache')
-    .set(dbUpdates as any)
+    .set(dbUpdates)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
 
-  if (updatedPiece) (updatedPiece as any).source = 'NOTION';
-  return updatedPiece;
+  return updatedPiece
+    ? { ...updatedPiece, source: 'NOTION' as const }
+    : undefined;
 };
 
 /** 同期対象から外れた Notionキャッシュを削除する。 */
@@ -158,15 +202,18 @@ export const deleteNotionPieceCache = async (id: string) => {
 };
 
 /** ローカル Piece を作成する。 */
-export const insertLocalPiece = async (dbPiece: DbPiece) => {
+export const insertLocalPiece = async (
+  dbPiece: DbPiece,
+): Promise<LocalPieceRow | undefined> => {
   const insertedPiece = await db
     .insertInto('local_pieces')
     .values(dbPiece)
     .returningAll()
     .executeTakeFirst();
 
-  if (insertedPiece) (insertedPiece as any).source = 'LOCAL';
-  return insertedPiece;
+  return insertedPiece
+    ? { ...insertedPiece, source: 'LOCAL' as const }
+    : undefined;
 };
 
 /**
@@ -191,16 +238,18 @@ export const insertBatchLocalPieces = async (dbPieces: DbPiece[]) => {
 export const updateLocalPiece = async (
   id: string,
   updates: UpdatePieceInput,
-) => {
+): Promise<LocalPieceRow | undefined> => {
+  const { source: _source, ...rest } = updates;
   const updatedPiece = await db
     .updateTable('local_pieces')
-    .set(updates)
+    .set(rest)
     .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
 
-  if (updatedPiece) (updatedPiece as any).source = 'LOCAL';
-  return updatedPiece;
+  return updatedPiece
+    ? { ...updatedPiece, source: 'LOCAL' as const }
+    : undefined;
 };
 
 /** ローカル Piece を削除する。 */

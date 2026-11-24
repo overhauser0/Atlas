@@ -1,7 +1,7 @@
 // src/models/immich.model.ts
 
 import { z } from 'zod';
-import { Generated } from 'kysely';
+import { ColumnType, Generated } from 'kysely';
 
 // ==========================================
 // 1. Zod Schemas (APIバリデーション用)
@@ -56,6 +56,6 @@ export type ImmichCache = z.infer<typeof ImmichCacheSchema>;
 export interface ImmichCacheTable {
   id: Generated<number>;
   key: string;
-  data: any; // PostgreSQLの JSONB カラム用（中身は ImmichStatsData）
+  data: ColumnType<ImmichStatsData | string, string, string>; // PostgreSQLの JSONB カラム用（中身は ImmichStatsData）
   updated_at: Generated<Date>;
 }

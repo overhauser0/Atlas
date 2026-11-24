@@ -57,7 +57,7 @@ export const NotificationSchema = z.object({
   note: z.string().default(''),
   url: z.string().default(''),
   category: z.string().default('info'),
-  metadata: z.record(z.any()).optional().nullable(),
+  metadata: z.record(z.unknown()).optional().nullable(),
   is_read: z.boolean().default(false),
 });
 
@@ -82,7 +82,7 @@ export interface NotificationsTable {
   note: string;
   url: string;
   category: string;
-  metadata: JSONColumnType<any> | null;
+  metadata: JSONColumnType<Record<string, unknown>> | null;
   created_at: Generated<Date>;
   is_read: Generated<boolean>;
 }

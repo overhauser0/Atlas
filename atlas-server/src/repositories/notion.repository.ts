@@ -41,9 +41,25 @@ const toNotionDateRange = (piece: Partial<DbPiece>) => {
   return start ? { date: { start, end } } : { date: null };
 };
 
+type NotionDataSourcePage = Awaited<
+  ReturnType<typeof notionClient.dataSources.query>
+>['results'][number];
+
+type CreatePageProperties = NonNullable<
+  Parameters<typeof notionClient.pages.create>[0]['properties']
+>;
+
+type UpdatePageProperties = NonNullable<
+  Parameters<typeof notionClient.pages.update>[0]['properties']
+>;
+
+type NotionBlockItem = Awaited<
+  ReturnType<typeof notionClient.blocks.children.list>
+>['results'][number];
+
 /** Notionの Piece ページをすべて取得する。 */
-export const getPiecePages = async () => {
-  let allPages: any[] = [];
+export const getPiecePages = async (): Promise<NotionDataSourcePage[]> => {
+  let allPages: NotionDataSourcePage[] = [];
   let hasMore = true;
   let cursor: string | undefined = undefined;
 
@@ -65,7 +81,7 @@ export const getPiecePages = async () => {
 
 /** Notionに Piece ページを作成する。 */
 export const insertPiecePage = async (piece: DbPiece) => {
-  const properties: any = {
+  const properties: CreatePageProperties = {
     Name: { title: [{ text: { content: piece.title } }] },
     State: { status: { name: piece.status || 'INBOX' } },
     _Area: { select: { name: piece.area || 'Work' } },
@@ -111,7 +127,7 @@ export const updatePiecePage = async (
   pageId: string,
   piece: UpdatePieceInput,
 ) => {
-  const properties: any = {};
+  const properties: UpdatePageProperties = {};
 
   if (piece.title)
     properties.Name = { title: [{ text: { content: piece.title } }] };
@@ -167,8 +183,10 @@ export const archivePiecePage = async (pageId: string) => {
 // Block operations
 
 /** Notionページの本文ブロックをすべて取得する。 */
-export const getPageBlocks = async (pageId: string) => {
-  let allBlocks: any[] = [];
+export const getPageBlocks = async (
+  pageId: string,
+): Promise<NotionBlockItem[]> => {
+  const allBlocks: NotionBlockItem[] = [];
   let cursor: string | undefined = undefined;
 
   while (true) {

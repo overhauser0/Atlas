@@ -141,7 +141,9 @@ export const generateRoutineTasks = async () => {
     }
   }
 
-  let insertedPieces = [] as any;
+  let insertedPieces: Awaited<
+    ReturnType<typeof pieceRepository.insertBatchLocalPieces>
+  > = [];
   if (piecesToCreate.length > 0) {
     insertedPieces = await pieceRepository.insertBatchLocalPieces(
       piecesToCreate as DbPiece[],

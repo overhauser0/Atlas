@@ -35,8 +35,39 @@ const getWeeksInMonth = (year: number, month: number) => {
   return weeks;
 };
 
+interface NotionPlainTextItem {
+  plain_text?: string;
+}
+
+interface NotionRichTextProp {
+  rich_text?: NotionPlainTextItem[];
+}
+
+interface NotionTitleProp {
+  title?: NotionPlainTextItem[];
+}
+
+interface NotionDateProp {
+  date?: { start?: string | null } | null;
+}
+
+interface NotionReviewPageLike {
+  id: string;
+  properties?: {
+    Name?: NotionTitleProp;
+    StartDate?: NotionDateProp;
+    Business?: NotionRichTextProp;
+    Life?: NotionRichTextProp;
+    Summary?: NotionRichTextProp;
+  };
+}
+
+const asReviewPage = (page: unknown): NotionReviewPageLike =>
+  page as NotionReviewPageLike;
+
 /** Notionプロパティからテキストを抽出する。 */
-const getText = (property: any) => property?.rich_text?.[0]?.plain_text || '';
+const getText = (property?: NotionRichTextProp) =>
+  property?.rich_text?.[0]?.plain_text || '';
 
 /** 月次レビューと紐づく週次レビューを取得し、なければ作成する。 */
 export const getOrCreateMonthlyReview = async (yearMonth: string) => {
@@ -62,22 +93,26 @@ export const getOrCreateMonthlyReview = async (yearMonth: string) => {
   });
 
   const weeklyPages = await Promise.all(weeklyPromises);
+  const typedMonthly = asReviewPage(monthlyPage);
 
   return {
     monthly: {
-      id: monthlyPage.id,
+      id: typedMonthly.id,
       name: yearMonth,
       startDate: firstDayOfMonth,
-      business: getText((monthlyPage as any).properties.Business),
-      life: getText((monthlyPage as any).properties.Life),
-      summary: getText((monthlyPage as any).properties.Summary),
+      business: getText(typedMonthly.properties?.Business),
+      life: getText(typedMonthly.properties?.Life),
+      summary: getText(typedMonthly.properties?.Summary),
     },
-    weekly: weeklyPages.map((page: any) => ({
-      id: page.id,
-      name: page.properties.Name.title[0]?.plain_text,
-      startDate: page.properties.StartDate?.date?.start,
-      summary: getText(page.properties.Summary),
-    })),
+    weekly: weeklyPages.map((rawPage) => {
+      const page = asReviewPage(rawPage);
+      return {
+        id: page.id,
+        name: page.properties?.Name?.title?.[0]?.plain_text,
+        startDate: page.properties?.StartDate?.date?.start,
+        summary: getText(page.properties?.Summary),
+      };
+    }),
   };
 };
 

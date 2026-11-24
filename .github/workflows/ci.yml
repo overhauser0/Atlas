@@ -8,7 +8,7 @@ on:
 
 jobs:
   atlas-server:
-    name: atlas-server (typecheck & test)
+    name: atlas-server (typecheck, test & build)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -23,6 +23,7 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+      - run: npm run build
 
   frontend-workspaces:
     name: shared, gleis & trails (typecheck, test & build)

@@ -40,9 +40,6 @@ services:
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       ATLAS_API_KEY: ${ATLAS_API_KEY}
       ATLAS_PASSWORD: ${ATLAS_PASSWORD}
-    volumes:
-      - ./atlas-server:/app # コードをマウント（ホットリロード用）
-      - /app/node_modules # NASとの同期から除外（高速化）
     ports:
       - '5675:5675'
     depends_on:
