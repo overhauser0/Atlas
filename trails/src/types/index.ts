@@ -107,3 +107,11 @@ export interface DiaryItem {
   created_at?: string;
   updated_at?: string;
 }
+
+export type ItemViewMode = 'List' | 'Cal' | 'Stats';
+
+export interface TrailsAppSettings {
+  showTaskInCal: boolean;
+  showGcalInCal: boolean;
+  itemTabViews: Record<ItemTabPreset, ItemViewMode>;
+}

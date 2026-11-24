@@ -9,9 +9,28 @@ const formatWeekTitle = (weekName: string) => weekName.split('-')[1];
 
 const today = new Date();
 
+interface MonthlyReview {
+  id: string;
+  business: string;
+  life: string;
+  summary: string;
+}
+
+interface WeeklyReview {
+  id: string;
+  name: string;
+  startDate: string;
+  summary: string;
+}
+
+interface ReviewData {
+  monthly: MonthlyReview | null;
+  weekly: WeeklyReview[];
+}
+
 export default function ReviewView() {
   const [targetDate, setTargetDate] = useState(new Date());
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<ReviewData | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<{
     isOpen: boolean;
@@ -98,7 +117,7 @@ export default function ReviewView() {
                             onClick={() =>
                               setEditing({
                                 isOpen: true,
-                                pageId: data.monthly.id,
+                                pageId: data.monthly?.id || '',
                                 propName: 'Business',
                                 title: 'Business Goal',
                                 value: data.monthly?.business || '',
@@ -127,7 +146,7 @@ export default function ReviewView() {
                             onClick={() =>
                               setEditing({
                                 isOpen: true,
-                                pageId: data.monthly.id,
+                                pageId: data.monthly?.id || '',
                                 propName: 'Life',
                                 title: 'Life Goal',
                                 value: data.monthly?.life || '',
@@ -156,7 +175,7 @@ export default function ReviewView() {
                             onClick={() =>
                               setEditing({
                                 isOpen: true,
-                                pageId: data.monthly.id,
+                                pageId: data.monthly?.id || '',
                                 propName: 'Summary',
                                 title: 'Monthly Summary',
                                 value: data.monthly?.summary || '',
@@ -181,7 +200,7 @@ export default function ReviewView() {
                     </h3>
                   </div>
                   <div className="divide-y divide-white/5">
-                    {data.weekly.map((week: any) => {
+                    {data.weekly.map((week) => {
                       const current = isCurrentWeek(week.startDate);
                       return (
                         <div

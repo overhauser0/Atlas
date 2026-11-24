@@ -15,7 +15,7 @@ export default function GeneralSettings({
   setAppSettings,
 }: Props) {
   const updateAlarm = (time: string) => {
-    setAppSettings((s: any) => ({ ...s, alarmTime: time }));
+    setAppSettings((s) => ({ ...s, alarmTime: time }));
   };
 
   return (
@@ -40,7 +40,7 @@ export default function GeneralSettings({
             <ToggleSwitch
               checked={appSettings.shrinkEmptyPastDays}
               onChange={() =>
-                setAppSettings((s: any) => ({
+                setAppSettings((s) => ({
                   ...s,
                   shrinkEmptyPastDays: !s.shrinkEmptyPastDays,
                 }))
@@ -59,7 +59,7 @@ export default function GeneralSettings({
             <ToggleSwitch
               checked={appSettings.wakeLockEnabled !== false}
               onChange={() =>
-                setAppSettings((s: any) => ({
+                setAppSettings((s) => ({
                   ...s,
                   wakeLockEnabled: !s.wakeLockEnabled,
                 }))
@@ -78,7 +78,7 @@ export default function GeneralSettings({
             <ToggleSwitch
               checked={appSettings.showCompletedInCalendar}
               onChange={() =>
-                setAppSettings((s: any) => ({
+                setAppSettings((s) => ({
                   ...s,
                   showCompletedInCalendar: !s.showCompletedInCalendar,
                 }))
@@ -109,7 +109,7 @@ export default function GeneralSettings({
                 min="0"
                 value={appSettings.syncInterval}
                 onChange={(e) =>
-                  setAppSettings((s: any) => ({
+                  setAppSettings((s) => ({
                     ...s,
                     syncInterval: parseInt(e.target.value) || 0,
                   }))

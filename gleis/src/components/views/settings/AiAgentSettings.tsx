@@ -5,6 +5,7 @@ import { Cpu, Plus, Trash2, Save, X, Edit2, ShieldCheck } from 'lucide-react';
 import ToggleSwitch from '@/components/ui/ToggleSwitch';
 import { atlasFetch } from '@atlas/shared/api';
 import { useToast } from '@/components/ui/Toast';
+import type { AppSettings } from '@/types';
 
 export interface Agent {
   id: string;
@@ -13,8 +14,8 @@ export interface Agent {
 }
 
 interface Props {
-  appSettings: any;
-  setAppSettings: (s: any) => void;
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
 }
 
 export default function AiAgentSettings({
@@ -143,7 +144,7 @@ export default function AiAgentSettings({
           <ToggleSwitch
             checked={appSettings.isChargedModel ?? false}
             onChange={() =>
-              setAppSettings((s: any) => ({
+              setAppSettings((s) => ({
                 ...s,
                 isChargedModel: !s.isChargedModel,
               }))

@@ -21,17 +21,17 @@ import {
   FileStack,
 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
-import { SettingsTab } from '@/types';
+import { AppNotification, SettingsTab, Task } from '@/types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   isWakeLockActive: boolean;
   onOpenSetting: (settingsTab: SettingsTab) => void;
-  notifications: any[];
+  notifications: AppNotification[];
   onOpenVoiceCapture: () => void;
   lastSyncTime: number | null | undefined;
-  overdueTasks?: any[];
+  overdueTasks?: Task[];
   onRescheduleOverdue?: () => Promise<void>;
   onSyncStart: () => void;
   onSyncEnd: () => void;

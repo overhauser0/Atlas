@@ -4,6 +4,26 @@ import { LifeItem } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
 import { markCategory, judgeDefaultIcon } from '@/utils/piece';
 
+interface RawApiPiece {
+  id: string;
+  title: string;
+  status: string;
+  start_date: string | null;
+  start_time?: string | null;
+  end_date?: string | null;
+  end_time?: string | null;
+  area: string | null;
+  type: string | null;
+  topics?: string[] | null;
+  flags?: string[] | null;
+  fkw?: string[] | null;
+  note?: string | null;
+  url?: string | null;
+  prefs?: string[] | null;
+  imageUrl?: string | null;
+  source: string;
+}
+
 export const usePieceSync = (
   isAuthenticated: boolean,
   onSyncStart: () => void,
@@ -46,13 +66,14 @@ export const usePieceSync = (
 
         if (!res.ok) return;
 
-        const data = await res.json();
+        const data = (await res.json()) as { pieces?: RawApiPiece[] };
+        const pieces = Array.isArray(data.pieces) ? data.pieces : [];
 
         // gleisのタスク型をLifeItemへ変換
-        const mappedItems: LifeItem[] = data.pieces
-          .filter((p: any) => p.area === 'Life')
-          .map((p: any) => {
-            return {
+        const mappedItems: LifeItem[] = pieces
+          .filter((p) => p.area === 'Life')
+          .map((p) => {
+            const baseItem: LifeItem = {
               id: p.id,
               title: p.title,
               status: p.status,
@@ -69,9 +90,13 @@ export const usePieceSync = (
               url: p.url || '',
               prefs: p.prefs || [],
               imageUrl: p.imageUrl || '',
-              iconType: judgeDefaultIcon(p),
+              iconType: '',
               source: p.source,
-              category: markCategory(p),
+            };
+            return {
+              ...baseItem,
+              iconType: judgeDefaultIcon(baseItem),
+              category: markCategory(baseItem),
             };
           });
 

@@ -13,7 +13,7 @@ export default function AlarmHandler({ appSettings, setAppSettings }: Props) {
   const [isAlerting, setIsAlerting] = useState(false);
 
   const triggerAlarm = useCallback(() => {
-    setAppSettings((s: any) => ({
+    setAppSettings((s) => ({
       ...s,
       alarmTime: '',
     }));

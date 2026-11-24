@@ -164,7 +164,7 @@ export default function ProjectModal({
         <div className="order-3 flex w-full flex-wrap items-center gap-2 md:order-2 md:w-auto">
           <div className="flex items-center gap-2 bg-black/60 border border-white/10 px-2.5 py-1.5 rounded-lg shadow-inner">
             <div
-              className={`w-2 h-2 rounded-full ${getStatusColor(parentTask.status as any)}`}
+              className={`w-2 h-2 rounded-full ${getStatusColor(parentTask.status)}`}
             />
             <span className="text-xs font-medium text-zinc-300">
               {parentTask.status}

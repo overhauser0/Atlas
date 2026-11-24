@@ -10,7 +10,7 @@ import {
   Notebook,
   Aperture,
 } from 'lucide-react';
-import { DiaryItem, LifeItem } from '@/types';
+import { DiaryItem, LifeItem, TrailsAppSettings } from '@/types';
 import { GoogleEvent } from '@/hooks/useGoogleCalendar';
 import {
   getDateShortString,
@@ -21,8 +21,8 @@ import CalendarItem from '@/components/ui/CalendarItem';
 import FullscreenHeader from '@/components/ui/FullscreenHeader';
 
 interface CalendarTabProps {
-  appSettings: any;
-  onUpdateSettings: (newSettings: any) => void;
+  appSettings: TrailsAppSettings;
+  onUpdateSettings: (newSettings: TrailsAppSettings) => void;
   data: LifeItem[];
   task: LifeItem[];
   diaries: DiaryItem[];
@@ -67,21 +67,24 @@ export default function CalendarTab({
 
   // ========== 描画用データの内部結合 ==========
   const calendarItems = useMemo(() => {
-    const gcalItems: any[] = (googleEvents || []).map((ev) => ({
+    const gcalItems: LifeItem[] = (googleEvents || []).map((ev) => ({
       id: ev.id,
       title: ev.title,
-      note: ev.note,
+      note: ev.note || '',
       start_date: ev.start_date,
       start_time: ev.start_time,
       end_date: ev.end_date,
       end_time: ev.end_time,
       type: 'Event',
-      url: ev.url,
-      status: undefined,
+      url: ev.url || '',
+      status: '',
       area: '',
       topics: [],
       flags: [],
+      fkw: [],
       prefs: [],
+      imageUrl: '',
+      iconType: 'Calendar',
       category: [],
       source: 'GCAL',
     }));
@@ -193,8 +196,13 @@ export default function CalendarTab({
   }, [year, month]);
 
   // アイテムから日付を取得するヘルパー
-  const getItemDate = (item: LifeItem): Date | null =>
-    toLocalDate(item.start_date || (item as any).createdAt);
+  const getItemDate = (item: LifeItem): Date | null => {
+    const fallbackCreatedAt =
+      'createdAt' in item && typeof item.createdAt === 'string'
+        ? item.createdAt
+        : null;
+    return toLocalDate(item.start_date || fallbackCreatedAt);
+  };
 
   // 特定の日のアイテムを取得し、タスクを上にする
   const getItemsForDate = (date: Date) => {
@@ -207,7 +215,7 @@ export default function CalendarTab({
         itemDate.getDate() === date.getDate()
       );
     });
-    return filtered.sort((a: any, b: any) => {
+    return filtered.sort((a, b) => {
       const aIsTask = a.type === 'Task' ? 1 : 0;
       const bIsTask = b.type === 'Task' ? 1 : 0;
       return bIsTask - aIsTask;

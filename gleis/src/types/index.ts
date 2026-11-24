@@ -94,3 +94,14 @@ export type SettingsTab =
   | 'network'
   | 'shortcuts'
   | 'notifications';
+
+export interface AppNotification {
+  id: string;
+  title: string;
+  category: string;
+  is_read: boolean;
+  created_at: string;
+  note?: string | null;
+  content?: string | null;
+  url?: string | null;
+}

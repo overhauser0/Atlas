@@ -257,7 +257,7 @@ export default function WeeklyView({
                               subTaskProgress={countData}
                             />
 
-                            {task.topics?.map((t: any) => (
+                            {task.topics?.map((t) => (
                               <span
                                 key={t}
                                 className="text-[10px] px-2 py-0.5 rounded bg-white/5 border border-white/10 text-gray-400 truncate max-w-20"

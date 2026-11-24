@@ -1,9 +1,10 @@
 // src/hooks/useNotificationSync.ts
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { atlasFetch } from '@atlas/shared/api';
+import type { AppNotification } from '@/types';
 
 export const useNotificationSync = (isAuthenticated: boolean) => {
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   // 1. 通知の取得処理
   const fetchNotifications = useCallback(async () => {

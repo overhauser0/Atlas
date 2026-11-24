@@ -136,14 +136,82 @@ const getDateFullString = (
   }
 };
 
+interface ImmichUser {
+  id: string;
+}
+
+interface ImmichUserUsage {
+  userId?: string;
+  photos?: number;
+  videos?: number;
+  usage?: number;
+  usagePhotos?: number;
+  usageVideos?: number;
+}
+
+interface ImmichStatsResponse {
+  photos?: number;
+  videos?: number;
+  usage?: number;
+  usageByUser?: ImmichUserUsage[];
+}
+
+interface ImmichExifInfo {
+  dateTimeOriginal?: string | null;
+  make?: string | null;
+  model?: string | null;
+  lensModel?: string | null;
+  focalLength?: number | string | null;
+  state?: string | null;
+}
+
+interface ImmichAsset {
+  id: string;
+  ownerId?: string;
+  originalFileName?: string;
+  fileCreatedAt?: string;
+  localDateTime?: string;
+  thumbhash?: string | null;
+  exifInfo?: ImmichExifInfo | null;
+}
+
+type ImmichSearchResponse =
+  | ImmichAsset[]
+  | {
+      assets?: { items?: ImmichAsset[] };
+      items?: ImmichAsset[];
+    };
+
+interface ImmichSearchMetadataBody {
+  withExif: boolean;
+  size: number;
+  takenAfter?: string;
+  takenBefore?: string;
+  personIds?: string[];
+}
+
+interface MissingDateAsset {
+  id: string;
+  originalFileName?: string;
+  fileCreatedAt?: string;
+  thumbhash?: string | null;
+}
+
+const extractImmichAssets = (json: ImmichSearchResponse): ImmichAsset[] => {
+  if (Array.isArray(json)) return json;
+  if (Array.isArray(json?.assets?.items)) return json.assets.items;
+  if (Array.isArray(json?.items)) return json.items;
+  return [];
+};
+
 /** Immich APIから現在ユーザーを取得する。 */
-async function getMyUserId() {
+async function getMyUserId(): Promise<ImmichUser> {
   const { apiUrl, apiKey } = getImmichConfig();
   const meRes = await fetch(`${apiUrl}/users/me`, {
     headers: { 'x-api-key': apiKey, Accept: 'application/json' },
   });
   if (!meRes.ok) throw new Error('Failed to fetch user');
-  return (await meRes.json()) as any;
+  return (await meRes.json()) as ImmichUser;
 }
 
 /** Immichから統計を取得し、キャッシュを更新する。 */
@@ -161,11 +229,11 @@ export async function syncImmichStatsCache() {
       headers: { 'x-api-key': apiKey, Accept: 'application/json' },
     });
     if (!statsRes.ok) throw new Error('Failed to fetch Immich statistics');
-    const rawStats = (await statsRes.json()) as any;
+    const rawStats = (await statsRes.json()) as ImmichStatsResponse;
 
     // 自分のユーザーの統計データ（usageByUser から抽出）
-    const myUserStats = rawStats.usageByUser?.find(
-      (u: any) => u.userId === myUserId,
+    const myUserStats: ImmichUserUsage = rawStats.usageByUser?.find(
+      (u) => u.userId === myUserId,
     ) || {
       photos: rawStats.photos || 0,
       videos: rawStats.videos || 0,
@@ -202,15 +270,8 @@ export async function syncImmichStatsCache() {
 
       if (!searchRes.ok) break;
 
-      const json = (await searchRes.json()) as any;
-      let items: any[] = [];
-      if (Array.isArray(json)) {
-        items = json;
-      } else if (json?.assets?.items) {
-        items = json.assets.items;
-      } else if (json?.items) {
-        items = json.items;
-      }
+      const json = (await searchRes.json()) as ImmichSearchResponse;
+      const items = extractImmichAssets(json);
 
       if (items.length === 0) break;
 
@@ -272,23 +333,18 @@ export async function syncImmichStatsCache() {
         .map(([name, count]) => ({ name, count }));
     };
 
+    const usedBytes =
+      (myUserStats.usagePhotos ?? 0) + (myUserStats.usageVideos ?? 0) ||
+      myUserStats.usage ||
+      0;
+
     const formattedData = {
       total: (myUserStats.photos || 0) + (myUserStats.videos || 0),
       images: myUserStats.photos || 0,
       videos: myUserStats.videos || 0,
       storage: {
-        usedBytes:
-          myUserStats.usagePhotos + myUserStats.usageVideos ||
-          myUserStats.usage ||
-          0,
-        usedGb: Number(
-          (
-            (myUserStats.usagePhotos + myUserStats.usageVideos ||
-              myUserStats.usage ||
-              0) /
-            (1024 * 1024 * 1024)
-          ).toFixed(1),
-        ),
+        usedBytes,
+        usedGb: Number((usedBytes / (1024 * 1024 * 1024)).toFixed(1)),
       },
       topMakes: formatTop10(makeCounts),
       topModels: formatTop10(modelCounts),
@@ -301,8 +357,9 @@ export async function syncImmichStatsCache() {
 
     await immichRepository.upsertImmichCacheToDb('stats', formattedData);
     return formattedData;
-  } catch (error: any) {
-    console.error('❌ Sync Immich Stats Error:', error.message);
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error('❌ Sync Immich Stats Error:', message);
     throw new Error('Failed to communicate with Immich API');
   }
 }
@@ -321,7 +378,7 @@ export async function getImmichStatsFromCache() {
 }
 
 /** 撮影日時が欠損しているアセットを取得する。 */
-export async function getMissingDateAssets() {
+export async function getMissingDateAssets(): Promise<MissingDateAsset[]> {
   const { apiUrl, apiKey } = getImmichConfig();
   const me = await getMyUserId();
   const myUserId = me.id;
@@ -329,7 +386,7 @@ export async function getMissingDateAssets() {
   let page = 1;
   const pageSize = 1000;
   const maxPages = 20; // 検索範囲
-  const missingAssets: any[] = [];
+  const missingAssets: MissingDateAsset[] = [];
 
   while (page <= maxPages) {
     const searchRes = await fetch(`${apiUrl}/search/metadata`, {
@@ -348,12 +405,8 @@ export async function getMissingDateAssets() {
     });
 
     if (!searchRes.ok) break;
-    const json = (await searchRes.json()) as any;
-
-    let items: any[] = [];
-    if (Array.isArray(json)) items = json;
-    else if (json?.assets?.items) items = json.assets.items;
-    else if (json?.items) items = json.items;
+    const json = (await searchRes.json()) as ImmichSearchResponse;
+    const items = extractImmichAssets(json);
 
     if (items.length === 0) break;
 
@@ -408,9 +461,10 @@ export async function updateAssetsDate(
           results.failed++;
           results.errors.push(`Failed to update ${update.id}`);
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : String(err);
         results.failed++;
-        results.errors.push(`Error updating ${update.id}: ${err.message}`);
+        results.errors.push(`Error updating ${update.id}: ${message}`);
       }
     }),
   );
@@ -427,7 +481,7 @@ export async function searchMyAssets(filters: {
   const me = await getMyUserId();
   const myUserId = me.id;
 
-  const reqBody: any = {
+  const reqBody: ImmichSearchMetadataBody = {
     withExif: true,
     size: 1000, // 1日の撮影枚数上限目安
   };
@@ -455,12 +509,8 @@ export async function searchMyAssets(filters: {
   });
 
   if (!res.ok) throw new Error('Search failed');
-  const json = (await res.json()) as any;
-
-  let items: any[] = [];
-  if (Array.isArray(json)) items = json;
-  else if (json?.assets?.items) items = json.assets.items;
-  else if (json?.items) items = json.items;
+  const json = (await res.json()) as ImmichSearchResponse;
+  const items = extractImmichAssets(json);
 
   // 自分のアセットのみにフィルタリングして必要なプロパティだけ整形して返す
   return items

@@ -21,7 +21,7 @@ export default function QuickAlarmModal({
   const currentAlarm = appSettings.alarmTime || '';
 
   const handleUpdate = (time: string) => {
-    setAppSettings((s: any) => ({
+    setAppSettings((s) => ({
       ...s,
       alarmTime: time,
     }));
@@ -35,7 +35,7 @@ export default function QuickAlarmModal({
   };
 
   const handleClear = () => {
-    setAppSettings((s: any) => ({
+    setAppSettings((s) => ({
       ...s,
       alarmTime: '',
     }));

@@ -154,7 +154,7 @@ export default function AiAgentView({
   };
 
   const toggleChargedModel = () => {
-    setAppSettings((prev: any) => ({
+    setAppSettings((prev) => ({
       ...prev,
       isChargedModel: !prev.isChargedModel,
     }));

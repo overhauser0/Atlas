@@ -28,10 +28,10 @@ export default function SearchModal({
   // ====== データの統合 ======
   const allItems = useMemo(() => {
     // GCalイベントをLifeItem型にマッピング
-    const gcalMapped: any[] = (googleEvents || []).map((ev) => ({
+    const gcalMapped: LifeItem[] = (googleEvents || []).map((ev) => ({
       id: ev.id,
       title: ev.title,
-      note: ev.note,
+      note: ev.note || '',
       start_date: ev.start_date,
       start_time: ev.start_time,
       end_date: ev.end_date,
@@ -39,12 +39,14 @@ export default function SearchModal({
       type: 'Event',
       source: 'GCAL',
       iconType: 'Calendar',
-      url: ev.url,
+      url: ev.url || '',
       status: 'Done',
       area: '',
       topics: [],
       flags: [],
+      fkw: [],
       prefs: [],
+      imageUrl: '',
       category: [],
     }));
 

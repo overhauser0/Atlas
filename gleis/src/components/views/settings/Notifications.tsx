@@ -11,11 +11,11 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
-import { Task } from '@/types';
+import { AppNotification, Task } from '@/types';
 import { IconButton } from '@/components/ui/IconButton';
 
 interface Props {
-  notifications: any[];
+  notifications: AppNotification[];
   onMarkAsRead: (id: string) => void;
   openTaskModal: (task?: Partial<Task>) => void;
   handleGleisLink: (url: string, callback?: Function) => void;
@@ -130,7 +130,9 @@ export default function NotificationsView({
                       {n.url && (
                         <IconButton
                           icon={<ExternalLink />}
-                          onClick={() => handleGleisLink(n.url)}
+                          onClick={() => {
+                            if (n.url) handleGleisLink(n.url);
+                          }}
                           title="リンクを開く"
                           iconClassName="w-3.5 h-3.5"
                         />

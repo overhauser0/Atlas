@@ -96,8 +96,7 @@ export default function MeetingView({
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
       filtered = meetingTasks.filter((task) => {
-        // FKW（Free KeyWord）の検索対応 (型定義にfkwがない場合は as any等で適宜回避)
-        const fkwMatch = (task as any).fkw?.some((kw: string) =>
+        const fkwMatch = task.fkw?.some((kw) =>
           kw.toLowerCase().includes(lowerQuery),
         );
         return (

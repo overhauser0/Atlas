@@ -10,15 +10,16 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { atlasFetch } from '@atlas/shared/api';
+import type { TrailsAppSettings } from '@/types';
 import { useToast } from '@/components/ui/Toast';
 import PageHeader from '@/components/ui/PageHeader';
 import packageJson from '../../../package.json';
 
 interface Props {
-  appSettings: any;
+  appSettings: TrailsAppSettings;
   onSync: () => Promise<void> | void;
   onLogout: () => void;
-  onUpdateSettings: (newSettings: any) => void;
+  onUpdateSettings: (newSettings: TrailsAppSettings) => void;
 }
 
 export default function ConfigTab({

@@ -38,7 +38,7 @@ export interface ImmichAsset {
     focalLength?: number;
     iso?: number;
     exposureTime?: string;
-    [key: string]: any;
+    [key: string]: unknown;
   } | null;
 }
 

@@ -10,7 +10,13 @@ import {
   Bell,
   ClipboardList,
 } from 'lucide-react';
-import { AppSettings, DeviceInfo, Task, SettingsTab } from '@/types';
+import {
+  AppNotification,
+  AppSettings,
+  DeviceInfo,
+  Task,
+  SettingsTab,
+} from '@/types';
 
 // --- Sub Components ---
 import GeneralSettings from './settings/GeneralSettings';
@@ -29,7 +35,7 @@ interface Props {
   ownDeviceId?: string;
   activeTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
-  notifications: any[];
+  notifications: AppNotification[];
   onMarkAsRead: (id: string) => void;
   allTasks: Task[];
   openTaskModal: (task?: Partial<Task>) => void;

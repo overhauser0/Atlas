@@ -1,6 +1,7 @@
 // gleis/src/hooks/useTaskSync.ts
 import { useState, useCallback } from 'react';
 import { Task } from '@/types';
+import type { TaskSavePayload } from '@/components/modals/TaskModal';
 import { isPastDate } from '@atlas/shared/date';
 import { getPieceDateRangeUpdate, sortByStartDate } from '@/utils/task';
 import { atlasFetch } from '@atlas/shared/api';
@@ -126,7 +127,10 @@ export const useTaskSync = (
   }, [fetchTasks, onSyncStart, onSyncEnd]);
 
   // タスクを保存する共通関数
-  const saveTask = async (taskId: string | null, payload: any) => {
+  const saveTask = async (
+    taskId: string | null,
+    payload: TaskSavePayload | Partial<Task>,
+  ) => {
     const url = taskId ? `/pieces/${taskId}` : '/pieces';
     const method = taskId ? 'PATCH' : 'POST';
 

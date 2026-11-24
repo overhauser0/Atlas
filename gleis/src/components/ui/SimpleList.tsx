@@ -22,7 +22,7 @@ export default function SimpleList({ tasks, onTaskClick }: SimpleListProps) {
   return (
     <div className="space-y-1">
       {tasks.map((task) => {
-        const fkwList: string[] = (task as any).fkw || [];
+        const fkwList: string[] = task.fkw || [];
 
         return (
           <button
