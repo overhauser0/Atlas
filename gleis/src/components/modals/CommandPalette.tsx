@@ -41,6 +41,7 @@ interface CommandPaletteProps {
   onClose: () => void;
   onNavigate: (view: ViewType) => void;
   onOpenSetting: (tab: SettingsTab) => void;
+  onOpenAgent: () => void;
   onNotionSync: () => void;
   onDocumentSync: () => void;
   onNewTask: (task?: Partial<Task>) => void;
@@ -59,6 +60,7 @@ export default function CommandPalette({
   onClose,
   onNavigate,
   onOpenSetting,
+  onOpenAgent,
   onNotionSync,
   onDocumentSync,
   onNewTask,
@@ -156,10 +158,10 @@ export default function CommandPalette({
         action: () => onNavigate('documents'),
       },
       {
-        id: 'nav-agent',
-        label: 'Go to Agent',
+        id: 'open-agent',
+        label: 'Open AI Agent',
         icon: Bot,
-        action: () => onNavigate('aiagent'),
+        action: onOpenAgent,
       },
       {
         id: 'nav-stats',
@@ -217,6 +219,8 @@ export default function CommandPalette({
       onDocumentSync,
       onQuickAlarmOpen,
       onNavigate,
+      onOpenSetting,
+      onOpenAgent,
       onLock,
     ],
   );

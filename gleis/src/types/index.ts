@@ -53,7 +53,6 @@ export const VALID_VIEWS = [
   'meeting',
   'review',
   'note',
-  'aiagent',
   'stats',
   'documents',
   'settings',

@@ -7,6 +7,7 @@ interface ShortcutHandlers {
   onLogout: () => void;
   onCreateTask: () => void;
   onOpenActionPanel: () => void;
+  onToggleAgent: () => void;
   onNavigate: (view: ViewType) => void;
 }
 
@@ -21,6 +22,11 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
 
       // 1. コマンドパレットや新規作成などの「修飾キー(Cmd/Ctrl)」系ショートカット
       if (e.metaKey || e.ctrlKey) {
+        if (e.key.toLowerCase() === 'j') {
+          e.preventDefault();
+          handlers.onToggleAgent();
+          return;
+        }
         if (isInput) return;
         switch (e.key) {
           case 'k':
@@ -50,6 +56,12 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
       // 2. 画面遷移の「数字キー」系ショートカット (修飾キーなし)
       if (isInput || e.ctrlKey || e.altKey || e.metaKey) return;
 
+      if (e.key === '7') {
+        e.preventDefault();
+        handlers.onToggleAgent();
+        return;
+      }
+
       const keyMap: Record<string, ViewType> = {
         '0': 'home',
         '1': 'kanban',
@@ -58,7 +70,6 @@ export const useKeyboardShortcuts = (handlers: ShortcutHandlers) => {
         '4': 'meeting',
         '5': 'review',
         '6': 'note',
-        '7': 'aiagent',
         '8': 'stats',
       };
 

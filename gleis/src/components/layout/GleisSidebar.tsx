@@ -18,59 +18,73 @@ import {
 } from 'lucide-react';
 import type { ViewType } from '@/types';
 
+type SidebarNavItem =
+  | {
+      kind: 'view';
+      id: ViewType;
+      icon: ComponentType<{ className?: string }>;
+      label: string;
+    }
+  | {
+      kind: 'agent';
+      id: 'agent';
+      icon: ComponentType<{ className?: string }>;
+      label: string;
+    };
+
 const NAV_GROUPS: {
   label: string;
-  items: {
-    id: ViewType;
-    icon: ComponentType<{ className?: string }>;
-    label: string;
-  }[];
+  items: SidebarNavItem[];
 }[] = [
   {
     label: 'Tasks',
     items: [
-      { id: 'home', icon: LayoutDashboard, label: 'Home' },
-      { id: 'weekly', icon: Columns2, label: 'Weekly' },
-      { id: 'kanban', icon: Kanban, label: 'Kanban' },
-      { id: 'calendar', icon: CalendarDays, label: 'Calendar' },
+      { kind: 'view', id: 'home', icon: LayoutDashboard, label: 'Home' },
+      { kind: 'view', id: 'weekly', icon: Columns2, label: 'Weekly' },
+      { kind: 'view', id: 'kanban', icon: Kanban, label: 'Kanban' },
+      { kind: 'view', id: 'calendar', icon: CalendarDays, label: 'Calendar' },
     ],
   },
   {
     label: 'Workspace',
     items: [
-      { id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
-      { id: 'review', icon: ClipboardPenLine, label: 'Review' },
-      { id: 'note', icon: FileText, label: 'Note' },
-      { id: 'documents', icon: FileStack, label: 'Document' },
+      { kind: 'view', id: 'meeting', icon: BriefcaseBusiness, label: 'Meeting' },
+      { kind: 'view', id: 'review', icon: ClipboardPenLine, label: 'Review' },
+      { kind: 'view', id: 'note', icon: FileText, label: 'Note' },
+      { kind: 'view', id: 'documents', icon: FileStack, label: 'Document' },
     ],
   },
   {
     label: 'Insights & AI',
     items: [
-      { id: 'aiagent', icon: Bot, label: 'Agent' },
-      { id: 'stats', icon: ChartNoAxesCombined, label: 'Stats' },
+      { kind: 'agent', id: 'agent', icon: Bot, label: 'Agent' },
+      { kind: 'view', id: 'stats', icon: ChartNoAxesCombined, label: 'Stats' },
     ],
   },
   {
     label: 'System',
-    items: [{ id: 'settings', icon: Settings, label: 'Settings' }],
+    items: [{ kind: 'view', id: 'settings', icon: Settings, label: 'Settings' }],
   },
 ];
 
 interface GleisSidebarProps {
   currentView: ViewType;
+  isAgentOpen: boolean;
   isMobileMenuOpen: boolean;
   onCloseMobileMenu: () => void;
   onViewChange: (view: ViewType) => void;
+  onToggleAgent: () => void;
   onOpenCommandPalette: () => void;
   onLogout: () => void;
 }
 
 export default function GleisSidebar({
   currentView,
+  isAgentOpen,
   isMobileMenuOpen,
   onCloseMobileMenu,
   onViewChange,
+  onToggleAgent,
   onOpenCommandPalette,
   onLogout,
 }: GleisSidebarProps) {
@@ -111,20 +125,38 @@ export default function GleisSidebar({
                 {group.label}
               </div>
               {group.items.map((item) => {
-                const isActive = currentView === item.id;
+                const isAgentItem = item.kind === 'agent';
+                const isActive = isAgentItem
+                  ? isAgentOpen
+                  : currentView === item.id;
                 return (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={() => onViewChange(item.id)}
+                    onClick={() => {
+                      if (isAgentItem) {
+                        onToggleAgent();
+                        onCloseMobileMenu();
+                      } else {
+                        onViewChange(item.id);
+                      }
+                    }}
                     className={`w-full flex items-center gap-4 px-3 py-2.5 rounded-xl transition-colors ${
                       isActive
-                        ? 'bg-white/10 text-white'
+                        ? isAgentItem
+                          ? 'bg-amber-500/15 text-amber-300'
+                          : 'bg-white/10 text-white'
                         : 'text-gray-400 hover:text-white hover:bg-white/5'
                     }`}
                   >
                     <item.icon
-                      className={`w-5 h-5 shrink-0 ${isActive ? 'text-neon' : ''}`}
+                      className={`w-5 h-5 shrink-0 ${
+                        isActive
+                          ? isAgentItem
+                            ? 'text-amber-400'
+                            : 'text-neon'
+                          : ''
+                      }`}
                     />
                     <span className="sm:opacity-0 md:opacity-100 group-hover:opacity-100 transition-opacity text-sm font-medium whitespace-nowrap">
                       {item.label}

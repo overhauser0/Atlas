@@ -6,6 +6,7 @@ export default defineConfig({
     include: [
       'packages/shared/tests/**/*.test.ts',
       'trails/src/**/__tests__/**/*.test.ts',
+      'gleis/src/**/__tests__/**/*.test.ts',
     ],
   },
 });

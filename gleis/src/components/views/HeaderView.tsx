@@ -1,6 +1,6 @@
 'use client';
 import React from 'react';
-import { Menu, Zap, Loader2, Search } from 'lucide-react';
+import { Menu, Zap, Loader2, Search, Bot } from 'lucide-react';
 
 import type { AppSettings } from '@/types';
 
@@ -14,6 +14,9 @@ interface HeaderViewProps {
   setIsActionPanelOpen: (isOpen: boolean) => void;
   isSyncing: boolean;
   onOpenCommandPalette: () => void;
+  isAgentOpen: boolean;
+  isAgentSending: boolean;
+  onToggleAgent: () => void;
 }
 
 export default function HeaderView({
@@ -26,6 +29,9 @@ export default function HeaderView({
   setIsActionPanelOpen,
   isSyncing,
   onOpenCommandPalette,
+  isAgentOpen,
+  isAgentSending,
+  onToggleAgent,
 }: HeaderViewProps) {
   const today = currentTime ?? new Date();
   const longDate = today.toLocaleDateString('en-US', {
@@ -79,8 +85,8 @@ export default function HeaderView({
         </button>
       </div>
 
-      {/* 時計&通知ボタン */}
-      <div className="flex items-center gap-4">
+      {/* 時計&Agent&通知ボタン */}
+      <div className="flex items-center gap-2.5 sm:gap-3.5">
         <button
           onClick={() => setIsQuickAlarmOpen(!isQuickAlarmOpen)}
           className="group flex items-end transition-all active:scale-95"
@@ -97,6 +103,30 @@ export default function HeaderView({
               <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]" />
             )}
           </div>
+        </button>
+        <button
+          type="button"
+          onClick={onToggleAgent}
+          className={`relative w-10 h-10 flex items-center justify-center rounded-full transition-all active:scale-95 border ${
+            isAgentOpen
+              ? 'bg-amber-500/20 border-amber-500/40 text-amber-400 shadow-[0_0_14px_rgba(245,158,11,0.2)]'
+              : 'bg-white/5 border-white/5 text-zinc-300 hover:bg-white/10 hover:text-amber-300'
+          }`}
+          aria-label="Toggle AI Agent"
+          aria-pressed={isAgentOpen}
+          title={
+            isAgentSending
+              ? 'AI Agent 実行中 (Cmd/Ctrl + J)'
+              : 'AI Agent (Cmd/Ctrl + J)'
+          }
+        >
+          <Bot className="w-5 h-5" />
+          {isAgentSending && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400 ring-2 ring-black" />
+            </span>
+          )}
         </button>
         <button
           onClick={() => setIsActionPanelOpen(true)}

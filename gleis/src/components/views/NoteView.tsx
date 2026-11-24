@@ -100,6 +100,7 @@ export default function NoteView({
   if (activeNote) {
     return (
       <EditorView
+        key={activeNote.id}
         note={activeNote}
         onClose={() => {
           setActiveNote(null);

@@ -14,7 +14,6 @@ import CalendarView from '@/components/views/CalendarView';
 import MeetingView from '@/components/views/MeetingView';
 import ReviewView from '@/components/views/ReviewView';
 import NoteView from '@/components/views/NoteView';
-import AiAgentView from '@/components/views/AiAgentView';
 import StatsView from '@/components/views/StatsView';
 import DocumentsView from '@/components/views/DocumentsView';
 import SettingsView from '@/components/views/SettingsView';
@@ -67,6 +66,8 @@ function HomeContent() {
   const [activeRequests, setActiveRequests] = useState(0);
 
   // Modals & Panels
+  const [isAgentOpen, setIsAgentOpen] = useState(false);
+  const [isAgentSending, setIsAgentSending] = useState(false);
   const [isQuickAlarmOpen, setIsQuickAlarmOpen] = useState(false);
   const [isActionPanelOpen, setIsActionPanelOpen] = useState(false);
   const [isVoiceCaptureOpen, setIsVoiceCaptureOpen] = useState(false);
@@ -348,6 +349,7 @@ function HomeContent() {
         void caches.delete('api-pieces-cache');
       }
       hasFetchedInitial.current = false;
+      setIsAgentOpen(false);
       setIsAuthenticated(false);
     })();
   }, []);
@@ -518,6 +520,7 @@ function HomeContent() {
     onLogout: handleLogout,
     onCreateTask: () => openTaskModal(),
     onOpenActionPanel: () => setIsActionPanelOpen((p) => !p),
+    onToggleAgent: () => setIsAgentOpen((p) => !p),
     onNavigate: handleViewChange,
   });
 
@@ -528,11 +531,15 @@ function HomeContent() {
       if (gleisLink.type === 'view') {
         if (gleisLink.target === 'notifications') {
           handleOpenSetting('notifications');
+        } else if (gleisLink.target === 'aiagent') {
+          setIsAgentOpen(true);
         } else if (isViewType(gleisLink.target)) {
           handleViewChange(gleisLink.target);
         } else {
           console.warn(`無効な画面遷移先です： ${gleisLink.target}`);
         }
+      } else if (gleisLink.type === 'action' && gleisLink.target === 'aiagent') {
+        setIsAgentOpen(true);
       } else if (gleisLink.type === 'task') {
         const targetTask = allTasks.find((t) => t.id === gleisLink.target);
         if (targetTask) openTaskModal(targetTask);
@@ -577,6 +584,15 @@ function HomeContent() {
           setAppSettings={setAppSettings}
         />
         <GleisGlobalOverlays
+          appSettings={appSettings}
+          setAppSettings={setAppSettings}
+          isAgentOpen={isAgentOpen}
+          onCloseAgent={() => setIsAgentOpen(false)}
+          onOpenAgent={() => setIsAgentOpen(true)}
+          onAgentSendingChange={setIsAgentSending}
+          onSyncStart={incrementRequest}
+          onSyncEnd={decrementRequest}
+          onNoteSaved={fetchNotes}
           isVoiceCaptureOpen={isVoiceCaptureOpen}
           onCloseVoiceCapture={() => setIsVoiceCaptureOpen(false)}
           isCommandPaletteOpen={isCommandPaletteOpen}
@@ -595,14 +611,17 @@ function HomeContent() {
           onSelectNote={(note) => {
             setSelectedNote(note);
             handleViewChange('note');
+            setIsAgentOpen(false);
           }}
         />
 
         <GleisSidebar
           currentView={currentView}
+          isAgentOpen={isAgentOpen}
           isMobileMenuOpen={isMobileMenuOpen}
           onCloseMobileMenu={() => setIsMobileMenuOpen(false)}
           onViewChange={handleViewChange}
+          onToggleAgent={() => setIsAgentOpen((p) => !p)}
           onOpenCommandPalette={() => {
             setIsCommandPaletteOpen(true);
             setIsMobileMenuOpen(false);
@@ -621,6 +640,9 @@ function HomeContent() {
             setIsActionPanelOpen={setIsActionPanelOpen}
             appSettings={appSettings}
             isSyncing={activeRequests > 0}
+            isAgentOpen={isAgentOpen}
+            isAgentSending={isAgentSending}
+            onToggleAgent={() => setIsAgentOpen((p) => !p)}
             onOpenCommandPalette={() => {
               setIsCommandPaletteOpen(true);
               setIsMobileMenuOpen(false);
@@ -693,14 +715,6 @@ function HomeContent() {
                 onSyncStart={incrementRequest}
                 onSyncEnd={decrementRequest}
                 confirm={confirm}
-              />
-            )}
-            {currentView === 'aiagent' && (
-              <AiAgentView
-                appSettings={appSettings}
-                setAppSettings={setAppSettings}
-                onSyncStart={incrementRequest}
-                onSyncEnd={decrementRequest}
               />
             )}
             {currentView === 'stats' && (

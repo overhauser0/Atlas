@@ -38,9 +38,14 @@ export default function ShortcutSettings() {
             Cmd/Ctrl + A
           </code>
 
+          <div className="text-gray-400">Toggle AI Agent</div>
+          <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
+            Cmd/Ctrl + J <span className="text-gray-500 ml-1">/ 7</span>
+          </code>
+
           <div className="text-gray-400">Go To View</div>
           <code className="bg-white/5 px-2 py-0.5 rounded text-white font-mono text-xs">
-            0 ~ 7 <span className="text-gray-500 ml-1">// View Number</span>
+            0 ~ 6, 8 <span className="text-gray-500 ml-1">// View Number</span>
           </code>
         </div>
       </div>

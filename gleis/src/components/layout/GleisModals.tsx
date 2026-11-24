@@ -14,6 +14,7 @@ import ConfirmModal, {
 import FocusModal from '@/components/modals/FocusModal';
 import CommandPalette from '@/components/modals/CommandPalette';
 import ActionPanel from '@/components/panels/ActionPanel';
+import AiAgentPanel from '@/components/panels/AiAgentPanel';
 import type { useFocusSession } from '@/hooks/useFocusSession';
 import type { useTaskSync } from '@/hooks/useTaskSync';
 import type {
@@ -28,6 +29,15 @@ import type {
 } from '@/types';
 
 export interface GleisGlobalOverlaysProps {
+  appSettings: AppSettings;
+  setAppSettings: React.Dispatch<React.SetStateAction<AppSettings>>;
+  isAgentOpen: boolean;
+  onCloseAgent: () => void;
+  onOpenAgent: () => void;
+  onAgentSendingChange: (isSending: boolean) => void;
+  onSyncStart: () => void;
+  onSyncEnd: () => void;
+  onNoteSaved: () => Promise<void> | void;
   isVoiceCaptureOpen: boolean;
   onCloseVoiceCapture: () => void;
   isCommandPaletteOpen: boolean;
@@ -47,6 +57,15 @@ export interface GleisGlobalOverlaysProps {
 }
 
 export function GleisGlobalOverlays({
+  appSettings,
+  setAppSettings,
+  isAgentOpen,
+  onCloseAgent,
+  onOpenAgent,
+  onAgentSendingChange,
+  onSyncStart,
+  onSyncEnd,
+  onNoteSaved,
   isVoiceCaptureOpen,
   onCloseVoiceCapture,
   isCommandPaletteOpen,
@@ -66,6 +85,17 @@ export function GleisGlobalOverlays({
 }: GleisGlobalOverlaysProps) {
   return (
     <>
+      <AiAgentPanel
+        isOpen={isAgentOpen}
+        onClose={onCloseAgent}
+        appSettings={appSettings}
+        setAppSettings={setAppSettings}
+        onSyncStart={onSyncStart}
+        onSyncEnd={onSyncEnd}
+        onSendingChange={onAgentSendingChange}
+        onNoteSaved={onNoteSaved}
+        onOpenNote={onSelectNote}
+      />
       <VoiceCaptureModal
         isOpen={isVoiceCaptureOpen}
         onClose={onCloseVoiceCapture}
@@ -76,6 +106,7 @@ export function GleisGlobalOverlays({
         onClose={onCloseCommandPalette}
         onNavigate={onNavigate}
         onOpenSetting={onOpenSetting}
+        onOpenAgent={onOpenAgent}
         tasks={allTasks}
         onTaskClick={(task) => openTaskModal(task)}
         onNewTask={(task) => openTaskModal(task)}
