@@ -47,7 +47,8 @@ Push の入力フィールド: `title`（必須）、`note`、`category`（`TASK
 | `POST` | `/api/v1/pieces/sync` | なし | `{ "ok": "SYNC_SUCCESS", ...同期結果 }` |
 | `POST` | `/api/v1/pieces/reschedule-overdue` | なし | `{ "pieces": Piece[] }` |
 | `GET` | `/api/v1/pieces/:id` | Path: `id` | `{ "piece": Piece }` |
-| `GET` | `/api/v1/pieces/:id/blocks` | Path: `id` | `{ "blocks": object[] }` |
+| `GET` | `/api/v1/pieces/:id/blocks` | Path: `id`; Query: `depth`（任意、1〜3、既定 1） | `{ "blocks": object[] }`（`depth >= 2` の場合は子ブロックを `children_blocks` に展開） |
+| `POST` | `/api/v1/pieces/:id/blocks` | Path: `id`（Notion 由来 Piece）; JSON: `{ "paragraphs": { "timestamp"?: string, "content": string }[] }` | `201 { "blocks": object[] }`（Notion 本文末尾へ通常段落ブロックを追記） |
 | `GET` | `/api/v1/pieces/:id/people` | Path: `id`; Query: `source`（`NOTION` または `LOCAL`、必須） | `{ "people": Person[] }` |
 | `POST` | `/api/v1/pieces/:id/promote` | Path: `id`; Body なし | `{ "pieces": Piece[] }`（Notion へ昇格） |
 | `PATCH` | `/api/v1/pieces/:id` | Path: `id`; JSON: `Piece` の任意フィールド（`id` を除く） | `{ "piece": Piece }` |

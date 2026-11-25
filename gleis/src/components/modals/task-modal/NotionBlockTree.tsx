@@ -2,24 +2,14 @@
 
 import { useState } from 'react';
 import { X } from 'lucide-react';
+import {
+  getNotionBlockContent,
+  type NotionBlock,
+  type NotionBlockContent,
+  type NotionRichTextItem,
+} from '@atlas/shared/notion';
 
-export interface NotionRichTextItem {
-  plain_text: string;
-}
-
-export interface NotionBlockContent {
-  rich_text?: NotionRichTextItem[];
-  checked?: boolean;
-}
-
-export interface NotionBlock {
-  id: string;
-  type?: string;
-  has_children?: boolean;
-  children_blocks?: NotionBlock[];
-  to_do?: NotionBlockContent;
-  [blockType: string]: unknown;
-}
+export type { NotionBlock, NotionBlockContent, NotionRichTextItem };
 
 interface NotionBlockPanelProps {
   blocks: NotionBlock[] | null;
@@ -65,13 +55,6 @@ export default function NotionBlockPanel({
     </div>
   );
 }
-
-const getBlockContent = (block: NotionBlock): NotionBlockContent | null => {
-  if (!block.type) return null;
-  const raw = block[block.type];
-  if (typeof raw !== 'object' || raw === null) return null;
-  return raw as NotionBlockContent;
-};
 
 function NotionBlockNode({
   block,
@@ -129,7 +112,7 @@ function NotionBlockNode({
     </button>
   ) : null;
 
-  const blockContent = getBlockContent(block);
+  const blockContent = getNotionBlockContent(block);
   let content: JSX.Element | null = null;
 
   if (!type || !blockContent || !Array.isArray(blockContent.rich_text)) {

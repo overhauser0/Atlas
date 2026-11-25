@@ -5,6 +5,7 @@ import type { TaskSavePayload } from '@/components/modals/TaskModal';
 import { isPastDate } from '@atlas/shared/date';
 import { getPieceDateRangeUpdate, sortByStartDate } from '@/utils/task';
 import { atlasFetch } from '@atlas/shared/api';
+import { fetchPieceBlocks, type NotionBlock } from '@atlas/shared/notion';
 
 export const useTaskSync = (
   isAuthenticated: boolean,
@@ -158,22 +159,21 @@ export const useTaskSync = (
     if (!response.ok) throw new Error('Failed to update parent date');
   };
 
-  const fetchBlocks = useCallback(async (id: string) => {
-    onSyncStart();
-    try {
-      if (!id) return false;
-      const res = await atlasFetch(`/pieces/${id}/blocks`, {
-        method: 'GET',
-      });
-      const data = await res.json();
-      return data.blocks;
-    } catch (e) {
-      console.warn(e);
-      throw e;
-    } finally {
-      onSyncEnd();
-    }
-  }, []);
+  const fetchBlocks = useCallback(
+    async (id: string, depth = 1): Promise<NotionBlock[]> => {
+      if (!id) return [];
+      onSyncStart();
+      try {
+        return await fetchPieceBlocks(id, { depth });
+      } catch (e) {
+        console.warn(e);
+        throw e;
+      } finally {
+        onSyncEnd();
+      }
+    },
+    [],
+  );
 
   return {
     tasks,

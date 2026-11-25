@@ -55,14 +55,22 @@ export const createSpark = async (spark: SparkInput) => {
 
 /** Sparkを消化済みにする。 */
 export const consumeSpark = async (id: string) => {
-  return await sparkRepository.consumeSpark(id, new Date());
+  const consumed = await sparkRepository.consumeSpark(id, new Date());
+  if (consumed) {
+    broadcast(JSON.stringify({ type: 'REFRESH_SPARKS' }));
+  }
+  return consumed;
 };
 
 /** 指定されたSparkを一括で消化済みにする。 */
 export const consumeSparksBulk = async ({
   ids,
 }: ConsumeSparksBulkInput) => {
-  return await sparkRepository.consumeSparksBulk(ids, new Date());
+  const consumed = await sparkRepository.consumeSparksBulk(ids, new Date());
+  if (consumed.length > 0) {
+    broadcast(JSON.stringify({ type: 'REFRESH_SPARKS' }));
+  }
+  return consumed;
 };
 
 /** Sparkを物理削除する。 */

@@ -4,7 +4,10 @@ const {
   insertPiecePageMock,
   updatePiecePageMock,
   archivePiecePageMock,
+  getPageBlocksMock,
+  appendPageParagraphBlocksMock,
   upsertNotionPieceCacheMock,
+  updateNotionPieceCacheMock,
   deleteNotionPieceCacheMock,
   deleteLocalPieceMock,
   getPieceByIdMock,
@@ -17,7 +20,10 @@ const {
   insertPiecePageMock: vi.fn(),
   updatePiecePageMock: vi.fn(),
   archivePiecePageMock: vi.fn(),
+  getPageBlocksMock: vi.fn(),
+  appendPageParagraphBlocksMock: vi.fn(),
   upsertNotionPieceCacheMock: vi.fn(),
+  updateNotionPieceCacheMock: vi.fn(),
   deleteNotionPieceCacheMock: vi.fn(),
   deleteLocalPieceMock: vi.fn(),
   getPieceByIdMock: vi.fn(),
@@ -32,7 +38,8 @@ vi.mock('../repositories/notion.repository', () => ({
   insertPiecePage: insertPiecePageMock,
   updatePiecePage: updatePiecePageMock,
   archivePiecePage: archivePiecePageMock,
-  getPageBlocks: vi.fn(),
+  getPageBlocks: getPageBlocksMock,
+  appendPageParagraphBlocks: appendPageParagraphBlocksMock,
 }));
 
 vi.mock('../repositories/piece.repository', () => ({
@@ -44,7 +51,7 @@ vi.mock('../repositories/piece.repository', () => ({
   rebindParentId: rebindParentIdMock,
   insertLocalPiece: vi.fn(),
   insertBatchLocalPieces: vi.fn(),
-  updateNotionPieceCache: vi.fn(),
+  updateNotionPieceCache: updateNotionPieceCacheMock,
   updateLocalPiece: vi.fn(),
   findOrphanedPieces: vi.fn(),
   clearParentIds: vi.fn(),
@@ -67,9 +74,13 @@ vi.mock('../utils/websocket', () => ({
 }));
 
 import {
+  PieceServiceError,
+  appendPieceBlocks,
   checkSiblingTaskStateByParentId,
   deletePiece,
+  getPieceBlocks,
   promoteLocalPiece,
+  updatePiece,
 } from '../services/piece.service';
 import type { Piece } from '../models/piece.model';
 
@@ -229,6 +240,78 @@ describe('piece.service', () => {
 
       await expect(deletePiece('missing-id')).rejects.toThrow(
         'Piece with id missing-id not found',
+      );
+    });
+  });
+
+  describe('getPieceBlocks', () => {
+    it('passes depth parameter through to notionRepository.getPageBlocks', async () => {
+      const blocks = [{ id: 'b1', children_blocks: [{ id: 'c1' }] }];
+      getPageBlocksMock.mockResolvedValue(blocks);
+
+      const result = await getPieceBlocks('notion-1', 2);
+
+      expect(getPageBlocksMock).toHaveBeenCalledWith('notion-1', 2);
+      expect(result).toEqual(blocks);
+    });
+  });
+
+  describe('appendPieceBlocks', () => {
+    it('appends paragraph blocks when target piece is NOTION', async () => {
+      getPieceByIdMock.mockResolvedValue({ id: 'notion-1', source: 'NOTION' });
+      const created = [{ id: 'new-1', type: 'paragraph' }];
+      appendPageParagraphBlocksMock.mockResolvedValue(created);
+
+      const result = await appendPieceBlocks('notion-1', [
+        { timestamp: '2026-11-24 14:30', content: 'Spark note' },
+      ]);
+
+      expect(appendPageParagraphBlocksMock).toHaveBeenCalledWith('notion-1', [
+        { timestamp: '2026-11-24 14:30', content: 'Spark note' },
+      ]);
+      expect(result).toEqual(created);
+    });
+
+    it('throws 404 PieceServiceError when piece does not exist', async () => {
+      getPieceByIdMock.mockResolvedValue(null);
+
+      await expect(
+        appendPieceBlocks('missing-1', [{ content: 'Spark' }]),
+      ).rejects.toEqual(new PieceServiceError(404, 'Piece not found'));
+      expect(appendPageParagraphBlocksMock).not.toHaveBeenCalled();
+    });
+
+    it('throws 400 PieceServiceError when piece source is LOCAL', async () => {
+      getPieceByIdMock.mockResolvedValue({ id: 'local-1', source: 'LOCAL' });
+
+      await expect(
+        appendPieceBlocks('local-1', [{ content: 'Spark' }]),
+      ).rejects.toEqual(
+        new PieceServiceError(400, 'Only Notion pieces support body blocks'),
+      );
+      expect(appendPageParagraphBlocksMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('updatePiece', () => {
+    it('forwards prefs to Notion page update and cache update', async () => {
+      getPieceByIdMock.mockResolvedValue({ id: 'notion-1', source: 'NOTION' });
+      updatePiecePageMock.mockResolvedValue({ id: 'notion-1' });
+      updateNotionPieceCacheMock.mockResolvedValue({
+        id: 'notion-1',
+        prefs: ['京都'],
+        source: 'NOTION',
+      });
+
+      await updatePiece('notion-1', { prefs: ['京都'], source: 'NOTION' });
+
+      expect(updatePiecePageMock).toHaveBeenCalledWith(
+        'notion-1',
+        expect.objectContaining({ prefs: ['京都'] }),
+      );
+      expect(updateNotionPieceCacheMock).toHaveBeenCalledWith(
+        'notion-1',
+        expect.objectContaining({ prefs: ['京都'] }),
       );
     });
   });

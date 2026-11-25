@@ -9,6 +9,7 @@
     "./device": "./src/device.ts",
     "./date": "./src/date.ts",
     "./markdown": "./src/markdown.ts",
+    "./notion": "./src/notion.ts",
     "./hooks/useConfirm": "./src/hooks/useConfirm.ts",
     "./hooks/useAtlasWebSocket": "./src/hooks/useAtlasWebSocket.ts",
     "./server/session": "./src/server/session.ts",

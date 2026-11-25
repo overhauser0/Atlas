@@ -3,7 +3,11 @@
 import { Context } from 'hono';
 import * as pieceService from '../services/piece.service';
 import * as syncService from '../services/sync.service';
-import { PieceSchema } from '../models/piece.model';
+import {
+  AppendPieceBlocksSchema,
+  GetPieceBlocksQuerySchema,
+  PieceSchema,
+} from '../models/piece.model';
 
 // ==========================================
 // 1. CRUD Operations
@@ -159,8 +163,55 @@ export const getPieceBlocks = async (c: Context) => {
   const id = c.req.param('id');
   if (!id) return c.json({ message: 'Piece ID is required' }, 400);
 
-  const pieceBlocks = await pieceService.getPieceBlocks(id);
+  const depthParam = c.req.query('depth');
+  const queryValidation = GetPieceBlocksQuerySchema.safeParse({
+    depth: depthParam === undefined || depthParam === '' ? 1 : depthParam,
+  });
+  if (!queryValidation.success) {
+    return c.json(
+      {
+        message: 'Invalid query parameters',
+        errors: queryValidation.error.format(),
+      },
+      400,
+    );
+  }
+
+  const pieceBlocks = await pieceService.getPieceBlocks(
+    id,
+    queryValidation.data.depth,
+  );
   return c.json({ blocks: pieceBlocks }, 200);
+};
+
+export const appendPieceBlocks = async (c: Context) => {
+  const id = c.req.param('id');
+  if (!id) return c.json({ message: 'Piece ID is required' }, 400);
+
+  const rawData = await c.req.json();
+  const validation = AppendPieceBlocksSchema.safeParse(rawData);
+  if (!validation.success) {
+    return c.json(
+      {
+        message: 'Invalid input data',
+        errors: validation.error.format(),
+      },
+      400,
+    );
+  }
+
+  try {
+    const blocks = await pieceService.appendPieceBlocks(
+      id,
+      validation.data.paragraphs,
+    );
+    return c.json({ blocks }, 201);
+  } catch (error) {
+    if (error instanceof pieceService.PieceServiceError) {
+      return c.json({ message: error.message }, error.status);
+    }
+    throw error;
+  }
 };
 
 export const rescheduleOverduePiecesToToday = async (c: Context) => {

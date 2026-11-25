@@ -1,12 +1,27 @@
 // atlas-server/src/services/piece.service.ts
 
-import { Piece, DbPiece, DbPieceSchema } from '../models/piece.model';
+import {
+  AppendPieceParagraphInput,
+  Piece,
+  DbPiece,
+  DbPieceSchema,
+} from '../models/piece.model';
 import * as notionRepository from '../repositories/notion.repository';
 import * as pieceRepository from '../repositories/piece.repository';
 import * as personRepository from '../repositories/person.repository';
 import * as notificationService from './notification.service';
 import { syncNotionToLocal } from './sync.service';
 import { broadcast } from '../utils/websocket';
+
+export class PieceServiceError extends Error {
+  constructor(
+    public readonly status: 400 | 404,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'PieceServiceError';
+  }
+}
 
 /** Pieceを作成し、保存先に応じて処理を振り分ける。 */
 export const createNewPiece = async (piece: Piece) => {
@@ -124,8 +139,24 @@ export const updatePiece = async (id: string, payload: Partial<Piece>) => {
   return result;
 };
 
-export const getPieceBlocks = async (id: string) => {
-  return await notionRepository.getPageBlocks(id);
+export const getPieceBlocks = async (id: string, depth = 1) => {
+  return await notionRepository.getPageBlocks(id, depth);
+};
+
+/** Notion由来の Piece 本文末尾へ段落ブロックを追記する。 */
+export const appendPieceBlocks = async (
+  id: string,
+  paragraphs: AppendPieceParagraphInput[],
+) => {
+  const piece = await pieceRepository.getPieceById(id);
+  if (!piece) {
+    throw new PieceServiceError(404, 'Piece not found');
+  }
+  if (piece.source !== 'NOTION') {
+    throw new PieceServiceError(400, 'Only Notion pieces support body blocks');
+  }
+
+  return await notionRepository.appendPageParagraphBlocks(id, paragraphs);
 };
 
 export const deletePiece = async (id: string) => {

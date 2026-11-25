@@ -1,7 +1,11 @@
 // atlas-server/src/repositories/notion.repository.ts
 
 import { Client } from '@notionhq/client';
-import { DbPiece, UpdatePieceInput } from '../models/piece.model';
+import {
+  AppendPieceParagraphInput,
+  DbPiece,
+  UpdatePieceInput,
+} from '../models/piece.model';
 
 // Notion API configuration
 
@@ -10,6 +14,9 @@ const NOTION_PIECE_DS_ID = process.env.NOTION_PIECE_DS_ID!;
 const NOTION_MONTHLY_DS_ID = process.env.NOTION_MONTHLY_DS_ID!;
 const NOTION_WEEKLY_DS_ID = process.env.NOTION_WEEKLY_DS_ID!;
 
+const NOTION_RICH_TEXT_CHUNK_LIMIT = 2000;
+const NOTION_BLOCK_FETCH_CONCURRENCY = 3;
+
 // Piece operations
 
 const hasPieceDateFields = (piece: Partial<DbPiece>) =>
@@ -17,6 +24,9 @@ const hasPieceDateFields = (piece: Partial<DbPiece>) =>
   piece.start_time !== undefined ||
   piece.end_date !== undefined ||
   piece.end_time !== undefined;
+
+const normalizeTimeWithSeconds = (time: string) =>
+  /^\d{2}:\d{2}$/.test(time) ? `${time}:00` : time;
 
 const toNotionDateValue = (
   date?: string | Date | null,
@@ -32,7 +42,7 @@ const toNotionDateValue = (
     throw new Error(`Invalid Piece date value for Notion: ${date}`);
   }
 
-  return `${datePart}${time ? `T${time}+09:00` : ''}`;
+  return `${datePart}${time ? `T${normalizeTimeWithSeconds(time)}+09:00` : ''}`;
 };
 
 const toNotionDateRange = (piece: Partial<DbPiece>) => {
@@ -56,6 +66,83 @@ type UpdatePageProperties = NonNullable<
 type NotionBlockItem = Awaited<
   ReturnType<typeof notionClient.blocks.children.list>
 >['results'][number];
+
+export type NotionBlockWithChildren = NotionBlockItem & {
+  children_blocks?: NotionBlockWithChildren[];
+};
+
+type AppendBlockChild = Parameters<
+  typeof notionClient.blocks.children.append
+>[0]['children'][number];
+
+/** Notion の 1 rich_text あたり 2,000 文字上限に合わせて文字列を分割する。 */
+export const splitTextChunks = (
+  text: string,
+  maxLength = NOTION_RICH_TEXT_CHUNK_LIMIT,
+): string[] => {
+  if (!text) return [];
+  const chunks: string[] = [];
+  for (let i = 0; i < text.length; i += maxLength) {
+    chunks.push(text.slice(i, i + maxLength));
+  }
+  return chunks;
+};
+
+/** タイムスタンプ付きの通常段落ブロック（paragraph）を構築する。 */
+export const buildParagraphBlock = (
+  paragraph: AppendPieceParagraphInput,
+): AppendBlockChild => {
+  const richText: Array<{
+    type: 'text';
+    text: { content: string };
+    annotations?: { bold: true };
+  }> = [];
+
+  if (paragraph.timestamp) {
+    richText.push({
+      type: 'text',
+      text: { content: `${paragraph.timestamp} ` },
+      annotations: { bold: true },
+    });
+  }
+
+  for (const chunk of splitTextChunks(paragraph.content)) {
+    richText.push({
+      type: 'text',
+      text: { content: chunk },
+    });
+  }
+
+  return {
+    object: 'block',
+    type: 'paragraph',
+    paragraph: {
+      rich_text: richText,
+    },
+  };
+};
+
+const mapWithConcurrency = async <T, R>(
+  items: T[],
+  concurrency: number,
+  mapper: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  if (items.length === 0) return [];
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  const worker = async () => {
+    while (nextIndex < items.length) {
+      const currentIndex = nextIndex;
+      nextIndex += 1;
+      results[currentIndex] = await mapper(items[currentIndex]);
+    }
+  };
+
+  const workerCount = Math.min(concurrency, items.length);
+  await Promise.all(Array.from({ length: workerCount }, () => worker()));
+  return results;
+};
 
 /** Notionの Piece ページをすべて取得する。 */
 export const getPiecePages = async (): Promise<NotionDataSourcePage[]> => {
@@ -110,6 +197,11 @@ export const insertPiecePage = async (piece: DbPiece) => {
       multi_select: piece.fkw.map((f) => ({ name: f })),
     };
   }
+  if (Array.isArray(piece?.prefs)) {
+    properties.prefs = {
+      multi_select: piece.prefs.map((p) => ({ name: p })),
+    };
+  }
   if (piece.parent_id) {
     properties.parent_id = {
       rich_text: [{ text: { content: piece.parent_id } }],
@@ -159,6 +251,11 @@ export const updatePiecePage = async (
       multi_select: piece.fkw.map((f) => ({ name: f })),
     };
   }
+  if (piece.prefs !== undefined) {
+    properties.prefs = {
+      multi_select: piece.prefs.map((p) => ({ name: p })),
+    };
+  }
   if (piece.parent_id !== undefined) {
     properties.parent_id = {
       rich_text: piece.parent_id
@@ -182,16 +279,15 @@ export const archivePiecePage = async (pageId: string) => {
 
 // Block operations
 
-/** Notionページの本文ブロックをすべて取得する。 */
-export const getPageBlocks = async (
-  pageId: string,
+const listImmediateChildBlocks = async (
+  blockId: string,
 ): Promise<NotionBlockItem[]> => {
   const allBlocks: NotionBlockItem[] = [];
   let cursor: string | undefined = undefined;
 
   while (true) {
     const response = await notionClient.blocks.children.list({
-      block_id: pageId,
+      block_id: blockId,
       start_cursor: cursor,
       page_size: 100,
     });
@@ -202,6 +298,56 @@ export const getPageBlocks = async (
   }
 
   return allBlocks;
+};
+
+/** Notionページの本文ブロックを指定階層数まで取得する（既定 1 階層）。 */
+export const getPageBlocks = async (
+  pageId: string,
+  depth = 1,
+): Promise<NotionBlockWithChildren[]> => {
+  const levelBlocks = await listImmediateChildBlocks(pageId);
+  if (depth <= 1) {
+    return levelBlocks;
+  }
+
+  return await mapWithConcurrency(
+    levelBlocks,
+    NOTION_BLOCK_FETCH_CONCURRENCY,
+    async (block): Promise<NotionBlockWithChildren> => {
+      const hasChildren =
+        'has_children' in block &&
+        Boolean(block.has_children) &&
+        'id' in block &&
+        typeof block.id === 'string';
+      if (!hasChildren) {
+        return block;
+      }
+
+      try {
+        const childBlocks = await getPageBlocks(block.id, depth - 1);
+        return { ...block, children_blocks: childBlocks };
+      } catch (error) {
+        console.error(
+          `[Notion Blocks] Failed to fetch children for block ${block.id}:`,
+          error,
+        );
+        return block;
+      }
+    },
+  );
+};
+
+/** Notionページ本文の末尾に通常段落ブロックを追記する。 */
+export const appendPageParagraphBlocks = async (
+  pageId: string,
+  paragraphs: AppendPieceParagraphInput[],
+): Promise<NotionBlockItem[]> => {
+  const children = paragraphs.map(buildParagraphBlock);
+  const response = await notionClient.blocks.children.append({
+    block_id: pageId,
+    children,
+  });
+  return response.results;
 };
 
 // Review operations

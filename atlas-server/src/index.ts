@@ -160,6 +160,7 @@ api.post(
 api.get('/pieces/:id/people', personController.getPiecePeople);
 api.get('/pieces/:id', pieceController.getPieceById);
 api.get('/pieces/:id/blocks', pieceController.getPieceBlocks);
+api.post('/pieces/:id/blocks', pieceController.appendPieceBlocks);
 api.post('/pieces/:id/promote', pieceController.promotePiece);
 api.patch('/pieces/:id', pieceController.updatePiece);
 api.delete('/pieces/:id', pieceController.deletePiece);

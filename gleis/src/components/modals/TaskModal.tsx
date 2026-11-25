@@ -58,7 +58,7 @@ interface TaskModalProps {
   onSyncStart: () => void;
   onSyncEnd: () => void;
   onSendToPC?: (url: string) => void;
-  onShowContent: (id: string) => Promise<NotionBlock[]>;
+  onShowContent: (id: string, depth?: number) => Promise<NotionBlock[]>;
   onOpenProjectModal: (task: Partial<Task>) => void;
   onOpenFocusModal: (task: Partial<Task>) => void;
   openTaskModal: (task: Task) => void;
@@ -308,32 +308,8 @@ export default function TaskModal({
     setIsLoadingBlocks(true);
     onSyncStart();
     try {
-      const level1Blocks = await onShowContent(id);
-      if (!level1Blocks) {
-        setBlocks([]);
-        setShowBlocks(true);
-        return;
-      }
-
-      const blocksWithChildren = await Promise.all(
-        level1Blocks.map(async (block) => {
-          if (block.has_children) {
-            try {
-              const childBlocks = await onShowContent(block.id);
-              return { ...block, children_blocks: childBlocks || [] };
-            } catch (e) {
-              console.error(
-                `Failed to fetch children for block ${block.id}`,
-                e,
-              );
-              return { ...block, children_blocks: [] };
-            }
-          }
-          return block;
-        }),
-      );
-
-      setBlocks(blocksWithChildren);
+      const blocksWithChildren = await onShowContent(id, 2);
+      setBlocks(blocksWithChildren || []);
       setShowBlocks(true);
     } catch {
       addToast('コンテンツの取得に失敗しました', 'alert');
@@ -734,7 +710,7 @@ export default function TaskModal({
         <NotionBlockPanel
           blocks={blocks}
           onClose={() => setShowBlocks(false)}
-          onFetchChildren={onShowContent}
+          onFetchChildren={(blockId) => onShowContent(blockId, 1)}
         />
       )}
 

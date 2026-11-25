@@ -106,6 +106,24 @@ export const UpdatePieceSchema = PieceSchema.partial();
 // DB用のスキーマ
 export const DbPieceSchema = PieceSchema.omit({ source: true });
 
+// Notion ブロック取得クエリ用スキーマ
+export const GetPieceBlocksQuerySchema = z.object({
+  depth: z.coerce.number().int().min(1).max(3).default(1),
+});
+
+// Notion 本文への段落ブロック追記用スキーマ
+export const AppendPieceParagraphSchema = z.object({
+  timestamp: z.string().trim().max(40).optional(),
+  content: z.string().trim().min(1, 'content is required'),
+});
+
+export const AppendPieceBlocksSchema = z.object({
+  paragraphs: z
+    .array(AppendPieceParagraphSchema)
+    .min(1, 'paragraphs must contain at least one item')
+    .max(100, 'paragraphs must contain at most 100 items'),
+});
+
 // ==========================================
 // 2. TypeScript Types (アプリ内で使い回す基本型)
 // ==========================================
@@ -114,6 +132,11 @@ export type Piece = z.infer<typeof PieceSchema>;
 export type DbPiece = z.infer<typeof DbPieceSchema>;
 export type CreatePieceInput = z.infer<typeof CreatePieceSchema>;
 export type UpdatePieceInput = z.infer<typeof UpdatePieceSchema>;
+export type GetPieceBlocksQuery = z.infer<typeof GetPieceBlocksQuerySchema>;
+export type AppendPieceParagraphInput = z.infer<
+  typeof AppendPieceParagraphSchema
+>;
+export type AppendPieceBlocksInput = z.infer<typeof AppendPieceBlocksSchema>;
 
 // ==========================================
 // 3. Database Table Interfaces (Kysely用)
