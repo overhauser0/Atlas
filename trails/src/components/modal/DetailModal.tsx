@@ -792,7 +792,7 @@ export default function DetailModal({
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-5 pt-5 md:px-8 md:pt-8 md:pb-6">
+        <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-4 pt-3.5 md:px-8 md:pt-8 md:pb-6">
           <PageHeader
             icon={fullscreenIcon}
             title={formData.title || (item ? '詳細編集' : '新規作成')}
@@ -806,7 +806,8 @@ export default function DetailModal({
             }
             onBack={onClose}
             backLabel="閉じる"
-            className="mb-4 md:mb-5"
+            nowrap
+            className="mb-3 md:mb-5"
             actions={
               <>
                 <button

@@ -219,12 +219,17 @@ export default function WeekCalendarTab({
   const contentWidth = TIME_COLUMN_WIDTH + DAY_WIDTH * 7;
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-7xl flex-col px-5 pt-5 pb-4 md:px-8 md:pt-8 md:pb-6">
+    <div className="mx-auto flex h-full w-full max-w-7xl flex-col px-3 pt-3 pb-3 md:px-8 md:pt-8 md:pb-6">
       <PageHeader
         icon={<CalendarDays />}
-        title="Weekly Calendar"
+        title={
+          <>
+            Weekly<span className="hidden sm:inline"> Calendar</span>
+          </>
+        }
         subtitle={weekLabel}
-        className="mb-4"
+        nowrap
+        className="mb-2.5 md:mb-4"
         actions={
           <div className="flex shrink-0 items-center gap-1.5">
             <button

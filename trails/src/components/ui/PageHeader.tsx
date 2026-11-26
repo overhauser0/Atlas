@@ -5,13 +5,14 @@ import { ArrowLeft } from 'lucide-react';
 
 interface PageHeaderProps {
   icon?: React.ReactNode;
-  title: string;
+  title: React.ReactNode;
   titleId?: string;
   subtitle?: string;
   onBack?: () => void;
   backLabel?: string;
   backDisabled?: boolean;
   actions?: React.ReactNode;
+  nowrap?: boolean;
   className?: string;
 }
 
@@ -24,13 +25,16 @@ export default function PageHeader({
   backLabel = '戻る',
   backDisabled = false,
   actions,
+  nowrap = false,
   className = '',
 }: PageHeaderProps) {
   return (
     <header
-      className={`mb-6 flex shrink-0 flex-wrap items-center justify-between gap-4 ${className}`}
+      className={`mb-6 flex shrink-0 items-center justify-between gap-x-3 gap-y-2 sm:gap-4 ${
+        nowrap ? 'flex-nowrap' : 'flex-wrap'
+      } ${className}`}
     >
-      <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
         {onBack && (
           <button
             type="button"
@@ -46,7 +50,7 @@ export default function PageHeader({
           <div
             className={`${
               onBack ? 'hidden sm:flex' : 'flex'
-            } h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary-50 text-primary-500 [&>svg]:h-6 [&>svg]:w-6`}
+            } h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-50 text-primary-500 [&>svg]:h-5 [&>svg]:w-5 sm:h-12 sm:w-12 sm:rounded-2xl sm:[&>svg]:h-6 sm:[&>svg]:w-6`}
           >
             {icon}
           </div>
@@ -54,17 +58,23 @@ export default function PageHeader({
         <div className="min-w-0">
           <h1
             id={titleId}
-            className="truncate text-2xl font-bold tracking-tight text-gray-900"
+            className="truncate text-xl font-bold tracking-tight text-gray-900 sm:text-2xl"
           >
             {title}
           </h1>
           {subtitle && (
-            <p className="truncate text-sm text-gray-500">{subtitle}</p>
+            <p className="truncate text-xs text-gray-500 sm:text-sm">
+              {subtitle}
+            </p>
           )}
         </div>
       </div>
       {actions && (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div
+          className={`flex shrink-0 items-center gap-1.5 sm:gap-2 ${
+            nowrap ? 'flex-nowrap' : 'flex-wrap'
+          }`}
+        >
           {actions}
         </div>
       )}

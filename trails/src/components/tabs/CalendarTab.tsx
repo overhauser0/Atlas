@@ -257,12 +257,17 @@ export default function CalendarTab({
   }, [isDetailModalOpen, isDiaryModalOpen, prevMonth, nextMonth]);
 
   return (
-    <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-5 pt-5 pb-4 md:px-8 md:pt-8 md:pb-6">
+    <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-3 pt-3 pb-3 md:px-8 md:pt-8 md:pb-6">
       <PageHeader
         icon={<CalendarIcon />}
-        title="Monthly Calendar"
+        title={
+          <>
+            Monthly<span className="hidden sm:inline"> Calendar</span>
+          </>
+        }
         subtitle={`${year}年${month + 1}月`}
-        className="mb-4"
+        nowrap
+        className="mb-2.5 md:mb-4"
         actions={
           <>
             <div className="hidden items-center gap-1.5 md:flex">
@@ -347,17 +352,17 @@ export default function CalendarTab({
         }
       />
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-5">
+      <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden md:gap-4 lg:flex-row lg:gap-5">
         {/* =========================================
             上部 / 左側：カレンダーエリア
             ========================================= */}
-        <section className="trails-card flex h-[58%] min-w-0 shrink-0 flex-col overflow-hidden lg:h-full lg:flex-[7]">
+        <section className="trails-card flex h-[64%] min-w-0 shrink-0 flex-col overflow-hidden lg:h-full lg:flex-[7]">
           {/* 曜日ヘッダー */}
           <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
             {weekDays.map((day, idx) => (
               <div
                 key={day}
-                className={`py-2 text-center text-[10px] font-bold uppercase tracking-wider md:text-xs ${
+                className={`py-1.5 text-center text-[10px] font-bold uppercase tracking-wider md:py-2 md:text-xs ${
                   idx === 0
                     ? 'text-rose-400'
                     : idx === 6
@@ -372,7 +377,7 @@ export default function CalendarTab({
 
           {/* カレンダーグリッド本体 */}
           <div className="flex-1 overflow-y-auto bg-gray-100 no-scrollbar">
-            <div className="grid min-h-full grid-cols-7 auto-rows-[minmax(60px,1fr)] gap-px md:auto-rows-[minmax(90px,1fr)]">
+            <div className="grid min-h-full grid-cols-7 auto-rows-[minmax(54px,1fr)] gap-px md:auto-rows-[minmax(90px,1fr)]">
               {calendarDays.map(({ date, isCurrentMonth }, idx) => {
                 const isToday =
                   date.getDate() === today.getDate() &&
@@ -432,7 +437,7 @@ export default function CalendarTab({
                     }`}
                   >
                     {/* 日付ラベルと日記ステータス */}
-                    <div className="mb-1 flex items-center justify-between">
+                    <div className="mb-0.5 flex items-center justify-between md:mb-1">
                       <span
                         className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold md:h-6 md:w-6 md:text-xs ${dateTextColor}`}
                       >
@@ -492,10 +497,12 @@ export default function CalendarTab({
             ========================================= */}
         <section className="trails-card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:h-full lg:flex-[3]">
           {/* 詳細エリア ヘッダー */}
-          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-4 py-2.5 md:px-5 md:py-4">
             <div className="min-w-0">
-              <p className="trails-section-label">Selected Date</p>
-              <h2 className="truncate text-lg font-bold tracking-tight text-gray-900">
+              <p className="trails-section-label hidden md:block">
+                Selected Date
+              </p>
+              <h2 className="truncate text-base font-bold tracking-tight text-gray-900 md:text-lg">
                 {getDateShortString(selectedDateStr)}
               </h2>
             </div>
@@ -551,14 +558,14 @@ export default function CalendarTab({
           {/* 1日の予定リスト */}
           <div
             ref={setBottomScrollRef}
-            className="min-h-0 flex-1 overflow-y-auto p-3.5 pb-20 trails-scrollbar md:p-4 md:pb-20"
+            className="min-h-0 flex-1 overflow-y-auto p-2.5 pb-16 trails-scrollbar md:p-4 md:pb-20"
           >
             {selectedDayItems.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-10 text-center text-sm text-gray-400">
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-6 text-center text-sm text-gray-400 md:py-10">
                 予定はありません
               </div>
             ) : (
-              <div className="flex flex-col gap-2">
+              <div className="flex flex-col gap-1.5 md:gap-2">
                 {selectedDayItems.map((item) => {
                   const isGCal = item.source === 'GCAL';
                   const isTask = item.type === 'Task';
@@ -575,7 +582,7 @@ export default function CalendarTab({
                       key={`${item.source ?? 'ITEM'}-${item.id}`}
                       type="button"
                       onClick={() => onItemClick(item)}
-                      className={`flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors ${itemStyle}`}
+                      className={`flex w-full items-center gap-2.5 rounded-2xl border px-3 py-2.5 text-left transition-colors md:gap-3 md:px-3.5 md:py-3 ${itemStyle}`}
                     >
                       {!isGCal && (
                         <span
@@ -616,9 +623,9 @@ export default function CalendarTab({
             start_date: getDateFullString(selectedDate),
           } as LifeItem)
         }
-        className="absolute bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600"
+        className="absolute bottom-5 right-5 z-30 flex h-13 w-13 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600 md:bottom-6 md:right-6 md:h-14 md:w-14"
       >
-        <Plus className="h-7 w-7" />
+        <Plus className="h-6 w-6 md:h-7 md:w-7" />
       </button>
     </div>
   );

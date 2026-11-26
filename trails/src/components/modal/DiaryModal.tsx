@@ -440,7 +440,7 @@ export default function DiaryModal({
       aria-labelledby="diary-modal-title"
       className="fixed inset-0 z-50 bg-gray-100 animate-in fade-in duration-150"
     >
-      <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-5 pt-5 md:px-8 md:pt-8 md:pb-6">
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-4 pt-3.5 md:px-8 md:pt-8 md:pb-6">
         <PageHeader
           icon={<Notebook />}
           title="Diary"
@@ -448,7 +448,8 @@ export default function DiaryModal({
           subtitle={formatJaDateWithWeekday(formData.date)}
           onBack={handleClose}
           backLabel="戻る"
-          className="mb-4 md:mb-5"
+          nowrap
+          className="mb-3 md:mb-5"
           actions={
             <>
               <div className="flex items-center text-xs">

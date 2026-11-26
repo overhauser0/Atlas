@@ -396,6 +396,7 @@ export default function PersonEditor({
         onBack={onClose}
         backLabel="人物一覧に戻る"
         backDisabled={isSaving}
+        nowrap
         actions={
           isReadOnly && person ? (
             <div className="flex shrink-0 items-center gap-1.5">
