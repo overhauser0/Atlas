@@ -143,27 +143,14 @@ export default function DiaryTab({
     return rows;
   }, [year, month, diaryByDate, todayKey, onlyWritten]);
 
-  const summary = useMemo(() => {
-    const written = visibleDiaries.filter(
-      (d) => Boolean(d.content?.trim()) || d.rate !== null || Boolean(d.flag),
-    );
-    const rated = visibleDiaries.filter(
-      (d): d is DiaryItem & { rate: number } => typeof d.rate === 'number',
-    );
-    const flaggedCount = visibleDiaries.filter((d) => Boolean(d.flag)).length;
-    const avgRate =
-      rated.length > 0
-        ? (
-            rated.reduce((sum, item) => sum + item.rate, 0) / rated.length
-          ).toFixed(1)
-        : null;
-
-    return {
-      writtenCount: written.length,
-      avgRate,
-      flaggedCount,
-    };
-  }, [visibleDiaries]);
+  const writtenCount = useMemo(
+    () =>
+      visibleDiaries.filter(
+        (d) =>
+          Boolean(d.content?.trim()) || d.rate !== null || Boolean(d.flag),
+      ).length,
+    [visibleDiaries],
+  );
 
   const handleRowClick = (dateKey: string, diary: DiaryItem | null) => {
     onDiaryClick(
@@ -182,47 +169,33 @@ export default function DiaryTab({
       <PageHeader
         icon={<Notebook />}
         title="Diary"
-        subtitle={`${year}年${month + 1}月 ・ 記入 ${summary.writtenCount}日${
-          summary.avgRate ? ` ・ 平均 ★${summary.avgRate}` : ''
-        }${summary.flaggedCount > 0 ? ` ・ Flagged ${summary.flaggedCount}件` : ''}`}
+        subtitle={`${year}年${month + 1}月`}
+        nowrap
+        className="mb-4"
         actions={
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={goToCurrentMonth}
-                className="trails-nav-btn"
-              >
-                今月
-              </button>
-              <button
-                type="button"
-                aria-label="前の月"
-                onClick={() => changeMonth(-1)}
-                className="trails-nav-icon-btn"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <span className="min-w-[92px] text-center text-sm font-bold text-gray-800">
-                {year}年{month + 1}月
-              </span>
-              <button
-                type="button"
-                aria-label="次の月"
-                onClick={() => changeMonth(1)}
-                className="trails-nav-icon-btn"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            </div>
-
+          <div className="flex shrink-0 items-center gap-1.5">
             <button
               type="button"
-              onClick={onOpenTodayDiary}
-              className="trails-btn-primary py-2 text-xs"
+              onClick={goToCurrentMonth}
+              className="trails-nav-btn"
             >
-              <PenLine className="h-3.5 w-3.5" />
-              今日の日記
+              今月
+            </button>
+            <button
+              type="button"
+              aria-label="前の月"
+              onClick={() => changeMonth(-1)}
+              className="trails-nav-icon-btn"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              aria-label="次の月"
+              onClick={() => changeMonth(1)}
+              className="trails-nav-icon-btn"
+            >
+              <ChevronRight className="h-4 w-4" />
             </button>
           </div>
         }
@@ -230,37 +203,48 @@ export default function DiaryTab({
 
       {/* Filter Bar */}
       <div className="mb-3 flex shrink-0 items-center justify-between gap-2">
-        <div className="inline-flex rounded-xl bg-gray-200/70 p-0.5">
-          <button
-            type="button"
-            onClick={() => setOnlyWritten(false)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-              !onlyWritten
-                ? 'bg-white text-gray-900 shadow-xs'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            全日
-          </button>
-          <button
-            type="button"
-            onClick={() => setOnlyWritten(true)}
-            className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
-              onlyWritten
-                ? 'bg-white text-primary-700 shadow-xs'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            記入済み ({summary.writtenCount})
-          </button>
+        <div className="flex items-center gap-2">
+          <div className="inline-flex rounded-xl bg-gray-200/70 p-0.5">
+            <button
+              type="button"
+              onClick={() => setOnlyWritten(false)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                !onlyWritten
+                  ? 'bg-white text-gray-900 shadow-xs'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              全日
+            </button>
+            <button
+              type="button"
+              onClick={() => setOnlyWritten(true)}
+              className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all ${
+                onlyWritten
+                  ? 'bg-white text-primary-700 shadow-xs'
+                  : 'text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              記入済み ({writtenCount})
+            </button>
+          </div>
+
+          {isLoading && (
+            <Loader2
+              aria-label="読み込み中"
+              className="h-3.5 w-3.5 animate-spin text-gray-400"
+            />
+          )}
         </div>
 
-        {isLoading && (
-          <span className="flex items-center gap-1.5 text-xs text-gray-400">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            読み込み中...
-          </span>
-        )}
+        <button
+          type="button"
+          onClick={onOpenTodayDiary}
+          className="trails-btn-primary shrink-0 py-2 text-xs"
+        >
+          <PenLine className="h-3.5 w-3.5" />
+          今日の日記
+        </button>
       </div>
 
       {/* Main Table Card */}

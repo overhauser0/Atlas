@@ -34,7 +34,11 @@ export default function PageHeader({
         nowrap ? 'flex-nowrap' : 'flex-wrap'
       } ${className}`}
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+      <div
+        className={`flex min-w-0 items-center gap-2.5 sm:gap-3 ${
+          nowrap ? 'flex-1' : ''
+        }`}
+      >
         {onBack && (
           <button
             type="button"
