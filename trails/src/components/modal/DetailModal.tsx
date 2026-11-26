@@ -17,13 +17,15 @@ import {
   Maximize2,
   Minimize2,
   Info,
+  CheckSquare,
+  FileText,
 } from 'lucide-react';
 import { LifeItem, Person } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
 import { fetchPieceBlocks, type NotionBlock } from '@atlas/shared/notion';
 import { formatPersonName } from '@/utils/person';
 import { getStatusColor, getNotionLinkById } from '@/utils/piece';
-import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import PageHeader from '@/components/ui/PageHeader';
 import { useToast } from '@/components/ui/Toast';
 import DetailDateTimeSection from './detail-modal/DetailDateTimeSection';
 import DetailTagsSection from './detail-modal/DetailTagsSection';
@@ -772,77 +774,93 @@ export default function DetailModal({
   // Fullscreen View
   // ============================================================================
   if (isFullscreen) {
+    const fullscreenIcon =
+      formData.type === 'Task' ? (
+        <CheckSquare />
+      ) : formData.type === 'Note' ? (
+        <FileText />
+      ) : (
+        <Calendar />
+      );
+
     return (
       <div
-        className={`fixed inset-0 z-[60] bg-gray-100 flex flex-col transition-opacity duration-200 ${
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="detail-modal-title"
+        className={`fixed inset-0 z-[60] bg-gray-100 transition-opacity duration-200 ${
           isVisible ? 'opacity-100' : 'opacity-0'
         }`}
       >
-        <FullscreenHeader
-          title={formData.title || (item ? '詳細編集' : '新規作成')}
-          subtitle={
-            formData.source === 'NOTION'
-              ? 'Notion Piece'
-              : formData.source === 'LOCAL'
-                ? 'Local Piece'
-                : undefined
-          }
-          onBack={onClose}
-          backLabel="閉じる"
-          actions={
-            <>
-              <button
-                type="button"
-                onClick={() => setIsFullscreen(false)}
-                aria-label="コンパクト表示に戻す"
-                title="コンパクト表示に戻す"
-                className="trails-nav-icon-btn"
-              >
-                <Minimize2 className="h-4 w-4" />
-              </button>
-
-              {isExistingNotionPiece && (
+        <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-5 pt-5 md:px-8 md:pt-8 md:pb-6">
+          <PageHeader
+            icon={fullscreenIcon}
+            title={formData.title || (item ? '詳細編集' : '新規作成')}
+            titleId="detail-modal-title"
+            subtitle={
+              formData.source === 'NOTION'
+                ? 'Notion Piece'
+                : formData.source === 'LOCAL'
+                  ? 'Local Piece'
+                  : undefined
+            }
+            onBack={onClose}
+            backLabel="閉じる"
+            className="mb-4 md:mb-5"
+            actions={
+              <>
                 <button
                   type="button"
-                  onClick={() =>
-                    window.open(
-                      getNotionLinkById(formData.id, 'notion'),
-                      '_self',
-                    )
-                  }
-                  aria-label="Open in Notion"
-                  title="Open in Notion"
-                  className="trails-nav-icon-btn hover:text-primary-600"
+                  onClick={() => setIsFullscreen(false)}
+                  aria-label="コンパクト表示に戻す"
+                  title="コンパクト表示に戻す"
+                  className="trails-nav-icon-btn"
                 >
-                  <ExternalLink className="h-4 w-4" />
+                  <Minimize2 className="h-4 w-4" />
                 </button>
-              )}
 
-              {renderMoreMenu('trails-nav-icon-btn')}
+                {isExistingNotionPiece && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      window.open(
+                        getNotionLinkById(formData.id, 'notion'),
+                        '_self',
+                      )
+                    }
+                    aria-label="Open in Notion"
+                    title="Open in Notion"
+                    className="trails-nav-icon-btn hover:text-primary-600"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </button>
+                )}
 
-              {isSaveBtnNeeds && (
-                <button
-                  type="button"
-                  onClick={() => void handleSave()}
-                  disabled={isSaving || isDeleting || hasInvalidSchedule}
-                  className="trails-btn-primary px-3.5 py-2 text-xs md:text-sm"
-                >
-                  {isSaving ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      <span className="hidden sm:inline">Save</span>
-                    </>
-                  )}
-                </button>
-              )}
-            </>
-          }
-        />
+                {renderMoreMenu('trails-nav-icon-btn')}
 
-        <main className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col">
-          <div className="w-full flex-1 md:h-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 p-4 md:p-6 pb-12 md:pb-6 md:overflow-hidden">
+                {isSaveBtnNeeds && (
+                  <button
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={isSaving || isDeleting || hasInvalidSchedule}
+                    className="trails-btn-primary px-3.5 py-2 text-xs md:text-sm"
+                  >
+                    {isSaving ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        <span className="hidden sm:inline">Save</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </>
+            }
+          />
+
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto md:overflow-hidden">
+            <div className="grid w-full flex-1 grid-cols-1 gap-4 pb-10 md:h-full md:grid-cols-12 md:gap-5 md:overflow-hidden md:pb-0">
             {/* 左ペイン：基本情報・日時・タグ・URL・人物 */}
             <div className="md:col-span-5 lg:col-span-4 space-y-4 md:overflow-y-auto no-scrollbar md:pr-1">
               {formData.imageUrl && (
@@ -991,8 +1009,9 @@ export default function DetailModal({
                 </div>
               )}
             </div>
-          </div>
-        </main>
+            </div>
+          </main>
+        </div>
       </div>
     );
   }

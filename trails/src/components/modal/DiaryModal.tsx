@@ -13,6 +13,7 @@ import {
   Flag,
   ListTodo,
   Loader2,
+  Notebook,
   PenLine,
   Plus,
   Sparkles,
@@ -28,7 +29,7 @@ import {
 } from '@atlas/shared/date';
 import { getChecklistStats, toggleChecklistLine } from '@atlas/shared/markdown';
 import AssetGrid, { Asset } from '@/components/ui/AssetGrid';
-import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import PageHeader from '@/components/ui/PageHeader';
 import ListItem from '@/components/ui/ListItem';
 import MarkdownPreview from '@/components/ui/MarkdownPreview';
 
@@ -433,86 +434,95 @@ export default function DiaryModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-gray-100 flex flex-col animate-in fade-in duration-150">
-      <FullscreenHeader
-        title="日記"
-        subtitle={formatJaDateWithWeekday(formData.date)}
-        onBack={handleClose}
-        backLabel="戻る"
-        actions={
-          <>
-            <div className="flex items-center text-xs">
-              {saveStatus === 'saving' && (
-                <span className="flex items-center gap-1 text-gray-400">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span className="hidden sm:inline">Saving...</span>
-                </span>
-              )}
-              {saveStatus === 'saved' && (
-                <span className="flex items-center gap-1 text-emerald-600 font-medium">
-                  <Check className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Saved</span>
-                </span>
-              )}
-              {saveStatus === 'error' && (
-                <button
-                  type="button"
-                  onClick={() => persistDiary(latestDataRef.current)}
-                  className="text-red-600 font-semibold underline"
-                >
-                  Retry
-                </button>
-              )}
-            </div>
-
-            {onChangeDate && (
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleGoToToday}
-                  disabled={saveStatus === 'saving'}
-                  className="trails-nav-btn"
-                >
-                  今日
-                </button>
-                <button
-                  type="button"
-                  aria-label="前の日"
-                  onClick={() => handleNavigateDate(-1)}
-                  disabled={saveStatus === 'saving'}
-                  className="trails-nav-icon-btn"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  aria-label="次の日"
-                  onClick={() => handleNavigateDate(1)}
-                  disabled={saveStatus === 'saving'}
-                  className="trails-nav-icon-btn"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="diary-modal-title"
+      className="fixed inset-0 z-50 bg-gray-100 animate-in fade-in duration-150"
+    >
+      <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden px-5 pt-5 md:px-8 md:pt-8 md:pb-6">
+        <PageHeader
+          icon={<Notebook />}
+          title="Diary"
+          titleId="diary-modal-title"
+          subtitle={formatJaDateWithWeekday(formData.date)}
+          onBack={handleClose}
+          backLabel="戻る"
+          className="mb-4 md:mb-5"
+          actions={
+            <>
+              <div className="flex items-center text-xs">
+                {saveStatus === 'saving' && (
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span className="hidden sm:inline">Saving...</span>
+                  </span>
+                )}
+                {saveStatus === 'saved' && (
+                  <span className="flex items-center gap-1 font-medium text-emerald-600">
+                    <Check className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">Saved</span>
+                  </span>
+                )}
+                {saveStatus === 'error' && (
+                  <button
+                    type="button"
+                    onClick={() => persistDiary(latestDataRef.current)}
+                    className="font-semibold text-red-600 underline"
+                  >
+                    Retry
+                  </button>
+                )}
               </div>
-            )}
-          </>
-        }
-      />
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto md:overflow-hidden flex flex-col">
-        {saveError && (
-          <div className="px-4 md:px-6 pt-4 shrink-0">
-            <div
-              role="alert"
-              className="px-4 py-2.5 rounded-2xl bg-red-50 border border-red-200 text-xs text-red-600"
-            >
-              {saveError}
+              {onChangeDate && (
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={handleGoToToday}
+                    disabled={saveStatus === 'saving'}
+                    className="trails-nav-btn"
+                  >
+                    今日
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="前の日"
+                    onClick={() => handleNavigateDate(-1)}
+                    disabled={saveStatus === 'saving'}
+                    className="trails-nav-icon-btn"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="次の日"
+                    onClick={() => handleNavigateDate(1)}
+                    disabled={saveStatus === 'saving'}
+                    className="trails-nav-icon-btn"
+                  >
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </>
+          }
+        />
+
+        {/* Main Content */}
+        <main className="flex min-h-0 flex-1 flex-col overflow-y-auto md:overflow-hidden">
+          {saveError && (
+            <div className="mb-4 shrink-0">
+              <div
+                role="alert"
+                className="rounded-2xl border border-red-200 bg-red-50 px-4 py-2.5 text-xs text-red-600"
+              >
+                {saveError}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <div className="w-full flex-1 md:h-full grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-5 p-4 md:p-6 pb-12 md:pb-6 md:overflow-hidden">
+          <div className="grid w-full flex-1 grid-cols-1 gap-4 pb-10 md:h-full md:grid-cols-12 md:gap-5 md:overflow-hidden md:pb-0">
           {/* 左ペイン：メタデータ・本日のLifeItem・写真・Sparks */}
           <div className="md:col-span-5 lg:col-span-4 space-y-4 md:overflow-y-auto no-scrollbar md:pr-1">
             {/* Rate & Flag Card */}
@@ -827,8 +837,9 @@ export default function DiaryModal({
               </div>
             )}
           </section>
-        </div>
-      </main>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

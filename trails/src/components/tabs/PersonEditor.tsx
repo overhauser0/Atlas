@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { ContactRound, Image, Pencil } from 'lucide-react';
+import { ContactRound, Image, Pencil, UsersRound } from 'lucide-react';
 import type { Person } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import ConfirmModal from '@/components/modal/ConfirmModal';
 import { useConfirm } from '@/hooks/useConfirm';
 import PersonPhotoModal from '@/components/modal/PersonPhotoModal';
-import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import PageHeader from '@/components/ui/PageHeader';
 import {
   EMPTY_FORM,
   toPersonForm,
@@ -376,8 +376,9 @@ export default function PersonEditor({
   const fullName = person ? formatPersonName(person) : '';
 
   return (
-    <div className="flex h-full flex-col overflow-hidden bg-gray-100">
-      <FullscreenHeader
+    <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-5 pt-5 md:px-8 md:pt-8">
+      <PageHeader
+        icon={<UsersRound />}
         title={
           person
             ? isEditing
@@ -437,59 +438,57 @@ export default function PersonEditor({
         }
       />
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 pb-32 no-scrollbar md:px-8 md:py-6">
-        <div className="mx-auto w-full max-w-5xl">
-          <div
-            className={
-              isReadOnly ? 'space-y-4' : 'trails-card overflow-hidden'
-            }
-          >
-            {isReadOnly && person && (
-              <PersonProfileView
-                person={person}
-                immichPersonId={linkedIds.immich_person_id}
-                timelinePieces={timeline.timelinePieces}
-                isTimelineLoading={timeline.isTimelineLoading}
-                timelineError={timeline.timelineError}
-                timelineActionError={timeline.timelineActionError}
-                isUpdatingTimelinePiece={timeline.isUpdatingTimelinePiece}
-                openPieceMenuId={timeline.openPieceMenuId}
-                setOpenPieceMenuId={timeline.setOpenPieceMenuId}
-                pieceMenuRef={pieceMenuRef}
-                onOpenPhotos={() => setIsPersonPhotoModalOpen(true)}
-                onOpenAddPiece={() => timeline.openPieceModal('create')}
-                onEditTimelinePiece={timeline.openTimelinePieceEditor}
-                onTimelinePieceAction={(piece, action) =>
-                  void timeline.updateTimelinePiece(piece, action)
-                }
-              />
-            )}
-
-            <PersonFormFields
+      <div className="min-h-0 flex-1 overflow-y-auto pb-32 no-scrollbar">
+        <div
+          className={
+            isReadOnly ? 'space-y-4' : 'trails-card overflow-hidden'
+          }
+        >
+          {isReadOnly && person && (
+            <PersonProfileView
               person={person}
-              form={form}
-              isReadOnly={isReadOnly}
-              isSaving={isSaving}
-              isDeletingPerson={isDeletingPerson}
-              error={error}
-              onUpdateField={(field, value) =>
-                setForm((current) => ({ ...current, [field]: value }))
+              immichPersonId={linkedIds.immich_person_id}
+              timelinePieces={timeline.timelinePieces}
+              isTimelineLoading={timeline.isTimelineLoading}
+              timelineError={timeline.timelineError}
+              timelineActionError={timeline.timelineActionError}
+              isUpdatingTimelinePiece={timeline.isUpdatingTimelinePiece}
+              openPieceMenuId={timeline.openPieceMenuId}
+              setOpenPieceMenuId={timeline.setOpenPieceMenuId}
+              pieceMenuRef={pieceMenuRef}
+              onOpenPhotos={() => setIsPersonPhotoModalOpen(true)}
+              onOpenAddPiece={() => timeline.openPieceModal('create')}
+              onEditTimelinePiece={timeline.openTimelinePieceEditor}
+              onTimelinePieceAction={(piece, action) =>
+                void timeline.updateTimelinePiece(piece, action)
               }
-              onSave={() => void handleSave()}
-              onDelete={() => void handleDeletePerson()}
-              onCancelEdit={() => {
-                if (person) {
-                  setForm(toPersonForm(person));
-                  setIsEditing(false);
-                  setError(null);
-                } else {
-                  onClose();
-                }
-              }}
-              onStartEdit={() => setIsEditing(true)}
-              onClose={onClose}
             />
-          </div>
+          )}
+
+          <PersonFormFields
+            person={person}
+            form={form}
+            isReadOnly={isReadOnly}
+            isSaving={isSaving}
+            isDeletingPerson={isDeletingPerson}
+            error={error}
+            onUpdateField={(field, value) =>
+              setForm((current) => ({ ...current, [field]: value }))
+            }
+            onSave={() => void handleSave()}
+            onDelete={() => void handleDeletePerson()}
+            onCancelEdit={() => {
+              if (person) {
+                setForm(toPersonForm(person));
+                setIsEditing(false);
+                setError(null);
+              } else {
+                onClose();
+              }
+            }}
+            onStartEdit={() => setIsEditing(true)}
+            onClose={onClose}
+          />
         </div>
       </div>
 

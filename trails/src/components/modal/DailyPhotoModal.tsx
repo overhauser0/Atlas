@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect } from 'react';
+import { Aperture } from 'lucide-react';
 import AssetGrid from '@/components/ui/AssetGrid';
-import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import PageHeader from '@/components/ui/PageHeader';
 import { useAssetSearch } from '@/hooks/useAssetSearch';
 
 interface DailyPhotoModalProps {
@@ -36,21 +37,22 @@ export default function DailyPhotoModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="daily-photo-title"
-      className="fixed inset-0 z-50 flex flex-col bg-gray-100 animate-in fade-in duration-150"
+      className="fixed inset-0 z-50 bg-gray-100 animate-in fade-in duration-150"
     >
-      <FullscreenHeader
-        title={`${date ?? ''} の写真`}
-        titleId="daily-photo-title"
-        subtitle={
-          isLoading ? '読み込み中...' : `${assets?.length || 0} items`
-        }
-        onBack={onClose}
-        backLabel="写真を閉じる"
-      />
+      <div className="mx-auto flex h-full w-full max-w-5xl flex-col px-5 pt-5 md:px-8 md:pt-8">
+        <PageHeader
+          icon={<Aperture />}
+          title={`${date ?? ''} の写真`}
+          titleId="daily-photo-title"
+          subtitle={
+            isLoading ? '読み込み中...' : `${assets?.length || 0} items`
+          }
+          onBack={onClose}
+          backLabel="写真を閉じる"
+        />
 
-      {/* ギャラリー */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 no-scrollbar">
-        <div className="mx-auto max-w-5xl">
+        {/* ギャラリー */}
+        <div className="min-h-0 flex-1 overflow-y-auto pb-12 no-scrollbar">
           {isLoading ? (
             <div className="trails-card p-10 text-center text-sm text-gray-500 animate-pulse">
               写真を読み込んでいます...

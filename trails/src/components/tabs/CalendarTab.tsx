@@ -18,7 +18,8 @@ import {
   toLocalDate,
 } from '@atlas/shared/date';
 import CalendarItem from '@/components/ui/CalendarItem';
-import FullscreenHeader from '@/components/ui/FullscreenHeader';
+import PageHeader from '@/components/ui/PageHeader';
+import { getStatusColor } from '@/utils/piece';
 
 interface CalendarTabProps {
   appSettings: TrailsAppSettings;
@@ -256,60 +257,68 @@ export default function CalendarTab({
   }, [isDetailModalOpen, isDiaryModalOpen, prevMonth, nextMonth]);
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-gray-50 overflow-hidden relative">
-      <FullscreenHeader
-        title="月間カレンダー"
+    <div className="relative mx-auto flex h-full w-full max-w-7xl flex-col px-5 pt-5 pb-4 md:px-8 md:pt-8 md:pb-6">
+      <PageHeader
+        icon={<CalendarIcon />}
+        title="Monthly Calendar"
         subtitle={`${year}年${month + 1}月`}
+        className="mb-4"
         actions={
           <>
-            <div className="hidden md:flex items-center gap-3">
+            <div className="hidden items-center gap-1.5 md:flex">
               {/* タスク表示トグル */}
-              <label
-                className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showTasks ? 'text-teal-700' : 'text-gray-400'}`}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showTasks}
+                onClick={() =>
+                  onUpdateSettings({
+                    ...appSettings,
+                    showTaskInCal: !showTasks,
+                  })
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  showTasks
+                    ? 'border-teal-200 bg-teal-50 text-teal-700'
+                    : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                }`}
               >
-                <input
-                  type="checkbox"
-                  checked={showTasks}
-                  onChange={() =>
-                    onUpdateSettings({
-                      ...appSettings,
-                      showTaskInCal: !showTasks,
-                    })
-                  }
-                  className="sr-only"
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${
+                    showTasks ? 'bg-teal-500' : 'bg-gray-300'
+                  }`}
                 />
-                <div
-                  className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showTasks ? 'bg-teal-500 border-teal-500 text-white' : 'border-gray-300'}`}
-                >
-                  {showTasks && <Check className="h-3 w-3" strokeWidth={3} />}
-                </div>
                 Tasks
-              </label>
+              </button>
               {/* Google表示トグル */}
-              <label
-                className={`flex items-center gap-2 text-xs font-semibold transition-colors cursor-pointer ${showGcal ? 'text-indigo-700' : 'text-gray-400'}`}
+              <button
+                type="button"
+                role="switch"
+                aria-checked={showGcal}
+                onClick={() =>
+                  onUpdateSettings({
+                    ...appSettings,
+                    showGcalInCal: !showGcal,
+                  })
+                }
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  showGcal
+                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                    : 'border-gray-200 bg-white text-gray-400 hover:border-gray-300 hover:text-gray-600'
+                }`}
               >
-                <input
-                  type="checkbox"
-                  checked={showGcal}
-                  onChange={() =>
-                    onUpdateSettings({
-                      ...appSettings,
-                      showGcalInCal: !showGcal,
-                    })
-                  }
-                  className="sr-only"
+                <span
+                  aria-hidden="true"
+                  className={`h-2 w-2 rounded-full ${
+                    showGcal ? 'bg-indigo-500' : 'bg-gray-300'
+                  }`}
                 />
-                <div
-                  className={`flex h-4 w-4 items-center justify-center rounded-sm border ${showGcal ? 'bg-indigo-500 border-indigo-500 text-white' : 'border-gray-300'}`}
-                >
-                  {showGcal && <Check className="h-3 w-3" strokeWidth={3} />}
-                </div>
                 Google
-              </label>
+              </button>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <button
                 type="button"
                 onClick={goToToday}
@@ -338,161 +347,181 @@ export default function CalendarTab({
         }
       />
 
-      <div className="flex flex-1 min-h-0 flex-col lg:flex-row overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden lg:flex-row lg:gap-5">
         {/* =========================================
-            上部：カレンダーエリア
+            上部 / 左側：カレンダーエリア
             ========================================= */}
-        <div className="bg-white border-b border-gray-200 lg:border-b-0 lg:border-r z-10 flex flex-col h-[65%] lg:h-full lg:w-[70%] shrink-0">
+        <section className="trails-card flex h-[58%] min-w-0 shrink-0 flex-col overflow-hidden lg:h-full lg:flex-[7]">
           {/* 曜日ヘッダー */}
-          <div className="grid grid-cols-7 border-b border-gray-100 bg-gray-50/50 shrink-0">
-          {weekDays.map((day) => (
-            <div
-              key={day}
-              className="py-1.5 text-center text-[10px] md:text-xs font-semibold text-gray-400 uppercase tracking-wider"
-            >
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* カレンダーグリッド本体（ここで flex-1 と overflow-y-auto を指定してスクロール可能に） */}
-        <div className="bg-gray-200 flex-1 overflow-y-auto no-scrollbar">
-          {/* 高さを少し縮めて minmax(60px,1fr) に調整 */}
-          <div className="grid grid-cols-7 auto-rows-[minmax(60px,1fr)] md:auto-rows-[minmax(90px,1fr)] gap-px">
-            {calendarDays.map(({ date, isCurrentMonth }, idx) => {
-              const isToday =
-                date.getDate() === today.getDate() &&
-                date.getMonth() === today.getMonth() &&
-                date.getFullYear() === today.getFullYear();
-
-              const isSelected =
-                date.getDate() === selectedDate.getDate() &&
-                date.getMonth() === selectedDate.getMonth() &&
-                date.getFullYear() === selectedDate.getFullYear();
-
-              const dayItems = getItemsForDate(date);
-
-              // 日記ステータスの判定
-              const dateStr = getDateFullString(date, 'hyphen');
-              const dayDiary =
-                visibleDiaries.find((diary) => diary.date === dateStr) || null;
-              const isEntered = !!(
-                dayDiary &&
-                dayDiary.content.trim() !== ''
-              );
-
-              // スタイリング
-              const dayBgColor = isSelected
-                ? 'bg-primary-50/50'
-                : isCurrentMonth
-                  ? 'bg-white'
-                  : 'bg-gray-50/50';
-
-              return (
-                <div
-                  key={idx}
-                  onClick={() => {
-                    setSelectedDate(date);
-                    if (!isCurrentMonth) {
-                      setLoadedDiaryMonth(null);
-                      setCurrentDate(
-                        new Date(date.getFullYear(), date.getMonth(), 1),
-                      );
-                    }
-                  }}
-                  className={`
-                    ${dayBgColor} flex flex-col p-1 md:p-1.5 transition-colors cursor-pointer relative
-                    ${isSelected ? 'ring-2 ring-inset ring-primary-500 z-10' : ''}
-                  `}
-                >
-                  {/* 日付ラベルと日記ステータス */}
-                  <div className="flex justify-between items-start mb-1">
-                    <span
-                      className={`text-xs md:text-sm font-medium ${isToday ? 'text-primary-600 font-bold' : isCurrentMonth ? 'text-gray-700' : 'text-gray-400'}`}
-                    >
-                      {date.getDate()}
-                    </span>
-                    {/* 日記の✓印 */}
-                    {isEntered && (
-                      <Check
-                        className="w-3.5 h-3.5 md:w-4 md:h-4 stroke-[3px] text-green-500"
-                      />
-                    )}
-                  </div>
-
-                  {/* 予定リスト（最大4〜5件表示） */}
-                  <div className="flex flex-col gap-0.5 overflow-hidden">
-                    <CalendarItem
-                      entries={dayItems.slice(0, 5).map((item, i) => {
-                        const isGCal = item.source === 'GCAL';
-                        const isTask = item.type === 'Task';
-                        const is5th = i === 4;
-
-                        const itemStyle = isTask
-                          ? 'bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-100 hover:border-teal-100'
-                          : isGCal
-                            ? 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                            : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium';
-
-                        return {
-                          id: item.id,
-                          title: item.title,
-                          status: isGCal ? undefined : item.status,
-                          className: `${itemStyle} ${is5th ? 'hidden md:block' : ''}`,
-                          item,
-                        };
-                      })}
-                    />
-
-                    {/* 省略テキスト「他...」 */}
-                    {dayItems.length > 4 && (
-                      <div className="text-[9px] text-gray-400 pl-0.5 md:hidden leading-none mt-0.5">
-                        他...
-                      </div>
-                    )}
-                    {dayItems.length > 5 && (
-                      <div className="text-[10px] text-gray-400 pl-0.5 hidden md:block leading-none mt-0.5">
-                        他...
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid shrink-0 grid-cols-7 border-b border-gray-100 bg-gray-50/80">
+            {weekDays.map((day, idx) => (
+              <div
+                key={day}
+                className={`py-2 text-center text-[10px] font-bold uppercase tracking-wider md:text-xs ${
+                  idx === 0
+                    ? 'text-rose-400'
+                    : idx === 6
+                      ? 'text-sky-500'
+                      : 'text-gray-400'
+                }`}
+              >
+                {day}
+              </div>
+            ))}
           </div>
-        </div>
-      </div>
 
-      {/* =========================================
-          下部：1日の詳細エリア（残り45%の領域を占有）
-          ========================================= */}
-      <div className="flex-1 min-h-0 min-w-0 p-4 md:p-6 overflow-hidden">
-        <div className="max-w-3xl mx-auto h-full min-h-0 flex flex-col">
+          {/* カレンダーグリッド本体 */}
+          <div className="flex-1 overflow-y-auto bg-gray-100 no-scrollbar">
+            <div className="grid min-h-full grid-cols-7 auto-rows-[minmax(60px,1fr)] gap-px md:auto-rows-[minmax(90px,1fr)]">
+              {calendarDays.map(({ date, isCurrentMonth }, idx) => {
+                const isToday =
+                  date.getDate() === today.getDate() &&
+                  date.getMonth() === today.getMonth() &&
+                  date.getFullYear() === today.getFullYear();
+
+                const isSelected =
+                  date.getDate() === selectedDate.getDate() &&
+                  date.getMonth() === selectedDate.getMonth() &&
+                  date.getFullYear() === selectedDate.getFullYear();
+
+                const dayItems = getItemsForDate(date);
+
+                // 日記ステータスの判定
+                const dateStr = getDateFullString(date, 'hyphen');
+                const dayDiary =
+                  visibleDiaries.find((diary) => diary.date === dateStr) ||
+                  null;
+                const isEntered = !!(
+                  dayDiary && dayDiary.content.trim() !== ''
+                );
+
+                // スタイリング
+                const dayBgColor = isSelected
+                  ? 'bg-primary-50/60'
+                  : isCurrentMonth
+                    ? 'bg-white hover:bg-gray-50/70'
+                    : 'bg-gray-50/60 hover:bg-gray-50';
+
+                const weekdayIdx = idx % 7;
+                const dateTextColor = isToday
+                  ? 'bg-primary-500 font-bold text-white'
+                  : !isCurrentMonth
+                    ? 'text-gray-300'
+                    : weekdayIdx === 0
+                      ? 'text-rose-500'
+                      : weekdayIdx === 6
+                        ? 'text-sky-600'
+                        : 'text-gray-700';
+
+                return (
+                  <div
+                    key={idx}
+                    onClick={() => {
+                      setSelectedDate(date);
+                      if (!isCurrentMonth) {
+                        setLoadedDiaryMonth(null);
+                        setCurrentDate(
+                          new Date(date.getFullYear(), date.getMonth(), 1),
+                        );
+                      }
+                    }}
+                    className={`${dayBgColor} relative flex cursor-pointer flex-col p-1 transition-colors md:p-1.5 ${
+                      isSelected
+                        ? 'z-10 ring-2 ring-inset ring-primary-500'
+                        : ''
+                    }`}
+                  >
+                    {/* 日付ラベルと日記ステータス */}
+                    <div className="mb-1 flex items-center justify-between">
+                      <span
+                        className={`inline-flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-semibold md:h-6 md:w-6 md:text-xs ${dateTextColor}`}
+                      >
+                        {date.getDate()}
+                      </span>
+                      {/* 日記の✓印 */}
+                      {isEntered && (
+                        <Check className="h-3.5 w-3.5 stroke-[3px] text-emerald-500 md:h-4 md:w-4" />
+                      )}
+                    </div>
+
+                    {/* 予定リスト（最大4〜5件表示） */}
+                    <div className="flex flex-col gap-0.5 overflow-hidden">
+                      <CalendarItem
+                        entries={dayItems.slice(0, 5).map((item, i) => {
+                          const isGCal = item.source === 'GCAL';
+                          const isTask = item.type === 'Task';
+                          const is5th = i === 4;
+
+                          const itemStyle = isTask
+                            ? 'bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-100 hover:border-teal-100'
+                            : isGCal
+                              ? 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                              : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium';
+
+                          return {
+                            id: item.id,
+                            title: item.title,
+                            status: isGCal ? undefined : item.status,
+                            className: `${itemStyle} ${is5th ? 'hidden md:block' : ''}`,
+                            item,
+                          };
+                        })}
+                      />
+
+                      {/* 省略テキスト「他...」 */}
+                      {dayItems.length > 4 && (
+                        <div className="mt-0.5 pl-0.5 text-[9px] leading-none text-gray-400 md:hidden">
+                          他...
+                        </div>
+                      )}
+                      {dayItems.length > 5 && (
+                        <div className="mt-0.5 hidden pl-0.5 text-[10px] leading-none text-gray-400 md:block">
+                          他...
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================
+            下部 / 右側：1日の詳細エリア
+            ========================================= */}
+        <section className="trails-card flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:h-full lg:flex-[3]">
           {/* 詳細エリア ヘッダー */}
-          <div className="flex items-center justify-between mb-6 shrink-0">
-            <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
-              <CalendarIcon className="w-6 h-6 text-gray-400" />
-              {getDateShortString(selectedDateStr)}
-            </h3>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-gray-100 px-5 py-4">
+            <div className="min-w-0">
+              <p className="trails-section-label">Selected Date</p>
+              <h2 className="truncate text-lg font-bold tracking-tight text-gray-900">
+                {getDateShortString(selectedDateStr)}
+              </h2>
+            </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex shrink-0 items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => onOpenDairyPhoto(selectedDateStr)}
                 aria-label="この日の写真を開く"
-                className="flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-400"
+                title="この日の写真を開く"
+                className="trails-nav-icon-btn hover:text-primary-600"
               >
-                <Aperture className="w-4 h-4" />
+                <Aperture className="h-4 w-4" />
               </button>
               {/* 日記入力 / 閲覧ボタン */}
               {diaryMonthLoadError ? (
                 <button
+                  type="button"
                   onClick={() => setDiaryRetryCount((count) => count + 1)}
-                  className="text-xs text-red-600"
+                  className="rounded-lg border border-red-200 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 transition-colors hover:bg-red-100"
                 >
                   日記を再取得
                 </button>
               ) : (
                 <button
+                  type="button"
                   disabled={loadedDiaryMonth !== monthKey}
                   onClick={() =>
                     onDiaryClick(
@@ -506,63 +535,91 @@ export default function CalendarTab({
                     )
                   }
                   aria-label="この日の日記を開く"
-                  className={`flex items-center gap-1.5 p-1.5 md:p-2 rounded-xl text-sm font-bold transition-transform hover:scale-105 shadow-sm bg-white border border-gray-200 hover:bg-gray-50 disabled:opacity-50 ${
-                    isSelectedEntered ? ' text-green-600' : ' text-gray-400 '
+                  title="この日の日記を開く"
+                  className={`trails-nav-icon-btn ${
+                    isSelectedEntered
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-600 hover:bg-emerald-100'
+                      : 'hover:text-primary-600'
                   }`}
                 >
-                  <Notebook className="w-4 h-4" />
+                  <Notebook className="h-4 w-4" />
                 </button>
               )}
             </div>
           </div>
 
           {/* 1日の予定リスト */}
-          {selectedDayItems.length === 0 ? (
-            <div className="flex-1 min-h-0 text-center text-gray-400 py-10 text-sm font-medium">
-              予定はありません
-            </div>
-          ) : (
-            <div className="flex-1 min-h-0 flex flex-col">
-              <CalendarItem
-                scrollRef={setBottomScrollRef}
-                entries={selectedDayItems.slice(0, 5).map((item) => {
+          <div
+            ref={setBottomScrollRef}
+            className="min-h-0 flex-1 overflow-y-auto p-3.5 pb-20 trails-scrollbar md:p-4 md:pb-20"
+          >
+            {selectedDayItems.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 px-4 py-10 text-center text-sm text-gray-400">
+                予定はありません
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {selectedDayItems.map((item) => {
                   const isGCal = item.source === 'GCAL';
                   const isTask = item.type === 'Task';
+                  const timeLabel = item.start_time?.slice(0, 5);
 
                   const itemStyle = isTask
-                    ? 'bg-teal-50 text-teal-700 border border-teal-100 hover:bg-teal-100 hover:border-teal-100'
+                    ? 'border-teal-100 bg-teal-50/80 text-teal-800 hover:bg-teal-100/80'
                     : isGCal
-                      ? 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
-                      : 'bg-indigo-50 text-indigo-700 border border-indigo-100 hover:bg-indigo-100 font-medium';
+                      ? 'border-gray-200 bg-gray-50 text-gray-700 hover:bg-gray-100'
+                      : 'border-indigo-100 bg-indigo-50/80 text-indigo-800 hover:bg-indigo-100/80';
 
-                  return {
-                    id: item.id,
-                    title: item.title,
-                    status: isGCal ? undefined : item.status,
-                    className: `${itemStyle} p-3! lg:p-4! lg:rounded-2xl! font-bold text-base!`,
-                    item,
-                  };
+                  return (
+                    <button
+                      key={`${item.source ?? 'ITEM'}-${item.id}`}
+                      type="button"
+                      onClick={() => onItemClick(item)}
+                      className={`flex w-full items-center gap-3 rounded-2xl border px-3.5 py-3 text-left transition-colors ${itemStyle}`}
+                    >
+                      {!isGCal && (
+                        <span
+                          aria-hidden="true"
+                          className={`h-2 w-2 shrink-0 rounded-full ${getStatusColor(item.status)}`}
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-bold">
+                          {item.title}
+                        </p>
+                        {timeLabel && (
+                          <p className="mt-0.5 font-mono text-[11px] opacity-70">
+                            {timeLabel}
+                            {item.end_time
+                              ? ` - ${item.end_time.slice(0, 5)}`
+                              : ''}
+                          </p>
+                        )}
+                      </div>
+                      <ChevronRight className="h-4 w-4 shrink-0 opacity-40" />
+                    </button>
+                  );
                 })}
-                onItemClick={(item) => onItemClick(item)}
-              />
-            </div>
-          )}
-        </div>
-      </div>
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
       {/* FAB */}
       <button
+        type="button"
+        aria-label="予定を作成"
         onClick={() =>
           onOpenCreate({
             type: 'Event',
             start_date: getDateFullString(selectedDate),
           } as LifeItem)
         }
-        className="absolute bottom-6 right-6 w-14 h-14 bg-primary-500 text-white rounded-full shadow-lg flex items-center justify-center hover:bg-primary-600 transition-transform hover:scale-105 z-30"
+        className="absolute bottom-6 right-6 z-30 flex h-14 w-14 items-center justify-center rounded-full bg-primary-500 text-white shadow-lg transition-transform hover:scale-105 hover:bg-primary-600"
       >
-        <Plus className="w-7 h-7" />
+        <Plus className="h-7 w-7" />
       </button>
-    </section>
+    </div>
   );
 }
