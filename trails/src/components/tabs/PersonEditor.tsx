@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { ContactRound, Image, Pencil, UsersRound } from 'lucide-react';
-import type { Person } from '@/types';
+import type { LifeItem, Person } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import ConfirmModal from '@/components/modal/ConfirmModal';
@@ -24,12 +24,16 @@ import PersonTimelineEditModal from './person-editor/PersonTimelineEditModal';
 
 interface PersonEditorProps {
   person: Person | null;
+  items?: LifeItem[];
+  onOpenPiece?: (item: LifeItem) => void;
   onClose: () => void;
   onSaved: (person?: Person) => void;
 }
 
 export default function PersonEditor({
   person,
+  items = [],
+  onOpenPiece,
   onClose,
   onSaved,
 }: PersonEditorProps) {
@@ -459,6 +463,35 @@ export default function PersonEditor({
               pieceMenuRef={pieceMenuRef}
               onOpenPhotos={() => setIsPersonPhotoModalOpen(true)}
               onOpenAddPiece={() => timeline.openPieceModal('create')}
+              onSelectTimelinePiece={
+                onOpenPiece
+                  ? (piece) => {
+                      const matched = items.find(
+                        (item) =>
+                          item.id === piece.id && item.source === piece.source,
+                      );
+                      onOpenPiece(
+                        matched ?? {
+                          id: piece.id,
+                          title: piece.title,
+                          status: 'Done',
+                          start_date: piece.start_date,
+                          area: 'Life',
+                          type: 'Event',
+                          topics: [],
+                          flags: [],
+                          note: piece.note ?? '',
+                          url: '',
+                          fkw: [],
+                          prefs: [],
+                          imageUrl: '',
+                          iconType: 'Leaf',
+                          source: piece.source,
+                        },
+                      );
+                    }
+                  : undefined
+              }
               onEditTimelinePiece={timeline.openTimelinePieceEditor}
               onTimelinePieceAction={(piece, action) =>
                 void timeline.updateTimelinePiece(piece, action)

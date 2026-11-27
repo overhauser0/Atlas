@@ -10,6 +10,7 @@ import { sortByStartDate } from '@/utils/piece';
 interface Props {
   onNavigate: (tab: Views) => void;
   onItemClick: (item: LifeItem) => void;
+  onTagClick: (tag: string) => void;
   events: LifeItem[];
   tasks: LifeItem[];
 }
@@ -17,6 +18,7 @@ interface Props {
 export default function HomeTab({
   onNavigate,
   onItemClick,
+  onTagClick,
   events,
   tasks,
 }: Props) {
@@ -135,7 +137,7 @@ export default function HomeTab({
                 </div>
               </button>
             </div>
-            <EchosOfJourney tags={recentTags} />
+            <EchosOfJourney tags={recentTags} onTagClick={onTagClick} />
           </div>
 
           {/* 右カラム */}
@@ -189,7 +191,13 @@ export default function HomeTab({
   );
 }
 
-export function EchosOfJourney({ tags }: { tags: string[] }) {
+export function EchosOfJourney({
+  tags,
+  onTagClick,
+}: {
+  tags: string[];
+  onTagClick: (tag: string) => void;
+}) {
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center gap-3 w-full mb-6">
@@ -207,9 +215,14 @@ export function EchosOfJourney({ tags }: { tags: string[] }) {
       </div>
       <div className="flex flex-wrap gap-2">
         {tags.map((tag) => (
-          <span key={tag} className="tag-badge text-sm px-3 py-1.5">
+          <button
+            key={tag}
+            type="button"
+            onClick={() => onTagClick(tag)}
+            className="rounded-xl border border-gray-200/80 bg-gray-50 px-3 py-1.5 text-xs font-semibold text-gray-600 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+          >
             #{tag}
-          </span>
+          </button>
         ))}
       </div>
     </div>

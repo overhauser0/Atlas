@@ -1,5 +1,5 @@
 import { db } from '../db/client';
-import { NewSparkRow } from '../models/spark.model';
+import { NewSparkRow, SparkUpdateRow } from '../models/spark.model';
 
 /** 未消化のSparkを記録日時の昇順で取得する。 */
 export const getSparks = async (targetDate?: string) => {
@@ -17,6 +17,16 @@ export const createSpark = async (spark: NewSparkRow) => {
     .insertInto('sparks')
     .values(spark)
     .onConflict((oc) => oc.column('discord_message_id').doNothing())
+    .returningAll()
+    .executeTakeFirst();
+};
+
+/** Sparkの内容・日時を更新する。 */
+export const updateSpark = async (id: string, updates: SparkUpdateRow) => {
+  return await db
+    .updateTable('sparks')
+    .set(updates)
+    .where('id', '=', id)
     .returningAll()
     .executeTakeFirst();
 };

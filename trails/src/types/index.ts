@@ -17,11 +17,22 @@ export type Views =
   | 'Review'
   | 'Calendar'
   | 'Week'
+  | 'Sparks'
   | 'Diary'
   | 'Photo'
   | 'People'
   | 'Settings'
   | ItemTabPreset;
+
+export interface SparkItem {
+  id: string;
+  content: string;
+  recorded_at: string;
+  target_date: string;
+  discord_message_id?: string | null;
+  consumed_at?: string | null;
+  created_at?: string;
+}
 
 export interface Person {
   id: string;

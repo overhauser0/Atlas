@@ -6,6 +6,7 @@ import {
   SparkIdSchema,
   SparkInputSchema,
   SparkTargetDateQuerySchema,
+  UpdateSparkSchema,
 } from '../models/spark.model';
 import * as sparkService from '../services/spark.service';
 
@@ -45,6 +46,40 @@ export const createSpark = async (c: Context) => {
 
   const data = await sparkService.createSpark(validation.data);
   return c.json({ data: data ?? null }, data ? 201 : 200);
+};
+
+/** Sparkの内容・日時を更新する。 */
+export const updateSpark = async (c: Context) => {
+  const idValidation = SparkIdSchema.safeParse(c.req.param('id'));
+  if (!idValidation.success) {
+    return c.json(
+      {
+        data: null,
+        message: 'Invalid spark ID',
+        errors: idValidation.error.format(),
+      },
+      400,
+    );
+  }
+
+  const bodyValidation = UpdateSparkSchema.safeParse(await c.req.json());
+  if (!bodyValidation.success || Object.keys(bodyValidation.data).length === 0) {
+    return c.json(
+      {
+        data: null,
+        message: 'Invalid input data',
+        errors: bodyValidation.success ? undefined : bodyValidation.error.format(),
+      },
+      400,
+    );
+  }
+
+  const data = await sparkService.updateSpark(
+    idValidation.data,
+    bodyValidation.data,
+  );
+  if (!data) return c.json({ data: null, message: 'Spark not found' }, 404);
+  return c.json({ data }, 200);
 };
 
 /** Sparkを消化済みにする。 */

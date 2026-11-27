@@ -7,6 +7,8 @@ import {
   Views,
   LifeItem,
   DiaryItem,
+  Person,
+  SparkItem,
   TrailsAppSettings,
 } from '@/types';
 
@@ -15,6 +17,8 @@ import { useAtlasWebSocket } from '@/hooks/useAtlasWebSocket';
 import { useDiarySync } from '@/hooks/useDiarySync';
 import { useGoogleCalendar } from '@/hooks/useGoogleCalendar';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { usePeopleSync } from '@/hooks/usePeopleSync';
+import { useSparkSync } from '@/hooks/useSparkSync';
 
 import HomeTab from '@/components/tabs/HomeTab';
 import YearReviewTab from '@/components/tabs/YearReviewTab';
@@ -22,6 +26,7 @@ import CalendarTab from '@/components/tabs/CalendarTab';
 import WeekCalendarTab from '@/components/tabs/WeekCalendarTab';
 import PhotoTab from '@/components/tabs/PhotoTab';
 import DiaryTab from '@/components/tabs/DiaryTab';
+import SparksTab from '@/components/tabs/SparksTab';
 import ItemTab, { ItemView } from '@/components/tabs/ItemTab';
 import ConfigTab from '@/components/tabs/ConfigTab';
 import PeopleTab from '@/components/tabs/PeopleTab';
@@ -35,9 +40,9 @@ import DetailModal from '@/components/modal/DetailModal';
 import DiaryModal from '@/components/modal/DiaryModal';
 import SearchModal from '@/components/modal/SearchModal';
 import DailyPhotoModal from '@/components/modal/DailyPhotoModal';
-import { ToastProvider } from '@/components/ui/Toast';
+import { ToastProvider, useToast } from '@/components/ui/Toast';
 import { ATLAS_UNAUTHORIZED_EVENT, atlasFetch } from '@atlas/shared/api';
-import { getDateFullString } from '@atlas/shared/date';
+import { formatTimeFromIso, getDateFullString } from '@atlas/shared/date';
 
 const DEFAULT_ITEM_TAB_VIEWS: Record<ItemTabPreset, ItemView> = {
   Task: 'List',
@@ -55,6 +60,8 @@ const isItemView = (value: unknown): value is ItemView =>
   value === 'List' || value === 'Cal' || value === 'Stats';
 
 function AppMain() {
+  const { addToast } = useToast();
+
   // ============================================================================
   // 1. States
   // ============================================================================
@@ -68,7 +75,11 @@ function AppMain() {
 
   const [currentTab, setCurrentTab] = useState<Views>('Home');
   const [isMoreSheetOpen, setIsMoreSheetOpen] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchModalConfig, setSearchModalConfig] = useState<{
+    isOpen: boolean;
+    initialQuery: string;
+  }>({ isOpen: false, initialQuery: '' });
+  const [selectedPersonId, setSelectedPersonId] = useState<string | null>(null);
   const [isCalendarGroupOpen, setIsCalendarGroupOpen] = useState(true);
   const [isPieceGroupOpen, setIsPieceGroupOpen] = useState(true);
 
@@ -81,7 +92,8 @@ function AppMain() {
     isOpen: boolean;
     item: Partial<LifeItem> | null;
     initialValues: Partial<LifeItem> | null;
-  }>({ isOpen: false, item: null, initialValues: null });
+    pendingSparkId: string | null;
+  }>({ isOpen: false, item: null, initialValues: null, pendingSparkId: null });
 
   const [diaryModalConfig, setDiaryModalConfig] = useState<{
     isOpen: boolean;
@@ -111,6 +123,21 @@ function AppMain() {
   const handleRefreshDiaries = useCallback(() => {
     void fetchDiaries();
   }, [fetchDiaries]);
+
+  const {
+    people,
+    isLoading: isPeopleLoading,
+    error: peopleError,
+    fetchPeople,
+  } = usePeopleSync(isAuthenticated);
+
+  const {
+    sparks,
+    setSparks,
+    isLoading: isSparksLoading,
+    error: sparksError,
+    fetchSparks,
+  } = useSparkSync(isAuthenticated);
 
   useAtlasWebSocket(handleRefreshPieces, handleRefreshDiaries, isAuthenticated);
 
@@ -190,8 +217,17 @@ function AppMain() {
   // ============================================================================
   // 4. Handlers
   // ============================================================================
+  const openSearchModal = useCallback((initialQuery = '') => {
+    setSearchModalConfig({ isOpen: true, initialQuery });
+  }, []);
+
   const openDetailModal = useCallback((item: LifeItem) => {
-    setDetailModalConfig({ isOpen: true, item: item, initialValues: null });
+    setDetailModalConfig({
+      isOpen: true,
+      item,
+      initialValues: null,
+      pendingSparkId: null,
+    });
   }, []);
 
   const handleOpenCreate = useCallback(
@@ -200,10 +236,63 @@ function AppMain() {
         isOpen: true,
         item: null,
         initialValues: initialValues || null,
+        pendingSparkId: null,
       });
     },
     [],
   );
+
+  const handleCreatePieceFromSpark = useCallback((spark: SparkItem) => {
+    const firstLine =
+      spark.content
+        .split('\n')
+        .map((line) => line.trim())
+        .find(Boolean) ?? '';
+    const suggestedTitle =
+      firstLine.length > 80 ? `${firstLine.slice(0, 80)}…` : firstLine;
+    const startTime = formatTimeFromIso(spark.recorded_at) || null;
+
+    setDetailModalConfig({
+      isOpen: true,
+      item: null,
+      initialValues: {
+        title: suggestedTitle,
+        start_date: spark.target_date,
+        start_time: startTime,
+        note: spark.content,
+        type: 'Event',
+      },
+      pendingSparkId: spark.id,
+    });
+  }, []);
+
+  const handleDetailModalSaved = useCallback(async () => {
+    const sparkId = detailModalConfig.pendingSparkId;
+    if (!sparkId) return;
+    try {
+      const res = await atlasFetch(`/sparks/${sparkId}/consume`, {
+        method: 'PATCH',
+      });
+      if (!res.ok) {
+        throw new Error(`Sparkの消化更新に失敗しました (${res.status})`);
+      }
+      setSparks((prev) => prev.filter((item) => item.id !== sparkId));
+      addToast('Pieceを作成し、Sparkを消化しました');
+    } catch (consumeError) {
+      console.error('Failed to consume spark after piece creation:', consumeError);
+      addToast(
+        'Pieceを作成しましたが、Sparkの消化更新に失敗しました',
+        'alert',
+      );
+    }
+  }, [detailModalConfig.pendingSparkId, setSparks, addToast]);
+
+  const handleOpenPerson = useCallback((personOrId: Person | string) => {
+    const id = typeof personOrId === 'string' ? personOrId : personOrId.id;
+    setSelectedPersonId(id);
+    setCurrentTab('People');
+    setIsMoreSheetOpen(false);
+  }, []);
 
   const handleItemTabViewChange = useCallback(
     (preset: ItemTabPreset, view: ItemView) => {
@@ -232,34 +321,41 @@ function AppMain() {
     setDiaryModalConfig({ isOpen: true, diary });
   };
 
+  const handleOpenDiaryByDate = useCallback(
+    async (dateStr: string) => {
+      setIsMoreSheetOpen(false);
+      let targetDiary = diaries.find((item) => item.date === dateStr) ?? null;
+
+      if (!targetDiary) {
+        try {
+          const res = await atlasFetch(`/diaries/${dateStr}`);
+          if (res.ok) {
+            const json = await res.json();
+            targetDiary = json.diary ?? null;
+          }
+        } catch (e) {
+          console.error('Failed to fetch diary', e);
+        }
+      }
+
+      setDiaryModalConfig({
+        isOpen: true,
+        diary: targetDiary ?? {
+          date: dateStr,
+          rate: null,
+          content: '',
+          flag: false,
+          piece_ids: [],
+        },
+      });
+    },
+    [diaries],
+  );
+
   const handleOpenTodayDiary = useCallback(async () => {
     const todayStr = getDateFullString(new Date(), 'hyphen');
-    setIsMoreSheetOpen(false);
-    let targetDiary = diaries.find((item) => item.date === todayStr) ?? null;
-
-    if (!targetDiary) {
-      try {
-        const res = await atlasFetch(`/diaries/${todayStr}`);
-        if (res.ok) {
-          const json = await res.json();
-          targetDiary = json.diary ?? null;
-        }
-      } catch (e) {
-        console.error('Failed to fetch today diary', e);
-      }
-    }
-
-    setDiaryModalConfig({
-      isOpen: true,
-      diary: targetDiary ?? {
-        date: todayStr,
-        rate: null,
-        content: '',
-        flag: false,
-        piece_ids: [],
-      },
-    });
-  }, [diaries]);
+    await handleOpenDiaryByDate(todayStr);
+  }, [handleOpenDiaryByDate]);
 
   const handleChangeDiaryDate = useCallback(
     async (date: string) => {
@@ -299,7 +395,7 @@ function AppMain() {
   };
 
   useKeyboardShortcuts({
-    onOpenSearchModal: () => setIsSearchOpen(true),
+    onOpenSearchModal: () => openSearchModal(''),
   });
 
   // ============================================================================
@@ -313,12 +409,13 @@ function AppMain() {
     <div className="flex h-screen overflow-hidden bg-gray-100">
       <TrailsDesktopSidebar
         currentTab={currentTab}
+        sparksCount={sparks.length}
         isCalendarGroupOpen={isCalendarGroupOpen}
         isPieceGroupOpen={isPieceGroupOpen}
         onToggleCalendarGroup={() => setIsCalendarGroupOpen((open) => !open)}
         onTogglePieceGroup={() => setIsPieceGroupOpen((open) => !open)}
         onTabChange={handleTabChange}
-        onOpenSearch={() => setIsSearchOpen(true)}
+        onOpenSearch={() => openSearchModal('')}
       />
 
       {/* ============================================================
@@ -332,6 +429,7 @@ function AppMain() {
               tasks={tasks}
               onNavigate={handleTabChange}
               onItemClick={openDetailModal}
+              onTagClick={(tag) => openSearchModal(`#${tag}`)}
             />
           )}
           {currentTab === 'Review' && (
@@ -370,6 +468,21 @@ function AppMain() {
               onItemClick={openDetailModal}
             />
           )}
+          {currentTab === 'Sparks' && (
+            <SparksTab
+              sparks={sparks}
+              isLoading={isSparksLoading}
+              error={sparksError}
+              items={items}
+              onRefresh={fetchSparks}
+              onRemoveSparks={(ids) => {
+                const idSet = new Set(ids);
+                setSparks((prev) => prev.filter((item) => !idSet.has(item.id)));
+              }}
+              onCreatePieceFromSpark={handleCreatePieceFromSpark}
+              onOpenDiaryDate={(date) => void handleOpenDiaryByDate(date)}
+            />
+          )}
           {currentTab === 'Diary' && (
             <DiaryTab
               diaries={diaries}
@@ -381,7 +494,18 @@ function AppMain() {
           {currentTab === 'Photo' && (
             <PhotoTab onDateClick={handleOpenDailyPhoto} />
           )}
-          {currentTab === 'People' && <PeopleTab />}
+          {currentTab === 'People' && (
+            <PeopleTab
+              people={people}
+              isLoading={isPeopleLoading}
+              error={peopleError}
+              onRefresh={fetchPeople}
+              initialPersonId={selectedPersonId}
+              onClearInitialPersonId={() => setSelectedPersonId(null)}
+              items={items}
+              onOpenPiece={openDetailModal}
+            />
+          )}
           {ITEM_TAB_PRESETS.includes(currentTab as ItemTabPreset) && (
             <ItemTab
               key={currentTab}
@@ -422,7 +546,7 @@ function AppMain() {
           currentTab={currentTab}
           isMoreSheetOpen={isMoreSheetOpen}
           onTabChange={handleTabChange}
-          onOpenSearch={() => setIsSearchOpen(true)}
+          onOpenSearch={() => openSearchModal('')}
           onOpenMoreSheet={() => setIsMoreSheetOpen(true)}
         />
       </div>
@@ -430,6 +554,7 @@ function AppMain() {
       {isMoreSheetOpen && (
         <TrailsMoreSheet
           currentTab={currentTab}
+          sparksCount={sparks.length}
           onTabChange={handleTabChange}
           onClose={() => setIsMoreSheetOpen(false)}
         />
@@ -438,13 +563,18 @@ function AppMain() {
       {/* ============================================================
           Modals
           ============================================================ */}
-      {isSearchOpen && (
+      {searchModalConfig.isOpen && (
         <SearchModal
-          isOpen={isSearchOpen}
-          onClose={() => setIsSearchOpen(false)}
+          isOpen={searchModalConfig.isOpen}
+          initialQuery={searchModalConfig.initialQuery}
+          onClose={() =>
+            setSearchModalConfig({ isOpen: false, initialQuery: '' })
+          }
           items={items}
           googleEvents={googleEvents}
+          people={people}
           onItemClick={openDetailModal}
+          onPersonClick={handleOpenPerson}
         />
       )}
 
@@ -452,11 +582,15 @@ function AppMain() {
         isOpen={detailModalConfig.isOpen}
         item={detailModalConfig.item}
         initialValues={detailModalConfig.initialValues}
+        onSaved={handleDetailModalSaved}
+        onPersonClick={(personId) => handleOpenPerson(personId)}
+        onTagClick={(tag) => openSearchModal(`#${tag}`)}
         onClose={() =>
           setDetailModalConfig({
             isOpen: false,
             item: null,
             initialValues: null,
+            pendingSparkId: null,
           })
         }
       />

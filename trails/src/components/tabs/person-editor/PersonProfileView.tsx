@@ -28,6 +28,7 @@ interface PersonProfileViewProps {
   pieceMenuRef: RefObject<HTMLDivElement>;
   onOpenPhotos: () => void;
   onOpenAddPiece: () => void;
+  onSelectTimelinePiece?: (piece: LinkedTimelinePiece) => void;
   onEditTimelinePiece: (piece: LinkedTimelinePiece) => void;
   onTimelinePieceAction: (
     piece: LinkedTimelinePiece,
@@ -48,6 +49,7 @@ export default function PersonProfileView({
   pieceMenuRef,
   onOpenPhotos,
   onOpenAddPiece,
+  onSelectTimelinePiece,
   onEditTimelinePiece,
   onTimelinePieceAction,
 }: PersonProfileViewProps) {
@@ -186,21 +188,43 @@ export default function PersonProfileView({
                       className="absolute left-0 top-1 h-4 w-4 rounded-full border-[3px] border-primary-400 bg-white"
                     />
                     <article className="flex items-start justify-between gap-2 border-b border-gray-100 pb-4 pl-1 pt-0.5 last:border-0">
-                      <div className="min-w-0 flex-1">
-                        <p className="mb-1 text-xs font-semibold text-primary-700">
-                          {piece.start_date
-                            ? getDateFullString(piece.start_date, 'hyphen')
-                            : '日付未設定'}
-                        </p>
-                        <h4 className="font-bold text-gray-900">
-                          {piece.title}
-                        </h4>
-                        {piece.note && (
-                          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
-                            {piece.note}
+                      {onSelectTimelinePiece ? (
+                        <button
+                          type="button"
+                          onClick={() => onSelectTimelinePiece(piece)}
+                          className="min-w-0 flex-1 rounded-xl p-1.5 -m-1.5 text-left transition-colors hover:bg-primary-50/60"
+                        >
+                          <p className="mb-1 text-xs font-semibold text-primary-700">
+                            {piece.start_date
+                              ? getDateFullString(piece.start_date, 'hyphen')
+                              : '日付未設定'}
                           </p>
-                        )}
-                      </div>
+                          <h4 className="font-bold text-gray-900">
+                            {piece.title}
+                          </h4>
+                          {piece.note && (
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+                              {piece.note}
+                            </p>
+                          )}
+                        </button>
+                      ) : (
+                        <div className="min-w-0 flex-1">
+                          <p className="mb-1 text-xs font-semibold text-primary-700">
+                            {piece.start_date
+                              ? getDateFullString(piece.start_date, 'hyphen')
+                              : '日付未設定'}
+                          </p>
+                          <h4 className="font-bold text-gray-900">
+                            {piece.title}
+                          </h4>
+                          {piece.note && (
+                            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-gray-600">
+                              {piece.note}
+                            </p>
+                          )}
+                        </div>
+                      )}
                       <div
                         className="relative -mt-1 shrink-0"
                         ref={isMenuOpen ? pieceMenuRef : null}

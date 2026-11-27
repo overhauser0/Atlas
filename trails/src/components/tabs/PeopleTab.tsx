@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ContactRound,
   Image,
@@ -10,67 +10,53 @@ import {
   UsersRound,
   X,
 } from 'lucide-react';
-import { Person } from '@/types';
-import { atlasFetch } from '@atlas/shared/api';
+import { LifeItem, Person } from '@/types';
 import { formatPersonName, formatPersonRuby } from '@/utils/person';
 import PageHeader from '@/components/ui/PageHeader';
 import PersonEditor from '@/components/tabs/PersonEditor';
 
 const japaneseCollator = new Intl.Collator('ja', { sensitivity: 'base' });
 
-export default function PeopleTab() {
-  const [people, setPeople] = useState<Person[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+interface PeopleTabProps {
+  people: Person[];
+  isLoading: boolean;
+  error: string | null;
+  onRefresh: () => Promise<void>;
+  initialPersonId?: string | null;
+  onClearInitialPersonId?: () => void;
+  items?: LifeItem[];
+  onOpenPiece?: (item: LifeItem) => void;
+}
+
+export default function PeopleTab({
+  people,
+  isLoading,
+  error,
+  onRefresh,
+  initialPersonId = null,
+  onClearInitialPersonId,
+  items = [],
+  onOpenPiece,
+}: PeopleTabProps) {
   const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
   const [isPersonViewOpen, setIsPersonViewOpen] = useState(false);
   const [nameQuery, setNameQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
-  const fetchPeople = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const response = await atlasFetch('/people', { method: 'GET' });
-      if (!response.ok) {
-        throw new Error(`人物一覧の取得に失敗しました (${response.status})`);
-      }
-
-      const data: { people: Person[] } = await response.json();
-      if (!Array.isArray(data.people)) {
-        throw new Error('人物一覧のレスポンス形式が正しくありません');
-      }
-      setPeople(data.people);
-    } catch (fetchError) {
-      console.error('Failed to fetch people:', fetchError);
-      setError(
-        fetchError instanceof Error
-          ? fetchError.message
-          : '人物一覧の取得に失敗しました',
-      );
-    } finally {
-      setIsLoading(false);
+  useEffect(() => {
+    if (!initialPersonId) return;
+    const match = people.find((person) => person.id === initialPersonId);
+    if (match) {
+      setSelectedPerson(match);
+      setIsPersonViewOpen(true);
+      onClearInitialPersonId?.();
     }
-  }, []);
-
-  useEffect(() => {
-    void fetchPeople();
-  }, [fetchPeople]);
-
-  useEffect(() => {
-    const handleRefreshPeople = () => {
-      void fetchPeople();
-    };
-
-    window.addEventListener('refresh_people', handleRefreshPeople);
-    return () => {
-      window.removeEventListener('refresh_people', handleRefreshPeople);
-    };
-  }, [fetchPeople]);
+  }, [initialPersonId, people, onClearInitialPersonId]);
 
   const closePersonView = () => {
     setIsPersonViewOpen(false);
     setSelectedPerson(null);
+    onClearInitialPersonId?.();
   };
 
   const availableTags = Array.from(
@@ -112,9 +98,12 @@ export default function PeopleTab() {
     return (
       <PersonEditor
         person={selectedPerson}
+        items={items}
+        onOpenPiece={onOpenPiece}
         onClose={closePersonView}
         onSaved={(savedPerson) => {
           if (savedPerson) setSelectedPerson(savedPerson);
+          void onRefresh();
         }}
       />
     );
@@ -130,7 +119,7 @@ export default function PeopleTab() {
           <>
             <button
               type="button"
-              onClick={() => void fetchPeople()}
+              onClick={() => void onRefresh()}
               disabled={isLoading}
               aria-label="人物一覧を更新"
               className="trails-nav-icon-btn"
@@ -166,7 +155,7 @@ export default function PeopleTab() {
             <p className="text-sm text-red-600">{error}</p>
             <button
               type="button"
-              onClick={() => void fetchPeople()}
+              onClick={() => void onRefresh()}
               className="mt-4 text-sm font-bold text-primary-600 hover:text-primary-700"
             >
               再試行

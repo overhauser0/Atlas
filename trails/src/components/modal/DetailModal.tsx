@@ -19,6 +19,8 @@ import {
   Info,
   CheckSquare,
   FileText,
+  Clock,
+  UsersRound,
 } from 'lucide-react';
 import { LifeItem, Person } from '@/types';
 import { atlasFetch } from '@atlas/shared/api';
@@ -44,6 +46,9 @@ interface Props {
   onClose: () => void;
   item: Partial<LifeItem> | null;
   initialValues?: Partial<LifeItem> | null;
+  onSaved?: () => void | Promise<void>;
+  onPersonClick?: (personId: string) => void;
+  onTagClick?: (tag: string) => void;
 }
 
 export default function DetailModal({
@@ -51,6 +56,9 @@ export default function DetailModal({
   onClose,
   item,
   initialValues,
+  onSaved,
+  onPersonClick,
+  onTagClick,
 }: Props) {
   const { addToast } = useToast();
 
@@ -329,6 +337,7 @@ export default function DetailModal({
         throw new Error(errorBody?.message || `Save failed (${res.status})`);
       }
 
+      await onSaved?.();
       onClose();
     } catch (e) {
       console.error('Update failed', e);
@@ -343,6 +352,7 @@ export default function DetailModal({
     isSaveBtnNeeds,
     item,
     formData,
+    onSaved,
     onClose,
     addToast,
   ]);
@@ -687,14 +697,29 @@ export default function DetailModal({
         <div className="flex flex-wrap items-center gap-2">
           {linkedPeople.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {linkedPeople.map((person) => (
-                <span
-                  key={person.id}
-                  className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600"
-                >
-                  {formatPersonName(person)}
-                </span>
-              ))}
+              {linkedPeople.map((person) =>
+                onPersonClick ? (
+                  <button
+                    key={person.id}
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onPersonClick(person.id);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200/80 bg-gray-50 px-2.5 py-1.5 text-xs font-semibold text-gray-700 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    <UsersRound className="h-3.5 w-3.5 text-primary-500" />
+                    {formatPersonName(person)}
+                  </button>
+                ) : (
+                  <span
+                    key={person.id}
+                    className="rounded-lg bg-gray-50 px-2.5 py-1.5 text-xs text-gray-600"
+                  >
+                    {formatPersonName(person)}
+                  </span>
+                ),
+              )}
             </div>
           )}
           <button
@@ -1088,31 +1113,53 @@ export default function DetailModal({
 
           {renderSourceToggle()}
 
-          {/* Date & Status */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 min-w-0">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Calendar className="w-4 h-4 text-gray-400" />
+          {/* Date, Time & Status */}
+          <div className="flex flex-col gap-2.5">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 min-w-0">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Calendar className="w-4 h-4 text-gray-400" />
+                </div>
+                <input
+                  aria-label="Date"
+                  type="date"
+                  value={formData.start_date?.slice(0, 10) || ''}
+                  onChange={(e) => {
+                    const nextDate = e.target.value || null;
+                    setFormData((prev) => ({
+                      ...prev,
+                      start_date: nextDate,
+                      ...(!nextDate
+                        ? { start_time: null, end_date: null, end_time: null }
+                        : {}),
+                    }));
+                  }}
+                  className="w-full min-w-0 box-border appearance-none bg-gray-50 py-3 pl-9 pr-2 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
+                />
               </div>
-              <input
-                aria-label="Date"
-                type="date"
-                value={formData.start_date?.slice(0, 10) || ''}
-                onChange={(e) => {
-                  const nextDate = e.target.value || null;
-                  setFormData((prev) => ({
-                    ...prev,
-                    start_date: nextDate,
-                    ...(!nextDate
-                      ? { start_time: null, end_date: null, end_time: null }
-                      : {}),
-                  }));
-                }}
-                className="w-full min-w-0 box-border appearance-none bg-gray-50 py-3 pl-9 pr-2 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
-              />
+
+              {renderStatusSelect()}
             </div>
 
-            {renderStatusSelect()}
+            {formData.start_date && (
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                </div>
+                <input
+                  aria-label="Start Time"
+                  type="time"
+                  value={startTimeInput}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      start_time: e.target.value || null,
+                    }))
+                  }
+                  className="w-full min-w-0 box-border appearance-none bg-gray-50 py-2.5 pl-9 pr-3 rounded-xl text-sm text-gray-700 font-medium focus:outline-none border border-gray-100"
+                />
+              </div>
+            )}
           </div>
 
           {/* Type */}
@@ -1156,11 +1203,25 @@ export default function DetailModal({
           {/* fkw array */}
           {formData.fkw && formData.fkw.length > 0 && (
             <div className="flex flex-wrap gap-2 mt-2">
-              {formData.fkw.map((tag) => (
-                <span key={tag} className="trails-badge">
-                  #{tag}
-                </span>
-              ))}
+              {formData.fkw.map((tag) =>
+                onTagClick ? (
+                  <button
+                    key={tag}
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onTagClick(tag);
+                    }}
+                    className="trails-badge transition-colors hover:bg-primary-50 hover:text-primary-700"
+                  >
+                    #{tag}
+                  </button>
+                ) : (
+                  <span key={tag} className="trails-badge">
+                    #{tag}
+                  </span>
+                ),
+              )}
             </div>
           )}
         </div>

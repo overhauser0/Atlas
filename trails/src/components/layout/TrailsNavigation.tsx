@@ -23,6 +23,7 @@ import {
   Notebook,
   ChevronDown,
   ChevronRight,
+  Zap,
 } from 'lucide-react';
 import type { ItemTabPreset, Views } from '@/types';
 
@@ -53,6 +54,7 @@ const PIECE_TABS: {
 ];
 
 const LIBRARY_TABS = [
+  { id: 'Sparks' as const, label: 'Sparks', icon: <Zap /> },
   { id: 'Diary' as const, label: 'Diary', icon: <Notebook /> },
   { id: 'People' as const, label: 'People', icon: <UsersRound /> },
   { id: 'Photo' as const, label: 'Immich', icon: <Aperture /> },
@@ -60,6 +62,7 @@ const LIBRARY_TABS = [
 
 interface TrailsDesktopSidebarProps {
   currentTab: Views;
+  sparksCount?: number;
   isCalendarGroupOpen: boolean;
   isPieceGroupOpen: boolean;
   onToggleCalendarGroup: () => void;
@@ -70,6 +73,7 @@ interface TrailsDesktopSidebarProps {
 
 export function TrailsDesktopSidebar({
   currentTab,
+  sparksCount = 0,
   isCalendarGroupOpen,
   isPieceGroupOpen,
   onToggleCalendarGroup,
@@ -156,6 +160,11 @@ export function TrailsDesktopSidebar({
               key={tab.id}
               icon={tab.icon}
               label={tab.label}
+              badge={
+                tab.id === 'Sparks' && sparksCount > 0
+                  ? String(sparksCount)
+                  : undefined
+              }
               isActive={currentTab === tab.id}
               onClick={() => onTabChange(tab.id)}
             />
@@ -224,12 +233,14 @@ export function TrailsMobileBottomNav({
 
 interface TrailsMoreSheetProps {
   currentTab: Views;
+  sparksCount?: number;
   onTabChange: (tab: Views) => void;
   onClose: () => void;
 }
 
 export function TrailsMoreSheet({
   currentTab,
+  sparksCount = 0,
   onTabChange,
   onClose,
 }: TrailsMoreSheetProps) {
@@ -335,15 +346,16 @@ export function TrailsMoreSheet({
           <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1 mb-2">
             Library
           </p>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {LIBRARY_TABS.map((tab) => {
               const isActive = currentTab === tab.id;
+              const badgeCount = tab.id === 'Sparks' ? sparksCount : 0;
               return (
                 <button
                   key={tab.id}
                   type="button"
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex flex-col items-center justify-center gap-1.5 px-2 py-3 rounded-2xl border transition-colors ${
+                  className={`relative flex items-center justify-center gap-2.5 px-3 py-3 rounded-2xl border transition-colors ${
                     isActive
                       ? 'bg-primary-50 border-primary-200 text-primary-700'
                       : 'bg-gray-50 border-gray-100 text-gray-700 active:bg-gray-100'
@@ -351,12 +363,21 @@ export function TrailsMoreSheet({
                 >
                   <div
                     className={`w-5 h-5 [&>svg]:w-full [&>svg]:h-full ${
-                      isActive ? 'text-primary-600' : 'text-gray-500'
+                      isActive
+                        ? 'text-primary-600'
+                        : tab.id === 'Sparks'
+                          ? 'text-primary-500'
+                          : 'text-gray-500'
                     }`}
                   >
                     {tab.icon}
                   </div>
                   <span className="text-xs font-bold">{tab.label}</span>
+                  {badgeCount > 0 && (
+                    <span className="rounded-full bg-primary-500 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                      {badgeCount}
+                    </span>
+                  )}
                 </button>
               );
             })}

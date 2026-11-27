@@ -2,6 +2,7 @@ import type {
   ConsumeSparksBulkInput,
   SparkInput,
   SparkTargetDateQuery,
+  UpdateSparkInput,
 } from '../models/spark.model';
 import * as sparkRepository from '../repositories/spark.repository';
 import { broadcast } from '../utils/websocket';
@@ -46,11 +47,29 @@ export const createSpark = async (spark: SparkInput) => {
   const targetDate =
     spark.target_date ?? getTargetDateFromRecordedAt(spark.recorded_at);
 
-  return await sparkRepository.createSpark({
+  const created = await sparkRepository.createSpark({
     ...spark,
     discord_message_id: spark.discord_message_id ?? null,
     target_date: targetDate,
   });
+  if (created) {
+    broadcast(JSON.stringify({ type: 'REFRESH_SPARKS' }));
+  }
+  return created;
+};
+
+/** Sparkの内容・日時を更新する。recorded_at変更時にtarget_date未指定なら自動再計算する。 */
+export const updateSpark = async (id: string, updates: UpdateSparkInput) => {
+  const nextUpdates = { ...updates };
+  if (nextUpdates.recorded_at !== undefined && nextUpdates.target_date === undefined) {
+    nextUpdates.target_date = getTargetDateFromRecordedAt(nextUpdates.recorded_at);
+  }
+
+  const updated = await sparkRepository.updateSpark(id, nextUpdates);
+  if (updated) {
+    broadcast(JSON.stringify({ type: 'REFRESH_SPARKS' }));
+  }
+  return updated;
 };
 
 /** Sparkを消化済みにする。 */
@@ -75,7 +94,11 @@ export const consumeSparksBulk = async ({
 
 /** Sparkを物理削除する。 */
 export const deleteSpark = async (id: string) => {
-  return await sparkRepository.deleteSpark(id);
+  const deleted = await sparkRepository.deleteSpark(id);
+  if (deleted) {
+    broadcast(JSON.stringify({ type: 'REFRESH_SPARKS' }));
+  }
+  return deleted;
 };
 
 /** n8n Webhookを実行してDiscordからSparksを同期し、完了後にWSで通知する。 */
